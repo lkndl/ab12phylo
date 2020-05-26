@@ -88,11 +88,11 @@ def _view(*args):
         args = args[0]
     # parse to get default paths
     namespace = cli.parser(args, view=True).args
-    _tree_view(namespace.dir)
+    tree_view(namespace.dir)
     print('BYE!')
 
 
-def _tree_view(_dir):
+def tree_view(_dir):
     """
     Opens a result page and starts a CGI server
     :param _dir:
@@ -116,7 +116,7 @@ def _tree_view(_dir):
 
 class tree_build:
     """
-    Tree visualization based on toytree and toyplot. Also calls _tree_view()
+    Tree visualization based on toytree and toyplot. Also calls tree_view()
     """
 
     def __init__(self, _args):
@@ -179,7 +179,7 @@ class tree_build:
             self.log.debug('rendered w/ msa in %.2f sec' % (time() - start))
 
         self._write_html(render_dict, preview, ccanvas, rcanvas, tree_no_msa)
-        _tree_view(self.args.dir)
+        tree_view(self.args.dir)
 
     def _preview_topology(self):
         """
