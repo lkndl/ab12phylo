@@ -1,0 +1,7 @@
+# The $ indicates this path is relative to the installation root. 
+# This is a test file; in general, use absolute paths only.
+
+$tomoldo/test_data/ABI_trace_files/FN_pl1_01_ITS1F_A01_1.ab1
+$tomoldo/test_data/ABI_trace_files/FN_pl1_01_ITS1F_A01_1.copy.ab1
+$tomoldo/test_data/ABI_trace_files/FN_pl1_01_ITS1F_A01_1.damaged.ab1
+

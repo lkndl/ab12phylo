@@ -1,0 +1,380 @@
+#!/usr/sbin/perl
+
+# Copyright (C) 1997-2020 Nigel P. Brown
+
+# This file is part of MView.
+# MView is released under license GPLv2, or any later version.
+
+###########################################################################
+# Release information
+###########################################################################
+my $VERSION  = '1.67';
+my $PATCH    = '';
+my $PROJECT  = 'MView';
+my $AUTHOR   = "Nigel P. Brown";
+my $VERSION  = $VERSION . ($PATCH ? ".$PATCH" : "");
+my $COPYYRS  = "1997-2020";
+my $PROJPTH  = 'https://desmid.github.io/mview/';
+my $AUTHMAIL = 'biomview@gmail.com';
+
+###########################################################################
+require 5.004;
+
+$^W = 1;
+
+BEGIN {
+    $MVIEW_HOME = "/home/quirin/PYTHON/BA/tomoldo/tools/mview-1.67";
+    $MVIEW_HOME = $ENV{'MVIEW_HOME'}  if exists $ENV{'MVIEW_HOME'};
+    $MVIEW_LIB = "$MVIEW_HOME/lib";
+}
+
+use lib $MVIEW_LIB;
+
+use Bio::Util::File qw(basename tmpfile);
+use Bio::Util::System qw(vmstat);
+use Bio::MView::Option::Arguments;
+use Bio::MView::Option::Parser;
+use Bio::MView::Display::Display;
+use Bio::MView::Manager;
+use strict;
+
+###########################################################################
+my $PROG = basename($0);
+my $TMPFILE = tmpfile();
+my $INVOCATION = "$PROG @ARGV";
+
+###########################################################################
+my ($VERB_NONE, $VERB_FILE, $VERB_ARGV, $VERB_FORM, $VERB_OPTS) =
+    (0,1,2,4,8);
+
+sub verbose_echo_file       { return $_[0]->{'verbose'} & $VERB_FILE }
+sub verbose_echo_argv       { return $_[0]->{'verbose'} & $VERB_ARGV }
+sub verbose_echo_informat   { return $_[0]->{'verbose'} & $VERB_FORM }
+sub verbose_dump_parameters { return $_[0]->{'verbose'} & $VERB_OPTS }
+
+sub want_text               { return $_[0]->{'html'} == $HTML_NONE }
+sub want_html               { return $_[0]->{'html'} != $HTML_NONE }
+sub want_html_body          { return $_[0]->{'html'} &  $HTML_BODY }
+sub want_html_head          { return $_[0]->{'html'} &  $HTML_HEAD }
+sub want_html_full          { return $_[0]->{'html'} &  $HTML_FULL }
+sub only_want_html_data     { return $_[0]->{'html'} == $HTML_DATA }
+
+sub want_convert_rdb        { return $_[0]->{'outfmt'} eq 'rdb' }
+sub want_mview_layout       { return $_[0]->{'outfmt'} eq 'mview' }
+
+sub want_leading_copyright  { return want_convert_rdb(@_) }
+sub want_trailing_copyright { return (want_mview_layout(@_) and
+                                      ! only_want_html_data(@_)) }
+
+sub want_help               { return $_[0]->{'help'} }
+sub want_dump_css           { return $_[0]->{'listcss'} }
+sub want_dump_colors        { return $_[0]->{'listcolors'} }
+sub want_dump_groups        { return $_[0]->{'listgroups'} }
+sub want_title              { return $_[0]->{'title'} ne '' }
+sub want_srs                { return $_[0]->{'srs'} }
+sub want_css                { return $_[0]->{'css1'} }
+sub want_in_register        { return $_[0]->{'register'} }
+
+###########################################################################
+sub cleanup { unlink "$TMPFILE"  if -f "$TMPFILE" }
+
+sub abort {
+    foreach my $e (@_) {
+        warn "$PROG: $e\n";
+    }
+    warn "$PROG: aborting\n";
+    cleanup;
+    exit 1;
+}
+
+$SIG{'INT'} = sub { abort("interrupted") };
+
+###########################################################################
+#parse default options and command line
+my $com = new Bio::MView::Option::Parser($PROG);
+my @err = $com->parse_argv(\@ARGV);
+my $par = $com->get_parameters;
+
+dump_parameters($par)  if verbose_dump_parameters($par);
+
+print(usage($com, $par)), exit 0     if want_help($par);
+
+abort(@err)                          if @err;
+
+print(dump_colormaps($par)), exit 0  if want_dump_colors($par);
+print(dump_groupmaps($par)), exit 0  if want_dump_groups($par);
+print(dump_css($par)), exit 0        if want_dump_css($par);
+
+print(html_head($par))               if want_html($par);
+
+print(echo_argv($par))               if verbose_echo_argv($par);
+
+print(copyright($par))               if want_leading_copyright($par);
+
+capture_stdin($TMPFILE)              unless @ARGV;
+
+my $count = mview($par, @ARGV);
+
+if ($count) {  #got something
+    print copyright($par)            if want_trailing_copyright($par);
+} else {
+    my $s = "$PROG: no alignments found\n";
+    print $s                         unless only_want_html_data($par);
+    warn $s;
+}
+
+print html_foot($par)                if want_html($par);
+
+cleanup;
+
+exit 0;
+
+###########################################################################
+sub mview {
+    my $par = shift;
+
+    my $labelflags = consolidate_labelflags($par);
+
+    #vmstat("mview: call Manager constructor");
+    my $dis = new Bio::MView::Display::Display(
+        'html'       => $par->{'html'},
+        'bold'       => $par->{'bold'},
+        'width'      => $par->{'width'},
+        'css1'       => $par->{'css1'},
+        'alncolor'   => $par->{'alncolor'},
+        'labcolor'   => $par->{'labcolor'},
+        'linkcolor'  => $par->{'linkcolor'},
+        'alinkcolor' => $par->{'alinkcolor'},
+        'vlinkcolor' => $par->{'vlinkcolor'},
+        'register'   => $par->{'register'},
+        'sequences'  => $par->{'sequences'},
+        'labelflags' => $labelflags,
+        'stream'     => \*STDOUT,
+        );
+
+    my $mgr = new Bio::MView::Manager($dis);
+
+    my $check_format = $par->{'infmt'} ? 0 : 1;
+
+    foreach my $file (@_) {
+        warn("$PROG: file '$file' does not exist\n"),  next  unless -e $file;
+        warn("$PROG: file '$file' is not a file\n"),   next  unless -f $file;
+        warn("$PROG: file '$file' is not readable\n"), next  unless -r $file;
+
+        warn "$PROG: processing '$file'\n"  if verbose_echo_file($par);
+
+        #try to choose a format if one wasn't specified
+        if ($check_format) {
+            my $format = Bio::MView::Manager::check_input_file($file);
+            warn("$PROG: can't determine format\n"), next
+                unless defined $format;
+            warn "$PROG: format is probably '$format'\n"
+                if verbose_echo_informat($par);
+            $par->{'infmt'} = $format;
+        }
+
+        unless ($mgr->parse($file, $par->{'infmt'})) {
+            warn "$PROG: can't parse file '$file'\n";
+        }
+        #vmstat("mview: Manager.parse file '$file' done");
+    }
+    #vmstat("mview: Manager.parse all files done");
+
+    #saved output until end?
+    if (want_in_register($par) and want_mview_layout($par)) {
+        $dis->render;
+        #vmstat("mview: in register render done");
+    }
+    return $mgr->get_alignment_count;
+}
+
+sub usage {
+    my ($com, $par) = @_;
+    $par->{'title'} = 'MView command line options';
+    my $data = $com->usage();
+    my $s = '';
+    if (want_html($par)) {
+        $s .= html_head($par);
+        $s .= "<HR><PRE>\n$data</PRE><HR>\n";
+        $s .= copyright($par);
+        $s .= html_foot($par);
+    } else {
+        $s .= $data;
+        $s .= copyright($par);
+    }
+    return $s;
+}
+
+sub capture_stdin {
+    my $file = shift;
+    warn "$PROG: reading from standard input (Ctrl-C to cancel)\n";
+    open(TMP, "> $file") or abort("can't save to temporary file");
+    while (<>) { print TMP }
+    close TMP;
+    push @ARGV, $file;
+}
+
+sub consolidate_labelflags {
+    my $par = shift;
+    my @labelflags = ();
+    for (my $i=0; 1; $i++) {
+        my $key = "label$i";
+        last  unless defined $par->{$key};
+        push @labelflags, $par->{$key};
+    }
+    return \@labelflags;
+}
+
+sub dump_css {
+    my $par = shift;
+    return Bio::MView::Manager::dump_css($par);
+}
+
+sub dump_colormaps {
+    my $par = shift;
+    my $data = Bio::MView::Manager::dump_colormaps(want_html($par));
+    my $s = '';
+    if (want_html($par)) {
+        $s .= html_head($par);
+        $s .= "<HR><PRE>\n$data</PRE><HR>\n";
+        $s .= copyright($par);
+        $s .= html_foot($par);
+    } else {
+        $s .= $data;
+        $s .= copyright($par);
+    }
+    return $s;
+}
+
+sub dump_groupmaps {
+    my $par = shift;
+    my $data = Bio::MView::Manager::dump_groupmaps(want_html($par));
+    my $s = '';
+    if (want_html($par)) {
+        $s .= html_head($par);
+        $s .= "<HR><PRE>\n$data</PRE><HR>\n";
+        $s .= copyright($par);
+        $s .= html_foot($par);
+    } else {
+        $s .= $data;
+        $s .= copyright($par);
+    }
+    return $s;
+}
+
+sub echo_argv {
+    my ($par) = @_;
+    my $data = $par->{'argv'};
+    $data =~ s/\-+v[a-z]*[=\s]+\S+\s*//g;
+    my $s = '';
+    if (want_html($par)) {
+        $s .= "<H4>command line:</H4>\n<CODE>";
+        $s .= "$PROG @$data";
+        $s .= "</CODE>\n<H4>produced:</H4>\n";
+    } else {
+        $s .= "command line:\n";
+        $s .= "$PROG @$data\n";
+        $s .= "produced:\n\n";
+    }
+    return $s;
+}
+
+sub copyright {
+    my $par = shift;
+    my $message = "$PROJECT $VERSION, Copyright (C) $COPYYRS $AUTHOR";
+
+    return "# $message\n"                 if want_dump_colors($par);
+    return "# $message\n"                 if want_dump_groups($par);
+    return "# $message\n# $INVOCATION\n"  if want_convert_rdb($par);
+    return "$message\n\n"                 if want_text($par);
+
+    my $s = "<P><SMALL><A HREF=\"$PROJPTH\">$PROJECT</A> ";
+    $s .= "$VERSION, Copyright \&copy; ";
+    $s .= "$COPYYRS <A HREF=\"mailto:$AUTHMAIL\">$AUTHOR</A>";
+    $s .= "</SMALL></P>\n";
+    return $s;
+}
+
+sub html_head {
+    my $par = shift;
+    my $s = '';
+    return $s  if only_want_html_data($par);
+
+    my $DOCTYPE = '<!DOCTYPE html>';
+    my $DOCMETA = '<META http-equiv="Content-Type" content="text/html; charset=utf-8"/>';
+
+    my $title = want_title($par) ? $par->{'title'} : "MView";
+
+    $s .= "Content-Type: text/html\n\n"  if want_html_full($par);
+
+    #http://www.w3.org/TR/REC-CSS1#containment-in-html
+    if (want_html_head($par)) {
+        $s .= "$DOCTYPE\n<HTML>\n";
+        my $m = "$DOCMETA\n";
+        $m .= html_head_stylesheet_links($par)  if want_srs($par);
+        $m .= html_head_stylesheet_css($par)    if want_css($par);
+        $m .= "<TITLE>$title</TITLE>\n";        #in tab/titlebar
+        $s .= "<HEAD>\n$m</HEAD>\n";
+    }
+
+    if (want_html_body($par)) {
+        my $pagecolor = $par->{'pagecolor'};
+        my $textcolor = $par->{'textcolor'};
+        $s .= "<BODY style=\"background-color:$pagecolor;color:$textcolor\">\n";
+    }
+
+    $s .= "<H4>$title</H4>\n"  if want_title($par);  #in document
+
+    return $s;
+}
+
+sub html_head_stylesheet_links {
+    my $par = shift;
+    my $linkcolor  = $par->{'linkcolor'};
+    my $alinkcolor = $par->{'alinkcolor'};
+    my $vlinkcolor = $par->{'vlinkcolor'};
+    my $s .= "<STYLE TYPE=\"text/css\">\n<!--\n";
+    $s .= "A:link{background:transparent;color:$linkcolor}\n";
+    $s .= "A:active{background:transparent;color:$alinkcolor}\n";
+    $s .= "A:visited{background:transparent;color:$vlinkcolor}\n";
+    $s .= "-->\n</STYLE>\n";
+    return $s;
+}
+
+sub html_head_stylesheet_css {
+    my $par = shift;
+    my $css1 = $par->{'css1'};
+    my $s = '';
+    if ($css1 =~ /^(?:file|http):/i) {  #link to style sheet
+        $s .= "<LINK REL=STYLESHEET HREF=\"$css1\">\n";
+    } else {  #style sheet in situ
+        $s .= "<STYLE TYPE=\"text/css\">\n<!--\n";
+        $s .= dump_css($par);
+        $s .= "-->\n</STYLE>\n";
+    }
+    return $s;
+}
+
+sub html_foot {
+    my $par = shift;
+    my $s = '';
+    return $s  if only_want_html_data($par);
+    $s .= "</BODY>\n"  if want_html_body($par);
+    $s .= "</HTML>\n"  if want_html_head($par);
+    return $s;
+}
+
+sub dump_parameters {
+    my $par = shift;
+    warn "\nProcessed parameters:\n";
+    foreach my $k (sort keys %$par) {
+        my $v = 'undef';
+        $v = $par->{$k}  if defined $par->{$k};
+        $v = "[" . join(",", @$v) . "]"  if ref $v eq 'ARRAY';
+        warn sprintf("%-20s => %s\n", $k, $v);
+    }
+    warn "\n";
+}
+
+
+###########################################################################

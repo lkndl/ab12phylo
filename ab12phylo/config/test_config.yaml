@@ -1,0 +1,49 @@
+## --DO NOT EDIT--
+## Use neighbouring config.yaml instead. Its contents are per
+## default identical. This file is used if '-test' flag is set.
+
+
+
+
+
+## [I/O]
+abi_dir: $ab12phylo/test_data
+#abi_set: $ab12phylo/test_data/file_set
+#sample_set: $ab12phylo/test_data/sample_set
+csv_dir: $ab12phylo/test_data
+dir: ab12phylo_test_results
+#genes: ITS1F, OPA10, EndoPG  # first entry used for BLAST+ -> prefer ITS1F
+ref: $ab12phylo/test_data/ITS1F.fasta # separate multiple entries with comma: R1, R2, R3
+#ref_dir:
+
+## [quality]
+min_phred: 30
+bad_stretch: 5
+end_ratio: 8/10
+
+## [BLAST]
+no_BLAST: False # "True" -> {bool} True, anything else -> {bool} False.
+no_remote: True
+db: ITS_RefSeq_Fungi
+#dbpath: $blastdb   # will also disable updates
+
+## [MSA]
+msa_algo: mafft  # [mafft, clustalo, muscle, tcoffee]
+user: leo.kaindl@tum.de
+gblocks: skip  # [skip, relaxed, strict] MSA trimming
+
+## [raxml]
+start_trees: [10,10]  # [random,parsimony-based]
+bootstrap: 20
+metric: TBE  # [FBP, TBE]
+threshold: .7  # of best possible score
+min_dist: .05  # minimal distance in tree
+evomodel: GTR+G  # no checks!
+#seed:
+replace: False  # if True, identical seqs will share one TreeNode
+
+## [misc]
+verbose: False
+msa_viz: False
+headless: False
+

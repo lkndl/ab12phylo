@@ -1,0 +1,49 @@
+## --READ FIRST--
+## Uncommenting a line will activate the option in this line.
+## If this option was already set by the command line, its
+## argument will remain unchanged.
+## A leading '$' indicates this is a relative path from the
+## package root. Remove the $ to for paths relative to the
+## current working directory or absolute paths.
+
+## [I/O]
+abi_dir: $ab12phylo/test_data
+#abi_set: $ab12phylo/test_data/file_set
+#sample_set: $ab12phylo/test_data/sample_set
+csv_dir: $ab12phylo/test_data
+dir: results
+#genes: ITS1F, OPA10, EndoPG  # first entry used for BLAST+ -> prefer ITS1F
+ref: $ab12phylo/test_data/ITS1F.fasta # separate multiple entries with comma: R1, R2, R3
+#ref_dir:
+
+## [quality]
+min_phred: 30
+bad_stretch: 5
+end_ratio: 8/10
+
+## [BLAST]
+no_BLAST: False # "True" -> {bool} True, anything else -> {bool} False.
+no_remote: False #True
+db: ITS_RefSeq_Fungi
+#dbpath: $blastdb   # will also disable updates
+
+## [MSA]
+msa_algo: mafft  # [mafft, clustalo, muscle, tcoffee]
+user: leo.kaindl@tum.de
+gblocks: skip  # [skip, relaxed, strict] MSA trimming
+
+## [raxml]
+start_trees: [10,10]  # [random,parsimony-based]
+bootstrap: 40
+metric: TBE  # [FBP, TBE]
+threshold: .7  # of best possible score
+min_dist: .05  # minimal distance in tree
+evomodel: GTR+G  # no checks!
+#seed:
+replace: False  # if True, identical seqs will share one TreeNode
+
+## [misc]
+verbose: False
+msa_viz: False
+headless: False
+
