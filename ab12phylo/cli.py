@@ -7,7 +7,7 @@ Arguments will be saved as an :class:`argparse.Namespace` object and directly ac
 :class:`main` module. Additionally, this module initiates logging.
 """
 __author__ = ('Leo Kaindl (leo.kaindl@tum.de)')
-__version__ = '0.0.11dev'
+__version__ = '0.1a.1'
 __date__ = '26 May 2020'
 
 import os

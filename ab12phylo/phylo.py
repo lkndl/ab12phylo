@@ -128,8 +128,6 @@ class tree_build:
         self.args.threshold *= 10
         self.tree_file = _args.final_tree + '_%s.nwk' % _args.metric
 
-        self.template_dir = path.join(path.dirname(__file__), 'templates')
-
         preview = self._preview_topology()
 
         render_dict = self._annotate_msa()
@@ -536,7 +534,7 @@ class tree_build:
         materials['pickle'] = path.abspath(path.join(self.args.dir, 'tree.pickle'))
 
         start = time()
-        template = Template(open(path.join(self.template_dir, 'template.Rmd.html.jinja'), 'r').read())
+        template = Template(open(path.join(path.dirname(__file__), 'template.jinja'), 'r').read())
         html = template.render(materials)
         open(path.join(self.args.dir, 'result.html'), 'w').write(html)
         self.log.debug('rendered output HTML in %.2f sec' % (time() - start))

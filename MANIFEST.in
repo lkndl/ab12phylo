@@ -2,8 +2,6 @@
 # include the license
 include LICENSE.md
 include README.md
-include requirements.txt
-include Pipfile
 
 # include entire package
 graft ab12phylo
@@ -13,4 +11,4 @@ prune ab12phylo/__pycache__
 graft docs
 
 # include dists
-graft tar.gz / wheel
+# graft tar.gz / wheel
