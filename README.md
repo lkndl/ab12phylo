@@ -22,7 +22,7 @@ git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
 conda activate <your_python3_env>
 
 # install external tools
-conda install -c bioconda biopython "blast>=2.9.0" raxml-ng gblocks ete3 mafft clustalo muscle t_coffee
+conda install -c bioconda biopython "blast>=2.9.0" raxml-ng gblocks mafft clustalo muscle t_coffee
 ```
  
  Finally, install AB12PHYLO and all its [python3 dependencies](#dependencies) to `<your_python3_env>` via `pip`:
