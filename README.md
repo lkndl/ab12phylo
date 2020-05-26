@@ -9,66 +9,44 @@ It enables visual, effortless curation of phylogenies and provides population ge
  
 AB12PHYLO is intended for research into plant pathogens and especially *Alternaria*, but future versions might allow species annotation from BLAST databases other than `ITS_RefSeq_Fungi` and unlock its use for plants or other, [real animals](https://xkcd.com/1749/).
 
- ## Testing
+ ## Installation
  
- For testing, the easiest way to install both the package and its external tools is to use a virtual environment *inside* a  python3 [conda](https://docs.conda.io/) environment. If you are testing remotely, [tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) is highly recommended.
+ First, clone the AB12PHYLO repository from GitLab:
  
+```bash
+git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
+```
+[Bioconda](https://anaconda.org/bioconda/repo) makes it easy to install the [external tools](#external-tools), so it is recommended to install AB12PHYLO *inside* a  python3 [conda](https://docs.conda.io/) environment.
+
 ```bash
 conda activate <your_python3_env>
 
-# create
-python3 -m venv <venv_name>
-# activate
-source ./<venv_name>/bin/activate
-
-# download
-git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
-cd ab12phylo
-
-pip install --upgrade pip
-# install
-pip install .
-```
-
-`pip` will install all [python3 dependencies](#dependencies) for you. The [external tools](#external-tools) can be installed to `<your_python3_env>` by running:
-```bash
+# install external tools
 conda install -c bioconda biopython "blast>=2.9.0" raxml-ng gblocks ete3 mafft clustalo muscle t_coffee
 ```
-
-## Installation 
-
-*NOTE: THIS DOESN'T WORK YET!* 
+ 
+ Finally, install AB12PHYLO and all its [python3 dependencies](#dependencies) to `<your_python3_env>` via `pip`:
+ 
+ ```bash
+cd ab12phylo
+pip install --upgrade pip
+pip install .
+```
   
-The recommended way to install AB12PHYLO is from [Bioconda](https://anaconda.org/bioconda/repo):
+If you are running AB12PHYLO remotely, [tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) is highly recommended.  
+AB12PHYLO is not on Bioconda or PyPI.
+ 
 
-```bash
-conda install -c bioconda ab12phylo
-```
-Alternatively, you can install the package from [PyPI](https://pypi.org/search/) with `pip`, though you will then have to install the [external tools](#external-tools) yourself.
+#### Dependencies
 
-```bash
-pip install ab12phylo
-```
+[Biopython](https://biopython.org/wiki/Download), [NumPy](https://numpy.org/), [pandas](https://pandas.pydata.org/docs/getting_started/install.html), [Toytree](https://toytree.readthedocs.io/en/latest/), [Toyplot](https://toyplot.readthedocs.io/en/stable/), [PyYAML](https://pyyaml.org/wiki/PyYAML), [DendroPy](https://dendropy.org/#installing), [Jinja2](https://jinja.palletsprojects.com/en/2.11.x/intro/#installation) and Python3, of course.
 
-Finally, you could also clone the package from its [repository](https://gitlab.lrz.de/leokaindl/ab12phylo) and build your own, install from a wheel or source. 
-This approach is currently described in the [Testing](#testing) section.
+#### External Tools
 
-### Dependencies
-
-* [Python3](https://www.python.org/downloads/)
-* [Biopython](https://biopython.org/wiki/Download)
-* [NumPy](https://numpy.org/)
-* [pandas](https://pandas.pydata.org/docs/getting_started/install.html)
-* [Toytree](https://toytree.readthedocs.io/en/latest/)
-* [Toyplot](https://toyplot.readthedocs.io/en/stable/)
-* [PyYAML](https://pyyaml.org/wiki/PyYAML)
-
-### External Tools
-
-* [BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) (version >=2.9) for species annotation (*required*)
-* [RAxML-NG](https://github.com/amkozlov/raxml-ng/) for phylogenetic tree inference (*optional*)
-* At least one multiple sequence alignment tool: [MAFFT](https://mafft.cbrc.jp/alignment/software/), [Clustal Omega](http://www.clustal.org/omega/), [MUSCLE](https://www.drive5.com/muscle/downloads.htm) or [T-Coffee](http://www.tcoffee.org/Projects/tcoffee/index.html#DOWNLOAD) (*optional*)
-* [Gblocks](http://molevol.cmima.csic.es/castresana/Gblocks.html) for MSA trimming (*optional*)
+* [BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) version >=2.9
+* [RAxML-NG](https://github.com/amkozlov/raxml-ng/) *(optional, currently included)*
+* an MSA tool: [MAFFT](https://mafft.cbrc.jp/alignment/software/), [Clustal Omega](http://www.clustal.org/omega/), [MUSCLE](https://www.drive5.com/muscle/downloads.htm) or [T-Coffee](http://www.tcoffee.org/Projects/tcoffee/index.html#DOWNLOAD) *(optional, **slow** online clients included)*
+* [Gblocks](http://molevol.cmima.csic.es/castresana/Gblocks.html) for MSA trimming *(optional, currently included)*
 
 ## Getting Started
 
@@ -136,36 +114,34 @@ ab12phylo-view <res_folder>
 ```
 Alternatively, you can just append `-visualize` or `-view` to your original `ab12phylo` command.
 
-## Advanced usage
+## Advanced use
 
 #### Config File
 AB12PHYLO comes with its own default config file `<ab12phylo_root>/ab12phylo/config/config.yaml` in [YAML](https://yaml.org/) format. It can be adapted or replaced to ensure consistency and reproducibility, especially if you want to run the pipeline remotely. Don't forget to pass your custom config via `--config` = `-c` if you use one!
 
-#### Seed
-It's a number; and it is primarily meant for RAxML-NG. If you set it yourself via `-s` (otherwise it's random) and also keep the same tree numbers, RAxML-NG will iterate over precisely the same trees and save them in the same files. At least with *that* machine and *that* Python you're running there.
+#### Seed 
+An integer that is used to initialize the python3 random number generator ([RNG](https://docs.python.org/3/library/random.html)) that will be used primarily for RAxML-NG. If you set it yourself via `-s` (otherwise it's, well,  random), runs with the same seed on the same system with identical numbers of ML tree searches and Bootstraps will generate precisely the same trees and save them in the same files. This is intentional reproducibility.
 
 #### Genes
-If you have ABI trace files for several genes, you can either tell the tool nothing and it will read them all, or you can manually specify for which genes you want to run the analysis with `-g` = `--genes`. It'll exclude foreign trace files in the latter case.
+If you want to analyse data for several genes, you can either tell the tool nothing and it will read all trace files, or you can manually specify for which genes you want to run the analysis with `-g` = `--genes`. It will exclude foreign trace files in the latter case.
 
 #### Subset analysis
-Alternatively, you can pass a file that serves as a kind of whitelist if you want to analyse only a certain subset of your data via `-abiset`. It is also possible to use sample IDs: Provide a file via `-sampleset`. Defining a subset this way does not influence exclusion via `-g`, of course.
+Alternatively, you can pass a file that serves as a whitelist if you want to analyse only a certain subset of your data via `-abiset`. It is also possible to use sample IDs: Provide a file via `-sampleset`. Defining a subset this way does not influence exclusion via `-g`, of course.
 
 #### References
-Setting references is a bit like setting genes: You can supply a directory of reference files via `-rd` = `--ref_dir`, and the pipeline will try to match the `.FASTA` files in that directory to the genes in your analysis *by their filename*. For example, `ITS1F.fasta` will be matched to sequences from the *ITS1F* gene. Or you can supply an ordered list of reference files from all over your hard drive via `-rf` = `--ref`, and file names won't matter a bit. 
+Setting references is a bit like setting genes: You can supply a directory of reference files via `-rd` = `--ref_dir`, and the pipeline will try to match the `.FASTA` files in that directory to the genes in your analysis *by their filename*. For example, `ITS1F.fasta` will be matched to sequences from the *ITS1F* gene. Or you can supply an ordered list of reference files from all over your hard drive via `-rf` = `--ref`, and file names will be ignored. 
 
-If you're feeling neat and precise and set both the genes and individual references, *be careful* because in these cases he pipeline deliberately matches references and genes *by order*. Accordingly, this will mess it up:
+If you're feeling neat and precise and set both the genes and individual references, be careful: In this case, the pipeline deliberately matches references and genes *by order*. Accordingly, this will mess it up:
 
 ```bash
 -g ITS1F OPA10 EndoPG (...) -rf ITS1F.phy ../endopg.fasta opa.fasta 
 ```
 
 #### BLAST+ Database
-Sometimes, this pipeline might be headless on a server. In order to keep it from running head-first in a firewall when it attempts to update its BLAST+ database via FTP, you might want to pre-supply it with a an unzipped, ready-to-use BLAST+ database via `-dbpath`. You can get them from the [NCBI website](https://ftp.ncbi.nlm.nih.gov/blast/db/).
+Sometimes, this pipeline might run headless on a server. In order to keep it from running head-first in a firewall when it attempts to update its BLAST+ database via FTP, you might want to pre-supply it with a an unzipped, ready-to-use BLAST+ database via `-dbpath` (and `-db` name). You can download many databases from the [NCBI website](https://ftp.ncbi.nlm.nih.gov/blast/db/) or even create your own.
 
 #### BLAST API
-BLAST API queries are deprioritised after just a few attempts and response times for queries rapidly increase. Accordingly, if several runs are attempted on the same data set, the `-skip`=`no_remote` flag can be set to use data from an earlier run or provide no species annotation for samples with no BLAST hit on its guide gene. Alternatively, all BLASTing can also be skipped using the `-none`=`--no_BLAST` flag.
-
-*NOTE: This is to some extent untested.*
+BLAST API queries are de-prioritised after just a few attempts and response times for queries rapidly increase. Accordingly, if several runs are attempted on the same data set, the `-skip`=`no_remote` flag can be set to use data from an earlier run or make do without species annotation for some samples. Alternatively, BLAST can be skipped entirely with `-none`=`--no_BLAST`.
 
 #### MSA Trimming
 MSA trimming by `Gblocks` can be skipped, set to a relaxed or a strict setting via `-gbl`. It's up to you!
@@ -174,7 +150,7 @@ MSA trimming by `Gblocks` can be skipped, set to a relaxed or a strict setting v
 An MSA visualization can be plotted next to the tree of by passing `-msa_viz`. Although it is **very** pretty, it takes some time to render for larger alignments.
 
 #### Support Values
-You can pick either Felsenstein Bootstrap Proportions `FBP` or [Transfer Bootstrap Expectation](https://doi.org/10.1038/s41586-018-0043-0) `TBE` support values with `--metric` for visualization. Newick tree files with both types of support values are generated in any case, so this does not require re-running the entire analyis, just `ab12phylo-view`.
+For visualization, you can pick either Felsenstein Bootstrap Proportions `FBP` or [Transfer Bootstrap Expectation](https://doi.org/10.1038/s41586-018-0043-0) `TBE` support values with `--metric`. Newick tree files with both types of support values are generated by RAxML-NG, so this does not require re-running the entire analysis, just `ab12phylo-visualize`.
 
 #### Log File
 If you're having trouble, look at the log file! It will be in your results directory and is named `ab12phylo.log`. Alternatively, you can set the `--verbose` flag and get the same information in real-time to your commandline. Your choice.
