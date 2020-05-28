@@ -21,15 +21,13 @@ cgitb.enable()
 
 # get passed form data
 form = cgi.FieldStorage()
-_dir = form['dir'].value
-rel_dir = form['rel_dir'].value
 call = form['submit'].value
 motifs = form['motifs'].value
 msa = form['msa_path'].value
 pickle_file = form['pickle'].value
 
 # read in original page
-with open(path.join(_dir, 'result.html'), 'r') as html_fh:
+with open('result.html', 'r') as html_fh:
     html = html_fh.read()
 
 # read toytree.Toytree.ToyTree from pickle file
@@ -38,7 +36,7 @@ with open(pickle_file, 'rb') as pickle_fh:
 
 # fetch sample IDs
 try:
-    makedirs(path.join(_dir, 'queries'), exist_ok=True)
+    makedirs('queries', exist_ok=True)
 
     # compile regex from motifs. empty motifs is caught before
     queries = ['.*' + re.escape(word.strip()) + '.*' for word in motifs.split(',')]
@@ -69,7 +67,7 @@ except (ToytreeError, ValueError) as ex:
 
 # save result in file
 _path = path.join('queries', call + '_' + motifs + '.txt')
-with open(path.join(_dir, 'queries', call + '_' + motifs + '.txt'), 'w') as txt_fh:
+with open(_path, 'w') as txt_fh:
     txt_fh.write(txt + '\n')
 
 if len(leaves) > 1:
@@ -101,6 +99,7 @@ else:
 # edit logo and icon path
 html = html.replace('src="cgi-bin/favicon.png"', 'src="http://localhost:8000/.img/favicon.png"')
 html = html.replace('href="cgi-bin/favicon.ico"', 'href="http://localhost:8000/.img/favicon.ico"')
+html = html.replace('source <a href="metadata.tsv">.tsv</a> contains', 'source <a href="../metadata.tsv">.tsv</a> contains')
 
 # paste into HTML
 html = html.replace('<!--insert-->', '<pre id="code_box"><code id="query_result">%s</code></pre>'
