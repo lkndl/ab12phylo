@@ -6,7 +6,7 @@ if sys.version_info[0] < 3:
     sys.exit(1)
 
 setup(name='ab12phylo',
-      version='0.1a.1',
+      version='0.1a.2',
       author='Leo Kaindl',
       author_email='leo.kaindl@tum.de',
       license='MIT',
@@ -30,4 +30,4 @@ setup(name='ab12phylo',
                    'License :: OSI Approved :: MIT License',
                    'Operating System :: OS Independent'],
       keywords=['bioinformatics', 'phylogenetics'],
-      python_requires='>=3.6')
+      python_requires='>=3.8')

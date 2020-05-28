@@ -1,7 +1,8 @@
 # AB12PHYLO
 
-![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) ![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1a.1&color=blue&style=flat)
-
+![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1a.2&color=blue&style=flat)
+![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [`AB12PHYLO`](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated,  easy-to-use pipeline for phylogenetic tree inference based on Maximum Likelihood (ML) from ABI sequencing data from  multiple genes. 
 At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.com/amkozlov/raxml-ng) (Kozlov et al. 2019) and a BLAST search for species annotation. 
@@ -30,7 +31,10 @@ cd ab12phylo
 pip install --upgrade pip
 pip install .
 ```
-  
+
+*Note: This will in fact install AB12PHYLO and its python3 dependencies to your regular 
+python3. The external tools will be in your conda environment.*   
+
 [tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) is recommended for remote runs.  
 AB12PHYLO is not on Bioconda or PyPI.
  
