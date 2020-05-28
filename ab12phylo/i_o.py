@@ -166,7 +166,7 @@ class reader:
                             record = filter.mark_bad_stretches(record, self.args.min_phred, self.args.bad_stretch)
                         except ValueError:
                             bad_seqs.write('%s\t%s\t%s\t%s\tlow quality\n' % (file, record.id, box, gene))
-                            self.log.warning('SeqIO low quality: %s' % file)
+                            self.log.warning('low quality: %s' % file)
                             continue
 
                         # ensure gene dict is present
@@ -180,7 +180,7 @@ class reader:
                             record = filter.new_version(record, self.seqdata[gene].keys())
                             bad_seqs.write('%s\t%s\t%s\t%s\tnew id, %s already present\n'
                                            % (file, record.id, box, gene, old_id))
-                            self.log.info('new versioned id: %s from %s' % (record.id, file))
+                            self.log.info('version id %s: %s' % (record.id, file))
 
                         # save SeqRecord by position
                         self.seqdata[gene][record.id] = record
@@ -209,8 +209,8 @@ class reader:
 
         # matching reference files by name to genes
         if not self.args.by_order:
-            message = 'Trying to match genes and reference file names. If allocation is wrong, ' \
-                      'try setting --ref and --genes manually, with ITS1F possibly first argument.'
+            message = 'Trying to match genes and reference file names. If the allocation ' \
+                      'is wrong, try setting --ref and --genes manually.'
             # convert all genes to lowercase
             genes = [gene.lower() for gene in self.args.genes]
             # extract filenames from refs
@@ -263,7 +263,7 @@ class reader:
                 # save ref record
                 self.seqdata[gene][_id] = record
 
-            self.log.debug('Read %d reference sequences for %s from: %s'
+            self.log.debug('read %d ref seqs for %s from %s'
                            % (count, gene, ref_file))
         return
 

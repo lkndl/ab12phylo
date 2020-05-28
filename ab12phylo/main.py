@@ -7,7 +7,7 @@ modules and serves as the interface between them.
 """
 
 import sys
-from ab12phylo import cli, its_io, msa, blast, raxml, phylo
+from ab12phylo import cli, i_o, msa, blast, raxml, phylo
 
 
 def _main():
@@ -17,10 +17,10 @@ def _main():
     args = cli.parser(sys.argv[1:]).args
 
     # read in files
-    reader = its_io.reader(args)
+    reader = i_o.reader(args)
 
     # write .FASTAs and source information
-    writer = its_io.writer(args, reader)
+    writer = i_o.writer(args, reader)
 
     # build & trim MSAs
     aligner = msa.msa_build(args, reader.seq_counts)

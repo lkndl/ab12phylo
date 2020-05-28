@@ -502,13 +502,11 @@ The minimal topological distance between any two nodes is <code>{{ min_dist }}</
     Separate motifs by <code>,</code> : &emsp;
     <input type="text" id="motifs" name="motifs" value=""> &emsp;
     <input type="hidden" name="pickle" value="{{pickle}}" />
-    <input type="hidden" name="dir" value="{{dir}}" />
-    <input type="hidden" name="rel_dir" value="{{rel_dir}}" />
     <input type="hidden" name="msa_path" value="{{msa_path}}" />
     <button type="submit" name='submit' value='match'>MATCH</button> &emsp;
     <button type="submit" name='submit' value='subtree'>SUBTREE</button>
-    <p><p><em>NOTE: For functionality long after run completion, start a CGI server (or run via <code>-view</code>):</em></p>
-    <p><code>cd {{dir}} \ python3 -m http.server --cgi 8000</code></p>
+    <p><p><em>NOTE: For functionality long after run completion, start a CGI server in this directory (or run via <code>-view</code>):</em></p>
+    <p><code>python3 -m http.server --cgi 8000</code></p>
   </div>
 </form>
 
@@ -541,7 +539,7 @@ The minimal topological distance between any two nodes is <code>{{ min_dist }}</
 
 <div href='#tabular-data' id="tabular-data" class="section level3">
 <h3><strong>8</strong> meta</h3>
-<p>Only file <em>names</em> are displayed. The source <a href="file://{{ metadata }}">.tsv</a> contains full paths.</p>
+<p>Only file <em>names</em> are displayed. The source <a href="{{ metadata }}">.tsv</a> contains full paths.</p>
 <p> {{ table }} </p>
 </div>
 

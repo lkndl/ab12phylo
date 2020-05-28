@@ -34,10 +34,10 @@ raw_rgbas = [(.56, 1, .14, 1), (.16, .44, .8, 1), (.06, 1, .6, 1), (.92, 1, .7, 
              (.94, .94, .94, .6), (1, 1, 1, 0), (1, 1, 1, 0), (1, 1, 1, 0)] + [(1, 0, 0, 1)] * 20
 kxlin = color.Palette(colors=[color.rgba(i[0], i[1], i[2], i[3]) for i in raw_rgbas])
 # author colors
-raw_rgbas = [(1.0, 0.9453125, 0.91015625), (1.0, 0.92578125, 0.140625), (0.96875, 0.796875, 0.65234375),
-             (0.51171875, 0.46484375, 0.61328125), (0.1640625, 0.67578125, 0.98828125), (0.375, 0.47265625, 0.78515625),
-             (0.1171875, 0.171875, 0.32421875), (0.49609375, 0.1484375, 0.328125), (1.0, 0.00390625, 0.30078125),
-             (1.0, 0.46875, 0.6640625)]
+raw_rgbas = [(1.0000, 0.9453, 0.9101), (1.0000, 0.9257, 0.1406), (0.9687, 0.7968, 0.6523),
+             (0.5117, 0.4648, 0.6132), (0.1640, 0.6757, 0.9882), (0.3750, 0.4726, 0.7851),
+             (0.1171, 0.1718, 0.3242), (0.4960, 0.1484, 0.3281), (1.0000, 0.0039, 0.3007),
+             (1.0000, 0.4687, 0.6640)]
 pal2 = toyplot.color.Palette(colors=[toyplot.color.rgba(i[0], i[1], i[2], 1) for i in raw_rgbas])
 
 blue = (0.1960, 0.5333, 0.7411, 1)
@@ -163,7 +163,7 @@ class tree_build:
         axes.x.domain.max = self.tree.treenode.height / 5  # 0 is right-most tip of tree. -> divide space!
 
         png.render(rcanvas, path.join(self.args.dir, 'rectangular.png'), scale=1.6)
-        self.log.debug('rendered rectanguler in %.2f sec' % (time() - start))
+        self.log.debug('rendered rectangularr in %.2f sec' % (time() - start))
 
         self._mview_msa()
 
@@ -228,7 +228,7 @@ class tree_build:
         start = log.find('--GENES--') + 10
         end = log[start:start + 800].find('\n')
         self.genes = log[start:start + end].split('::')
-        self.log.debug('read %s genes from log' % ':'.join(self.genes))
+        self.log.debug('read genes from log: %s' % ':'.join(self.genes))
         gene = self.genes[0]
         self.log.debug('using annotation for %s' % gene)
 
@@ -408,7 +408,7 @@ class tree_build:
               (perl_binary, path.join(mv_path, 'bin', 'mview'), self.args.new_msa, self.args.mview_msa)
 
         p = subprocess.run(arg, shell=True, stdout=subprocess.PIPE)
-        self.log.debug('subprocess output: ' + p.stdout.decode('utf-8').strip())
+        self.log.debug('MView output: ' + p.stdout.decode('utf-8').strip())
         self.log.debug('MView ok')
         return
 
@@ -490,7 +490,6 @@ class tree_build:
         self.log.debug('rendered embeddable HTMLs in %.2f sec' % (time() - start))
 
         start = time()
-        materials['log'] = open(self.args.log, 'r').read()
         materials['missing'] = open(self.args.missing_samples, 'r').read()
         materials['msa'] = open(self.args.new_msa, 'r').read()
         materials['newick'] = open(self.args.annotated_tree, 'r').read()
@@ -501,10 +500,7 @@ class tree_build:
         materials['msa_path'] = path.abspath(self.args.new_msa)
         materials['threshold'] = int(self.args.threshold * 10)
         materials['min_dist'] = self.args.min_dist
-        materials['metadata'] = path.abspath(self.args.tsv)
-        materials['module_root'] = path.dirname(__file__)
-        materials['dir'] = path.abspath(self.args.dir)
-        materials['rel_dir'] = self.args.dir
+        materials['metadata'] = path.relpath(self.args.tsv, self.args.dir)
 
         start = time()
         df = pd.read_csv(self.args.tsv, sep='\t', index_col=1)
@@ -533,16 +529,10 @@ class tree_build:
             pickle.dump(tree, out_file)
         materials['pickle'] = path.abspath(path.join(self.args.dir, 'tree.pickle'))
 
-        start = time()
-        template = Template(open(path.join(path.dirname(__file__), 'template.jinja'), 'r').read())
-        html = template.render(materials)
-        open(path.join(self.args.dir, 'result.html'), 'w').write(html)
-        self.log.debug('rendered output HTML in %.2f sec' % (time() - start))
-
         # copy cgi-bin directory to output directory
         shutil.copytree(src=path.join(path.dirname(__file__), 'cgi-bin'),
                         dst=path.join(self.args.dir, 'cgi-bin'), dirs_exist_ok=True)
-        # link to logo and icon
+        # copy logo and icon
         _img = path.join(self.args.dir, '.img')
         os.makedirs(_img, exist_ok=True)
         shutil.copy(src=path.join(self.args.dir, 'cgi-bin', 'favicon.png'),
@@ -554,4 +544,11 @@ class tree_build:
         cgi_file = path.join(self.args.dir, 'cgi-bin', 'ab12phylo.py')
         os.chmod(cgi_file, os.stat(cgi_file).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         self.log.debug('copied files to output directory')
+
+        start = time()
+        self.log.debug('rendering output HTML')
+        materials['log'] = open(self.args.log, 'r').read()
+        template = Template(open(path.join(path.dirname(__file__), 'template.jinja'), 'r').read())
+        html = template.render(materials)
+        open(path.join(self.args.dir, 'result.html'), 'w').write(html)
         return

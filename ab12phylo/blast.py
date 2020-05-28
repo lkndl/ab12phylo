@@ -242,8 +242,8 @@ class blast_build(threading.Thread):
                     self.metadata[self.gene][entry.id].update(self._parse(entry))
                 except ValueError:
                     fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
-                             % (self.metadata[self.gene][entry.id]['file'],
-                                self.metadata[self.gene][entry.id]['box'], self.gene, entry.id))
+                             % (self.metadata[self.gene][entry.id]['file'], entry.id,
+                                self.metadata[self.gene][entry.id]['box'], self.gene))
                     self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
 
         # make a pandas DataFrame from metadata
