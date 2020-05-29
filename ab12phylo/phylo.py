@@ -110,8 +110,14 @@ def tree_view(_dir):
         subprocess.run('python3 -m http.server --cgi 8000', shell=True,
                        stdout=subprocess.PIPE, cwd=_dir, timeout=600)
     except subprocess.TimeoutExpired:
-        log.warning('CGI server shut down. If necessary, re-start in %s via '
-                    '"python3 -m http.server --cgi 8000" or re-run ab12phylo-view' % _dir)
+        txt = 'CGI server shut down after timeout. If necessary, re-start in %s via ' \
+              '"python3 -m http.server --cgi 8000" or re-run ab12phylo-view' % _dir
+        log.info(txt)
+        print(txt, file=sys.stderr)
+    except KeyboardInterrupt:
+        txt = 'AB12PHYLO shut down.'
+        log.info(txt)
+        print('\n%s BYE!' % txt, file=sys.stderr)
     return
 
 
