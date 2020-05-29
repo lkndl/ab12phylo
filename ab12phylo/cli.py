@@ -297,6 +297,7 @@ class parser(argparse.ArgumentParser):
             self._init_log(self.args.log)
             log = logging.getLogger(__name__)
             log.debug('--ARGS-- %s' % ' '.join(args[0]))
+            log.debug('running AB12PHYLO v%s' % main.__version__)
             log.info('seed for this run: %s' % self.args.seed)
             if by_order is True:
                 log.info('will match references to genes by order')
