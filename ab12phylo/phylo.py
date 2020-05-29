@@ -28,7 +28,7 @@ from Bio.SeqRecord import SeqRecord
 from jinja2 import Template
 from toyplot import html, png, color, data, locator
 
-from ab12phylo import cli
+from ab12phylo import main, cli
 
 # adapted kxlin colors
 raw_rgbas = [(.56, 1, .14, 1), (.16, .44, .8, 1), (.06, 1, .6, 1), (.92, 1, .7, 1),
@@ -503,6 +503,8 @@ class tree_build:
         materials['threshold'] = int(self.args.threshold * 10)
         materials['min_dist'] = self.args.min_dist
         materials['metadata'] = path.relpath(self.args.tsv, self.args.dir)
+        materials['version'] = main.__version__
+        materials['author'] = main.__author__
 
         start = time()
         df = pd.read_csv(self.args.tsv, sep='\t', index_col=1)
