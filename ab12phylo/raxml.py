@@ -44,7 +44,7 @@ class raxml_build:
             local = False
             self._binary = path.join(path.abspath(path.dirname(__file__)),
                                      'tools', 'raxml-ng_v0.9.0_linux_x86_64', 'raxml-ng')
-        self.log.debug('use %s raxml-ng' % 'pre-installed' if local else 'out-of-the-box')
+        self.log.debug('use %s raxml-ng' % ('pre-installed' if local else 'out-of-the-box'))
 
     def run(self):
         """

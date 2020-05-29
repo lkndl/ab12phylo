@@ -191,7 +191,7 @@ class parser(argparse.ArgumentParser):
 
         # ab12phylo with --visualize or --view: guess real results path and skip re-parsing
         if len(kwargs) > 0 or self.args.visualize or self.args.view:
-            print('--APPENDED VISUALIZE/VIEW--', file=sys.stderr)
+            print('--VISUALIZE/VIEW--', file=sys.stderr)
 
             # look in current working directory and ./results
             found = False
