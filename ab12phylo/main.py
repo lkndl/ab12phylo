@@ -43,8 +43,6 @@ def _main():
     # visualize best tree
     phylo.tree_build(args)
 
-    print('BYE!')
-
 
 if __name__ == '__main__':
     _main()

@@ -117,7 +117,7 @@ def tree_view(_dir):
     except KeyboardInterrupt:
         txt = 'AB12PHYLO shut down.'
         log.info(txt)
-        print('\n%s BYE!' % txt, file=sys.stderr)
+        print('\n' + txt, file=sys.stderr)
     return
 
 
