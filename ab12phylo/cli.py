@@ -120,7 +120,7 @@ class parser(argparse.ArgumentParser):
         phy.add_argument('-bst', '--bootstrap', type=self._valid_bootstrap,
                          help='Maximum number of bootstrap trees for raxml-ng.')
 
-        phy.add_argument('-me', '--metric', choices=['TBE', 'FBP'],
+        phy.add_argument('-metric', '--metric', choices=['TBE', 'FBP'],
                          help='Bootstrap support metric: Either Felsenstein Bootstrap Proportions (FBP) '
                               'or Transfer Bootstrap Expectation(TBE).')
 
@@ -128,7 +128,7 @@ class parser(argparse.ArgumentParser):
                          help='Seed value for reproducible tree inference results. Will be random if not set.')
 
         # [config]
-        self.add_argument('-c', '--config',
+        self.add_argument('-config', '--config',
                           default=path.abspath(path.join(path.dirname(__file__), 'config', 'config.yaml')),
                           type=lambda arg: arg if path.isfile(arg) else self.error('%s: invalid .config path'),
                           help='Path to .yaml config file with defaults. Command line arguments will override.')
@@ -189,13 +189,13 @@ class parser(argparse.ArgumentParser):
 
                 self.args.__dict__[key] = val
 
-        # ab12phylo-visualize: guess real results path and skip re-parsing
+        # ab12phylo with --visualize or --view: guess real results path and skip re-parsing
         if len(kwargs) > 0 or self.args.visualize or self.args.view:
-            print('--VISUALIZE/VIEW--', file=sys.stderr)
+            print('--APPENDED VISUALIZE/VIEW--', file=sys.stderr)
 
             # look in current working directory and ./results
             found = False
-            for outer in [self.args.result_dir, self.args.dir]:
+            for outer in [self.args.result_dir, self.args.dir, os.getcwd()]:
                 if found:
                     break
                 if outer is None:
@@ -280,6 +280,7 @@ class parser(argparse.ArgumentParser):
             sys.exit(0)
 
         if self.args.view:
+            self.args.headless = False
             self._init_log(self.args.log[:-4] + '-view.log')
             log = logging.getLogger(__name__)
             log.debug('--AB12PHYLO-VIEW--')
