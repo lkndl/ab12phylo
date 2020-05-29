@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1a.2&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.0&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [`AB12PHYLO`](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated,  easy-to-use pipeline for phylogenetic tree inference based on Maximum Likelihood (ML) from ABI sequencing data from  multiple genes. 
@@ -32,11 +32,11 @@ pip install --upgrade pip
 pip install .
 ```
 
-*Note: This will in fact install AB12PHYLO and its python3 dependencies to your regular 
-python3. The external tools will be in your conda environment.*   
+This will install AB12PHYLO and its python3 dependencies to your regular 
+python3. The external tools will be in your conda environment.   
 
-[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) is recommended for remote runs.  
-AB12PHYLO is not on Bioconda or PyPI.
+[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) 
+is highly recommended for remote runs.
  
 
 #### Dependencies
@@ -52,7 +52,7 @@ AB12PHYLO is not on Bioconda or PyPI.
 
 ## Getting Started
 
-As AB12PHYLO is a command line tool, you might want to take a look at its available options by running `ab12phylo -h`. If you run it without any arguments, this will also happen.
+As AB12PHYLO is a command line tool, you might want to take a look at its available options by running `ab12phylo -h`.
 
 #### Test run
 

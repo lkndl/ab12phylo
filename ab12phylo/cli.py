@@ -6,9 +6,6 @@ from user input via `sys.argv`, supplemented by the `config/config.yaml` file.
 Arguments will be saved as an :class:`argparse.Namespace` object and directly accessed by the
 :class:`main` module. Additionally, this module initiates logging.
 """
-__author__ = ('Leo Kaindl (leo.kaindl@tum.de)')
-__version__ = '0.1a.2'
-__date__ = '28 May 2020'
 
 import os
 import sys
@@ -18,7 +15,7 @@ import logging
 import argparse
 
 from os import path
-from ab12phylo import phylo
+from ab12phylo import main, phylo
 
 
 class parser(argparse.ArgumentParser):
@@ -144,7 +141,8 @@ class parser(argparse.ArgumentParser):
                           help='Also render a rectangular tree with MSA. Takes quite some extra time.')
         self.add_argument('-viz', '--visualize', action='store_true',
                           help='Invoke ab12phylo-visualize by appending ab12phylo cmd.')
-        self.add_argument('-view', '--view', action='store_true', help='Invoke ab12phylo-view by appending ab12phylo cmd.')
+        self.add_argument('-view', '--view', action='store_true',
+                          help='Invoke ab12phylo-view by appending ab12phylo cmd.')
         self.add_argument('-q', '--headless', action='store_true',
                           help='Prevents starting of a CGI server and display in browser. For remote use.')
 
@@ -155,7 +153,7 @@ class parser(argparse.ArgumentParser):
         self.args = self.parse_args(args[0])
 
         if self.args.version is True:
-            sys.exit('ab12phylo: %s' % __version__)
+            sys.exit('ab12phylo: %s' % main.__version__)
 
         # test: switch config + set verbose
         if self.args.test is True:
