@@ -13,6 +13,7 @@ import pickle
 import shutil
 import stat
 import subprocess
+import sys
 import webbrowser
 from os import path
 from time import time
@@ -69,24 +70,24 @@ pg = color.brewer.palette('PinkGreen', reverse=True) \
 def _visualize(*args):
     """Entry point for re-visualization."""
     # if no argument -> default to cwd
-    if args is None or len(args[0]) == 0:
+    args = sys.argv[1:]
+    if len(args) == 0:
         args = [os.getcwd()]
-    else:
-        args = args[0]
-    # parse to get default paths
+    args = ['-view'] + args
+    # parse to get defaults
     namespace = cli.parser(args, visualize=True).args
     tree_build(namespace)
     print('BYE!')
 
 
-def _view(*args):
+def _view():
     """Entry point for re-view"""
     # if no argument -> default to cwd
-    if args is None or len(args[0]) == 0:
+    args = sys.argv[1:]
+    if len(args) == 0:
         args = [os.getcwd()]
-    else:
-        args = args[0]
-    # parse to get default paths
+    args = ['-view'] + args
+    # parse to get defaults
     namespace = cli.parser(args, view=True).args
     tree_view(namespace.dir)
     print('BYE!')
@@ -177,7 +178,8 @@ class tree_build:
             self.log.debug('rendered w/ msa in %.2f sec' % (time() - start))
 
         self._write_html(render_dict, preview, ccanvas, rcanvas, tree_no_msa)
-        tree_view(self.args.dir)
+        if not self.args.headless:
+            tree_view(self.args.dir)
 
     def _preview_topology(self):
         """
