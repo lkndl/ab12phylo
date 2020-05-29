@@ -73,7 +73,7 @@ def _visualize(*args):
     args = sys.argv[1:]
     if len(args) == 0:
         args = [os.getcwd()]
-    args = ['-view'] + args
+    args = ['--visualize'] + args
     # parse to get defaults
     namespace = cli.parser(args, visualize=True).args
     tree_build(namespace)
