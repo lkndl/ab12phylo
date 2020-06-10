@@ -4,11 +4,11 @@
 ![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.4&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
-[AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for phylogenetic tree inference based on Maximum Likelihood (ML) from ABI sequencing data for multiple genes. 
+[AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
 At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.com/amkozlov/raxml-ng) (Kozlov et al. 2019) and a BLAST search in a reference database. 
-It enables visual, effortless sample identification and subset selection based on phylogenetic position and metrics like Tajima's D to estimate ongoing non-random evolution.
+It enables visual, effortless sample identification based on phylogenetic position and sequence similarity, as well as population subset selection aided by metrics like Tajima's D for estimations on ongoing evolution.
  
-AB12PHYLO was developed to identify populations of fungal plant pathogen isolates possibly under balancing selection with *Solanum chilense*, especially in the genus *Alternaria*. As multi-gene phylogenies remain a widely-used method in spite of the rise of whole-genome sequencing, future use for fungal phytopathogens or sequencing data from host plants appears realistic not unlikely.
+AB12PHYLO was developed to identify plant pathogen populations possibly under balancing selection with *Solanum chilense*, especially in the genus *Alternaria*. With multi-gene phylogenies remaining a widely-used method in spite of the rise of whole-genome sequencing, future application on fungal phytopathogens or host plants appears likely.
 
 
 ## Installation
