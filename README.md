@@ -1,11 +1,11 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.2&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.3&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
-[`AB12PHYLO`](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated,  easy-to-use pipeline for phylogenetic tree inference based on Maximum Likelihood (ML) from ABI sequencing data from  multiple genes. 
-At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.com/amkozlov/raxml-ng) (Kozlov et al. 2019) and a BLAST search for species annotation. 
+[`AB12PHYLO`](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for phylogenetic tree inference based on Maximum Likelihood (ML) from ABI sequencing data for multiple genes. 
+At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.com/amkozlov/raxml-ng) (Kozlov et al. 2019) and a BLAST search in a reference database. 
 It enables visual, effortless curation of phylogenies and provides population genetics measurements.
  
 AB12PHYLO is intended for research into plant pathogens and especially *Alternaria*, but future versions might allow species annotation from BLAST databases other than `ITS_RefSeq_Fungi` and unlock its use for plants or other, [real animals](https://xkcd.com/1749/).
@@ -18,11 +18,11 @@ AB12PHYLO is intended for research into plant pathogens and especially *Alternar
 ```bash
 git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
 ```
-All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, so you could install them to a python3 [conda](https://docs.conda.io/) environment in one go:
+All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, so you could install them to a python3.8 [conda](https://docs.conda.io/) environment in one go:
 
 ```bash
 conda activate <your_python3_conda_env>
-conda install -c bioconda "blast>=2.9.0" raxml-ng gblocks mafft clustalo muscle t_coffee
+conda install -c bioconda "blast>=2.9.0" raxml-ng gblocks mafft clustalo muscle
 ```
 
 This will require you to activate <your_python3_conda_env> anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will suffice and should be easy.

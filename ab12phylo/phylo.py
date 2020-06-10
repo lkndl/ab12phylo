@@ -11,6 +11,7 @@ import logging
 import os
 import pickle
 import shutil
+import socket
 import stat
 import subprocess
 import sys
@@ -20,12 +21,14 @@ from time import time
 
 import numpy as np
 import pandas as pd
+import random
 import toyplot
 import toytree
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from jinja2 import Template
+from lxml import etree
 from toyplot import html, png, color, data, locator
 
 from ab12phylo import main, cli
@@ -104,14 +107,18 @@ def tree_view(_dir):
     # open in new tab
     webbrowser.open(path.join(_dir, 'result.html'), new=2)
 
+    # find original port
+    port = int(etree.parse(path.join(_dir, 'result.html'), parser=etree.HTMLParser())
+               .findall('//meta[@name="port"]')[0].get('content'))
+
     # start CGI server
     try:
-        log.info('starting CGI server on port: 8000 for 10min')
-        subprocess.run('python3 -m http.server --cgi 8000', shell=True,
+        log.info('starting CGI server on port: %d for 10min' % port)
+        subprocess.run('python3 -m http.server --cgi %d' % port, shell=True,
                        stdout=subprocess.PIPE, cwd=_dir, timeout=600)
     except subprocess.TimeoutExpired:
         txt = 'CGI server shut down after timeout. If necessary, re-start in %s via ' \
-              '"python3 -m http.server --cgi 8000" or re-run ab12phylo-view' % _dir
+              '"python3 -m http.server --cgi %d" or re-run ab12phylo-view' % (_dir, port)
         log.info(txt)
         print(txt, file=sys.stderr)
     except KeyboardInterrupt:
@@ -170,7 +177,7 @@ class tree_build:
         axes.x.domain.max = self.tree.treenode.height / 5  # 0 is right-most tip of tree. -> divide space!
 
         png.render(rcanvas, path.join(self.args.dir, 'rectangular.png'), scale=1.6)
-        self.log.debug('rendered rectangularr in %.2f sec' % (time() - start))
+        self.log.debug('rendered rectangular in %.2f sec' % (time() - start))
 
         self._mview_msa()
 
@@ -409,15 +416,14 @@ class tree_build:
 
         # over-write file
         open(path.join(mv_path, 'bin', 'mview'), 'w').write('\n'.join(lines))
-        self.log.debug('MView config done')
+        self.log.debug('MView config')
 
-        arg = '%s %s -in fasta -moltype dna -width 90 -conservation on -coloring consensus -threshold 80 ' \
-              '-label2 -consensus on -con_threshold 80 -html head -css on  -colormap kxlin %s > %s' % \
+        arg = '%s %s -in fasta -moltype dna -width 80 -conservation on -coloring consensus -threshold 80 ' \
+              '-label2 -label4 -label5 -consensus on -con_threshold 80 -html head -css on  -colormap kxlin %s > %s' % \
               (perl_binary, path.join(mv_path, 'bin', 'mview'), self.args.new_msa, self.args.mview_msa)
 
         p = subprocess.run(arg, shell=True, stdout=subprocess.PIPE)
-        self.log.debug('MView output: ' + p.stdout.decode('utf-8').strip())
-        self.log.debug('MView ok')
+        self.log.debug('MView run ' + p.stdout.decode('utf-8').strip())
         return
 
     def _edit1(self):
@@ -511,6 +517,16 @@ class tree_build:
         materials['metadata'] = path.relpath(self.args.tsv, self.args.dir)
         materials['version'] = main.__version__
         materials['author'] = main.__author__
+
+        # find a free port. susceptible to race conditions
+        sock = socket.socket()
+        try:
+            sock.bind(('localhost', random.randint(8000, 8010)))
+        except OSError:
+            sock.bind(('localhost', 0))
+        port = sock.getsockname()[1]
+        sock.close()
+        materials['port'] = port
 
         start = time()
         df = pd.read_csv(self.args.tsv, sep='\t', index_col=1)

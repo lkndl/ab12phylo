@@ -272,9 +272,9 @@ class reader:
         Builds a table of gene <- ref allocations. If there are indications of errors, logs as warning.
         :param order: positions of genes that references were matched to
         """
-        table = 'allocation table\n\t<gene>\t<-\t<reference>'
+        table = 'allocation table\n\t\t:gene:\t<-\t:reference:'
         for j in range(len(self.args.genes)):
-            table += '\n\t%s\t<-\t' % self.args.genes[j]
+            table += '\n\t\t%s\t<-\t' % self.args.genes[j]
             try:
                 # the reference where the order is j
                 table += self.args.ref[order.index(j)]

@@ -120,7 +120,7 @@ class msa_build:
 
         if gblocks_mode == 'skip':
             shutil.copy2(raw_msa, path.join(self.dir, gene, gene + '_msa.fasta'))
-            self.log.info('skipped Gblocks trimming, only copying file.')
+            self.log.info('skipped Gblocks trimming, only copied file')
 
         else:
             # look for local Gblocks

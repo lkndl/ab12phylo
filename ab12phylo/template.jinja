@@ -8,12 +8,13 @@
 <meta name="generator" content="pandoc" />
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
-<link rel="shortcut icon" type="image/x-icon" href="cgi-bin/favicon.ico" />
+<link rel="shortcut icon" id="favicon" type="image/x-icon" href="cgi-bin/favicon.ico" />
 
 
 <meta name="author" content="{{author}}" />
 
 <meta name="date" content="2020-01-01" />
+<meta name="port" content="{{port}}" />
 
 <title>AB12PHYLO results</title>
 
@@ -462,7 +463,7 @@ th, td {
 </ul>
 
 </div>
-<h1 class="title toc-ignore"> <img class="title" src="cgi-bin/favicon.png" alt="logo" style="width:40px; heigth:40px;" />&ensp;AB12PHYLO results</h1>
+<h1 class="title toc-ignore"> <img class="title" id="logo" src="cgi-bin/favicon.png" alt="logo" style="width:40px; heigth:40px;" />&ensp;AB12PHYLO results</h1>
 <h4 class="author">{{author}}</h4>
 <h4 class="date">2020</h4>
 
@@ -472,83 +473,86 @@ th, td {
 <h2 class="tabset"></h2>
 <div href='#intro' id="intro" class="section level3">
 <h3><strong>1</strong> intro</h3>
-<p>run started: {{run_start }} </p>
-<p>arguments:<br> <code> {{ run_args }} </code></p>
-<p><code>{{ num_seq }}</code> samples for <code> {{ genes }} </code></p>
-<p>seed was <code> {{ seed }} </code></p>
+<p>run started: {{run_start}} </p>
+<p>arguments:<br> <code> {{run_args}} </code></p>
+<p><code>{{num_seq}}</code> samples for <code>{{genes}}</code></p>
+<p>seed was <code>{{seed}}</code></p>
 <hr/>
 <h4>Topology preview</h4>
-     {{ topo }}
+     {{topo}}
 </div>
 
 <div href='#circular' id="circular" class="section level3">
-<h3><strong>2</strong> circ</h3>
+<h3><strong>2</strong> circular</h3>
 <p>This is a circular layout.<br>References are labeled in blue.</p>
 <p>Label colors encode the <code>%</code> identity with the best <code>BLAST</code> hit,
 from black for <code>100%</code> pid towards orange for <code>≤ 80%</code> pid.<br>
 Node sizes encode bootstrap support, with node color changing for support values
-above <code>{{ threshold }}%</code>.<br>
-The minimal topological distance between any two nodes is <code>{{ min_dist }}</code>.</p>
-     {{ circular }}
+above <code>{{threshold}}%</code>.<br>
+The minimal topological distance between any two nodes is <code>{{min_dist}}</code>.</p>
+     {{circular}}
 </div>
 
 <div href='#rectangular' id="rectangular" class="section level3">
-<h3><strong>3</strong> rect</h3>
-<form name='theform' action="http://localhost:8000/cgi-bin/ab12phylo.py" onsubmit='return validateinput()' method="POST">
+<h3><strong>3</strong> rect + motif</h3>
+<form name='theform' action="http://localhost:{{port}}/cgi-bin/ab12phylo.py" onsubmit='return validateinput()' method="POST">
   <div class="form-group">
     <h3>Motif search</h3>
     <p>Fetch all nodes matching your motifs with <code>MATCH</code>,
-      or find their MRCA and return all leaves below with <code>SUBTREE</code>.</p>
-    Separate motifs by <code>,</code> : &emsp;
-    <input type="text" id="motifs" name="motifs" value=""> &emsp;
+      or find their MRCA and return all its descendants with <code>SUBTREE</code>.<br />
+       Separate motifs by <code>,</code> and run <code>ab12phylo-view</code> in this directory if the form is unresponsive.</p>
+    &emsp;<input type="text" id="motifs" name="motifs" value=""> &emsp;
     <input type="hidden" name="pickle" value="{{pickle}}" />
     <input type="hidden" name="msa_path" value="{{msa_path}}" />
     <button type="submit" name='submit' value='match'>MATCH</button> &emsp;
-    <button type="submit" name='submit' value='subtree'>SUBTREE</button>
-    <p><p><em>NOTE: For functionality long after run completion, start a CGI server in this directory (or run via <code>-view</code>):</em></p>
-    <p><code>python3 -m http.server --cgi 8000</code></p>
+    <button type="submit" name='submit' value='subtree'>SUBTREE</button> &emsp;
+    exclude: &nbsp; <input type="text" id="exclude" name="exclude" value=""> &emsp;
+    <select id="out_type" name="out_type">
+      <option value="samples">samples</option>
+      <option value="files">files</option>
+    </select> &emsp;
   </div>
 </form>
 
-<!--insert-->
+<div id="motif_result"></div>
 
-{{ rectangular }}
+{{rectangular}}
 </div>
 
 <div href='#log-file' id="log-file" class="section level3">
-<h3><strong>4</strong> log</h3>
-<pre include="T"><code>{{ log }}</code></pre>
+<h3><strong>4</strong> log file</h3>
+<pre include="T"><code>{{log}}</code></pre>
 </div>
 
 <div href='#msa' id="msa" class="section level3">
 <h3><strong>5</strong> MSA</h3>
-<pre include="T"><code>{{ msa }}</code></pre>
+<pre include="T"><code>{{msa}}</code></pre>
 </div>
 
 <div href='#mview' id="mview" class="section level3">
 <h3><strong>6</strong> MView</h3>
-{{ mview }}
+{{mview}}
 </div>
 
 <div href='#newick' id="newick" class="section level3">
 <h3><strong>7</strong> Newick</h3>
 <p>phylogeny in <a href="https://en.wikipedia.org/wiki/Newick_format">newick</a> format with species annotation,
-<code>pid</code> of best BLAST hit and <code>{{ metric }}</code> support values.</p>
-<pre include="T"><code>{{ newick }}</code></pre>
+<code>pid</code> of best BLAST hit and <code>{{metric}}</code> support values.</p>
+<pre include="T"><code>{{newick}}</code></pre>
 </div>
 
 <div href='#tabular-data' id="tabular-data" class="section level3">
-<h3><strong>8</strong> meta</h3>
-<p>Only file <em>names</em> are displayed. The source <a href="{{ metadata }}">.tsv</a> contains full paths.</p>
-<p> {{ table }} </p>
+<h3><strong>8</strong> metadata</h3>
+<p>Only file <em>names</em> are displayed. The source <a id="tsv_link" href="{{metadata}}">.tsv</a> contains full paths.</p>
+{{table}}
 </div>
 
 <div href='#missing-seqs' id="missing-seqs" class="section level3">
 <h3><strong>9</strong> missing</h3>
 <h4>missing samples</h4>
-<pre include="T"><code>{{ missing }}</code></pre><br />
+<pre include="T"><code>{{missing}}</code></pre><br />
 <h4>problematic trace files</h4>
-<p> {{ bad_seqs }} </p>
+<p> {{bad_seqs}} </p>
 </div>
 
 </div>
