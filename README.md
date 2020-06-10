@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.4&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.5&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -25,7 +25,7 @@ conda activate <your_python3_conda_env>
 conda install -c bioconda "blast>=2.9.0" raxml-ng gblocks mafft clustalo muscle
 ```
 
-This will require you to activate <your_python3_conda_env> anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will suffice and should be easy.
+This will require you to `conda activate <your_python3_conda_env>` anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will suffice and should be easy.
  
 Install AB12PHYLO and all its [dependencies](#dependencies) via `pip` or `pip3` to your regular python3:
  
@@ -38,7 +38,7 @@ pip install .
 
 ## Getting Started
 
-As AB12PHYLO is primarily a command line tool, you might want to take a look at its interface and options by running `ab12phylo -h`.
+As AB12PHYLO is primarily a command line tool, you might want to take a look at its interface by running `ab12phylo -h`.
 
 
 #### Test run
@@ -84,19 +84,19 @@ ab12phylo -rf <ref.fasta> \
 * **default:** use the `./results` subdirectory
 * **default:** samples originate from `ITS1F`
 * use `<your_own>` BLAST+ database; in `<your_dir>`
-* only trace files in `<whitelist>` [subset](#subset-analysis) will be read
+* only trace files listed in the [`<whitelist>`](#subset-analysis) will be read
 * `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
 * `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed` or `strict`
 * `-st`: ML tree searches from `32` random and `16` parsimony-based starting trees
-* `-s` or sets the random [`--seed`](#seed) `4` for reproducibility
+* `-s` sets the random [`--seed`](#seed) to `4` for reproducibility
 * `-v` or `--verbose` will print all logged events to the console
-* `-skip` online BLAST for sequences not in the local BLAST+ db (read [why](#blast-api))
+* `-skip` online BLAST for sequences not in the local BLAST+ db and [read why](#blast-api)
 
 
 #### Results + Motif Search
 Once ML tree inference, computing of support values and BLAST has finished, the pipeline will display a `result.html` in your web browser. This page contains a form that allows **Motif search** across node attributes, enables [subtree or subset selection](#subset-analysis) and calculates diversity metrics for you. 
 
-If results are moved or sent, motif search will be possible by starting a CGI server in the directory via `python3 -m http.server --cgi <port>` or using `ab12phylo-view`.
+If results are moved or sent, motif search will be possible by using `ab12phylo-view` or starting a CGI server in the directory via `python3 -m http.server --cgi <port>`.
 
 
 #### ab12phylo-visualize + ab12phylo-view
@@ -166,6 +166,6 @@ If you're having trouble, look at the log file! It will be in your results direc
 
 ## External Tools
 * [BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) version >=2.9
-* [RAxML-NG](https://github.com/amkozlov/raxml-ng/) *(optional, currently included)*
-* an MSA tool: [MAFFT](https://mafft.cbrc.jp/alignment/software/), [Clustal Omega](http://www.clustal.org/omega/), [MUSCLE](https://www.drive5.com/muscle/downloads.htm) or [T-Coffee](http://www.tcoffee.org/Projects/tcoffee/index.html#DOWNLOAD) *(optional, **slow** online clients included)*
-* [Gblocks](http://molevol.cmima.csic.es/castresana/Gblocks.html) for MSA trimming *(optional, currently included)*
+* [RAxML-NG](https://github.com/amkozlov/raxml-ng/) *(optional, included)*
+* an MSA tool: [MAFFT](https://mafft.cbrc.jp/alignment/software/), [Clustal Omega](http://www.clustal.org/omega/), [MUSCLE](https://www.drive5.com/muscle/downloads.htm) or [T-Coffee](http://www.tcoffee.org/Projects/tcoffee/index.html#DOWNLOAD) *(optional, **slow** online clients for an **unstable [EMBL interface](https://www.ebi.ac.uk/Tools/msa/)** included)*
+* [Gblocks](http://molevol.cmima.csic.es/castresana/Gblocks.html) for MSA trimming *(optional, included)*
