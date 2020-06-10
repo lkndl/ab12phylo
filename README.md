@@ -42,7 +42,7 @@ As AB12PHYLO is primarily a command line tool, you might want to take a look at 
 
 
 #### Test run
-This pipeline comes with its own test data set. If you pass `-test`, it will read options from an auxiliary (or backup) [config file](#config-file) at `<ab12phylo_root>/ab12phylo/config/test_config.yaml` and run on these. The test run is set to `--verbose` and will run `--no_remote` BLAST search.
+This pipeline comes with its own test data set. If you pass `-test`, it will read options from an auxiliary (or backup) config file at `<ab12phylo_root>/ab12phylo/config/test_config.yaml` and run on these. The test run is set to `--verbose` and will run `--no_remote` BLAST search.
 
 
 #### Basic options
@@ -70,7 +70,8 @@ AB12PHYLO has reasonably smart defaults while allowing fine-grained access to it
 
 ```bash
 ab12phylo -rf <ref.fasta> \
-    -dbpath <blastdb_dir> \
+    -db <your_own> \
+    -dbpath <your_dir> \
     -abiset <whitelist> \
     -algo <mafft-clustalo-muscle-tcoffee> \
     -gbl relaxed \
@@ -82,7 +83,7 @@ ab12phylo -rf <ref.fasta> \
 * **default:** AB12PHYLO will search for `.ab1` and `.csv` files in or below the current working directory
 * **default:** use the `./results` subdirectory
 * **default:** samples originate from `ITS1F`
-* `<blastdb_dir>` is the path to a ready-to-use BLAST+ database
+* use `<your_own>` BLAST+ database; in `<your_dir>`
 * only trace files in `<whitelist>` [subset](#subset-analysis) will be read
 * `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
 * `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed` or `strict`
@@ -113,9 +114,9 @@ ab12phylo -c <my-config.yaml> -bst 1000 (...) -view
 
 ## Advanced use
 
-#### Config File
-AB12PHYLO comes with a config file in [YAML](https://yaml.org/) format. Adapt or replace it as you please. Also, [tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs.
- 
+#### Remote runs
+[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs, as well as [pre-supplying a BLAST+ db](#blast-database), adapting or replacing the [YAML](https://yaml.org/) config file and setting a seed.
+
 
 #### Seed 
 An integer that is used to initialize the python3 random number generator ([RNG](https://docs.python.org/3/library/random.html)) that will be used primarily for RAxML-NG. If you set it yourself via `-s` (otherwise it's, well,  random), runs with the same seed on the same system with identical numbers of ML tree searches and Bootstraps will generate precisely the same trees and save them in the same files. This is intentional reproducibility.
