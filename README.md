@@ -1,19 +1,19 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.3&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.4&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
-[`AB12PHYLO`](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for phylogenetic tree inference based on Maximum Likelihood (ML) from ABI sequencing data for multiple genes. 
+[AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for phylogenetic tree inference based on Maximum Likelihood (ML) from ABI sequencing data for multiple genes. 
 At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.com/amkozlov/raxml-ng) (Kozlov et al. 2019) and a BLAST search in a reference database. 
-It enables visual, effortless curation of phylogenies and provides population genetics measurements.
+It enables visual, effortless sample identification and subset selection based on phylogenetic position and metrics like Tajima's D to estimate ongoing non-random evolution.
  
-AB12PHYLO is intended for research into plant pathogens and especially *Alternaria*, but future versions might allow species annotation from BLAST databases other than `ITS_RefSeq_Fungi` and unlock its use for plants or other, [real animals](https://xkcd.com/1749/).
+AB12PHYLO was developed to identify populations of fungal plant pathogen isolates possibly under balancing selection with *Solanum chilense*, especially in the genus *Alternaria*. As multi-gene phylogenies remain a widely-used method in spite of the rise of whole-genome sequencing, future use for fungal phytopathogens or sequencing data from host plants appears realistic not unlikely.
 
 
- ## Installation
+## Installation
  
- First, clone the AB12PHYLO repository from GitLab:
+First, please clone the AB12PHYLO GitLab repository:
  
 ```bash
 git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
@@ -27,7 +27,7 @@ conda install -c bioconda "blast>=2.9.0" raxml-ng gblocks mafft clustalo muscle
 
 This will require you to activate <your_python3_conda_env> anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will suffice and should be easy.
  
- Finally, install AB12PHYLO and all its [dependencies](#dependencies) via `pip` or `pip3` to your regular python3:
+Install AB12PHYLO and all its [dependencies](#dependencies) via `pip` or `pip3` to your regular python3:
  
  ```bash
 cd ab12phylo
@@ -35,48 +35,34 @@ pip install --upgrade pip
 pip install .
 ```
 
-[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) 
-is highly recommended for remote runs.
- 
-
-#### Dependencies
-[Biopython](https://biopython.org/wiki/Download), [NumPy](https://numpy.org/), [pandas](https://pandas.pydata.org/docs/getting_started/install.html), [Toytree](https://toytree.readthedocs.io/en/latest/), [Toyplot](https://toyplot.readthedocs.io/en/stable/), [PyYAML](https://pyyaml.org/wiki/PyYAML), [DendroPy](https://dendropy.org/#installing) and [Jinja2](https://jinja.palletsprojects.com/en/2.11.x/intro/#installation)
-
-
-#### External Tools
-* [BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) version >=2.9
-* [RAxML-NG](https://github.com/amkozlov/raxml-ng/) *(optional, currently included)*
-* an MSA tool: [MAFFT](https://mafft.cbrc.jp/alignment/software/), [Clustal Omega](http://www.clustal.org/omega/), [MUSCLE](https://www.drive5.com/muscle/downloads.htm) or [T-Coffee](http://www.tcoffee.org/Projects/tcoffee/index.html#DOWNLOAD) *(optional, **slow** online clients included)*
-* [Gblocks](http://molevol.cmima.csic.es/castresana/Gblocks.html) for MSA trimming *(optional, currently included)*
-
 
 ## Getting Started
 
-As AB12PHYLO is a command line tool, you might want to take a look at its available options by running `ab12phylo -h`.
+As AB12PHYLO is primarily a command line tool, you might want to take a look at its interface and options by running `ab12phylo -h`.
 
 
 #### Test run
-This pipeline comes with its own test data set. If you pass `-test`, it will read its options from an auxiliary (or backup) [config file](#config-file) at `<ab12phylo_root>/ab12phylo/config/test_config.yaml` and run on these.
+This pipeline comes with its own test data set. If you pass `-test`, it will read options from an auxiliary (or backup) [config file](#config-file) at `<ab12phylo_root>/ab12phylo/config/test_config.yaml` and run on these. The test run is set to `--verbose` and will run `--no_remote` BLAST search.
 
 
 #### Basic options
 A simple real-world invocation might look like this:
 
 ```bash
-ab12phylo -abi <abi_seqs_folder> \
-    -csv <lab_tables_folder> \
-    -g <gene> \
-    -rf <references.fasta> \
+ab12phylo -abi <seq_dir> \
+    -csv <wellsplates_dir> \
+    -g <barcode_gene> \
+    -rf <ref.fasta> \
     -bst 1000 \
-    -dir <result_folder>
+    -dir <results>
 ```
 where:
-* `<abi_seqs_folder>` is the folder containing all input sequences as ABI trace files, but no other files ending in `.ab1`
-* `<lab_tables_folder>` contains the `.csv` files mapping user-defined sample IDs to the sequencer's isolate coordinates
-* sequencing data is for `<gene>`
-* `<references.fasta>` is a FASTA file containing named reference sequences 
-* `-bst` or `--bootstrap` sets the number of bootstrap trees to compute to 1000
-* `<result_folder>` is the folder where results will be saved 
+* `<seq_dir>` contains all input ABI trace files, ending in `.ab1`
+* `<wellsplates_dir>` contains the `.csv` mappings of user-defined IDs to sequencer's isolate coordinates
+* `<barcode_gene>` was sequenced
+* `<ref.fasta>` contains full GenBank reference records [like this](https://www.ncbi.nlm.nih.gov/nuccore/AF347033.1?report=fasta&log$=seqview&format=text)
+* 1000 `-bst` = `--bootstrap` trees will be generated
+* `<results>` is where results will be  
 
 
 #### Detailed settings
@@ -85,56 +71,51 @@ AB12PHYLO has reasonably smart defaults while allowing fine-grained access to it
 ```bash
 ab12phylo -rf <ref.fasta> \
     -dbpath <blastdb_dir> \
-    -sampleset <whitelist> \
-    -msa <mafft-clustalo-muscle-tcoffee> \
+    -abiset <whitelist> \
+    -algo <mafft-clustalo-muscle-tcoffee> \
     -gbl relaxed \
     -bst 1000 \
     -st [32,16]  \
     -s 4 \
     -v -skip
 ```
-* **default:** AB12PHYLO will read in all files that end in `.ab1` or `.csv` in or below the current working directory
-* **default:** result files will be in a new subdirectory `./results`
+* **default:** AB12PHYLO will search for `.ab1` and `.csv` files in or below the current working directory
+* **default:** use the `./results` subdirectory
 * **default:** samples originate from `ITS1F`
-* `<ref.fasta>` is the path of a reference file
 * `<blastdb_dir>` is the path to a ready-to-use BLAST+ database
-* only samples in `<whitelist>` will be used for this analysis; one ID per line.
-* `-msa` (or `--msa_algo`) defines the algorithm to generate the multiple sequence alignment: `mafft`, `clustalo`, `muscle` or `tcoffee`
-* `-gbl` (or `--gblocks`) sets the MSA trimming (by `Gblocks`) mode; choices are [`skip`, `relaxed`, `strict`]
-* 1000 bootstrap iterations will be run
-* `-st` or `--start_trees` sets the number of random (`32`) and parsimony-based (`16`) starting trees for RAxML-NG
-* `-s` or `--seed` sets the random [seed](#seed) `4` to allow reproducibility
-* `-v` or `--verbose` will cause all logged events to be printed to `stdout`
-* `-skip` will skip online BLAST for sequences that were not found in the local BLAST+ database (read [why](#blast-api) this is sensible)
+* only trace files in `<whitelist>` [subset](#subset-analysis) will be read
+* `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
+* `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed` or `strict`
+* `-st`: ML tree searches from `32` random and `16` parsimony-based starting trees
+* `-s` or sets the random [`--seed`](#seed) `4` for reproducibility
+* `-v` or `--verbose` will print all logged events to the console
+* `-skip` online BLAST for sequences not in the local BLAST+ db (read [why](#blast-api))
 
 
 #### Results + Motif Search
-Once AB12PHYLO has finished, the package will render a `result.html` and display it in your web browser (unless you pass `--headless`).  
+Once ML tree inference, computing of support values and BLAST has finished, the pipeline will display a `result.html` in your web browser. This page contains a form that allows **Motif search** across node attributes, enables [subtree or subset selection](#subset-analysis) and calculates diversity metrics for you. 
 
-In the `rect` tab showing the computed phylogeny in a rectangular layout, a **Motif search** across node attributes can be run. This is intended for creation of new sample sets for further [subset analyis](#subset-analysis). Selection markup carries over to the `circ` tab.   
-
-If the result directory is moved or sent, motif search will be possible by starting a CGI server in the directory via `python3 -m http.server --cgi 8000` or using `ab12phylo-view`:
+If results are moved or sent, motif search will be possible by starting a CGI server in the directory via `python3 -m http.server --cgi <port>` or using `ab12phylo-view`.
 
 
 #### ab12phylo-visualize + ab12phylo-view
-`ab12phylo-visualize` allows re-plotting of trees and rendering a `results.html` from phylogenies and MSAs computed by `ab12phylo`. This can be used to switch the [support value metric](#support-values) or plot an [MSA visualization](#msa-visualization). 
- `ab12phylo-view` shows results of a previous run in a web browser. 
- Both commands expect the path to the AB12PHYLO results or will default to `.`.
+`ab12phylo-visualize` will re-plot phylogenies and render a new `results.html`. An end user may use this to switch [support values](#support-values) or plot an [MSA visualization](#msa-visualization). 
+ `ab12phylo-view` shows results of a previous run in a browser, with motif search enabled. Both commands accept a path to the AB12PHYLO results or default to `.`, and are equivalent to appending to the original `ab12phylo` call.
 
 ```bash
 ab12phylo-view <result_folder>
 # or
 cd <results_folder>
 ab12phylo-view
+# or 
+ab12phylo -c <my-config.yaml> -bst 1000 (...) -view
 ```
-Alternatively, append `-visualize` or `-view` to your original `ab12phylo` command.
-
 
 ## Advanced use
 
 #### Config File
-AB12PHYLO comes with its own default config file `<ab12phylo_root>/ab12phylo/config/config.yaml` in [YAML](https://yaml.org/) format. It can be adapted to ensure reproducibility and is recommended for remote use. If it is replaced, the path to the adapted config must be passed via `-config`.
-
+AB12PHYLO comes with a config file in [YAML](https://yaml.org/) format. Adapt or replace it as you please. Also, [tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs.
+ 
 
 #### Seed 
 An integer that is used to initialize the python3 random number generator ([RNG](https://docs.python.org/3/library/random.html)) that will be used primarily for RAxML-NG. If you set it yourself via `-s` (otherwise it's, well,  random), runs with the same seed on the same system with identical numbers of ML tree searches and Bootstraps will generate precisely the same trees and save them in the same files. This is intentional reproducibility.
@@ -166,10 +147,6 @@ Sometimes, this pipeline might run headless on a server. To keep it from running
 BLAST API queries are de-prioritised after just a few attempts. Accordingly, if several runs are attempted on the same data set, the `-skip`=`--no_remote` flag can be set to use data from an earlier run or leave out species annotation for samples not found in the local database. Alternatively, BLAST can be skipped entirely with `-none`=`--no_BLAST`.
 
 
-#### MSA Trimming
-MSA trimming by `Gblocks` can be skipped, set to a relaxed or a strict setting via `-gbl`. It's up to you!
-
-
 #### MSA visualization
 An MSA visualization can be plotted to the rectangular tree by passing `-msa_viz`. This will take some rendering time for wider alignments.
 
@@ -182,4 +159,12 @@ For visualization, you can pick either Felsenstein Bootstrap Proportions `FBP` o
 If you're having trouble, look at the log file! It will be in your results directory and is named `ab12phylo.log`. Alternatively, you can set the `--verbose` flag and get the same information in real-time to your commandline. Your choice.
 
 
+## Dependencies
+[Biopython](https://biopython.org/wiki/Download), [NumPy](https://numpy.org/), [pandas](https://pandas.pydata.org/docs/getting_started/install.html), [Toytree](https://toytree.readthedocs.io/en/latest/), [Toyplot](https://toyplot.readthedocs.io/en/stable/), [PyYAML](https://pyyaml.org/wiki/PyYAML), [DendroPy](https://dendropy.org/#installing) [lxml](https://lxml.de/), [xmltramp2](https://pypi.org/project/xmltramp2/) and [Jinja2](https://jinja.palletsprojects.com/en/2.11.x/intro/#installation)
 
+
+## External Tools
+* [BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) version >=2.9
+* [RAxML-NG](https://github.com/amkozlov/raxml-ng/) *(optional, currently included)*
+* an MSA tool: [MAFFT](https://mafft.cbrc.jp/alignment/software/), [Clustal Omega](http://www.clustal.org/omega/), [MUSCLE](https://www.drive5.com/muscle/downloads.htm) or [T-Coffee](http://www.tcoffee.org/Projects/tcoffee/index.html#DOWNLOAD) *(optional, **slow** online clients included)*
+* [Gblocks](http://molevol.cmima.csic.es/castresana/Gblocks.html) for MSA trimming *(optional, currently included)*

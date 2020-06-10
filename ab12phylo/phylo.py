@@ -3,7 +3,8 @@
 
 """
 Visualizes tree computed by RAxML-NG using toytree and toyplot.
-Renders html using jinja2 and CGI.
+Renders html using jinja2 and CGI. Visualizes MSA using MView.
+Contains both non-primary entry points; -viz and -view
 """
 
 import copy

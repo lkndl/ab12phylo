@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 """
-Makes result HTML interactive by enabling motif search. Page is otherwise identical.
+Makes result HTML interactive by enabling motif search.
 """
 
 import cgi
