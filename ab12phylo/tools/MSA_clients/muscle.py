@@ -74,14 +74,14 @@ parser = OptionParser(add_help_option=False)
 parser.add_option('--format', type=str, help=('Format for generated multiple sequence alignment.'))
 parser.add_option('--tree', type=str, help=('The guide tree to output'))
 parser.add_option('--sequence', type=str, help=('Three or more sequences to be aligned can be entered directly into'
-                  'this form. Sequences can be in GCG, FASTA, EMBL (Nucleotide only),'
-                  'GenBank, PIR, NBRF, PHYLIP or UniProtKB/Swiss-Prot (Protein only)'
-                  'format. Partially formatted sequences are not accepted. Adding a'
-                  'return to the end of the sequence may help certain applications'
-                  'understand the input. Note that directly using data from word'
-                  'processors may yield unpredictable results as hidden/control'
-                  'characters may be present. There is currently a sequence input limit'
-                  'of 500 sequences and 1MB of data.'))
+                                                'this form. Sequences can be in GCG, FASTA, EMBL (Nucleotide only),'
+                                                'GenBank, PIR, NBRF, PHYLIP or UniProtKB/Swiss-Prot (Protein only)'
+                                                'format. Partially formatted sequences are not accepted. Adding a'
+                                                'return to the end of the sequence may help certain applications'
+                                                'understand the input. Note that directly using data from word'
+                                                'processors may yield unpredictable results as hidden/control'
+                                                'characters may be present. There is currently a sequence input limit'
+                                                'of 500 sequences and 1MB of data.'))
 # General options
 parser.add_option('-h', '--help', action='store_true', help='Show this help message and exit.')
 parser.add_option('--email', help='E-mail address.')
@@ -161,7 +161,7 @@ def restRequest(url):
         # Make the request (HTTP GET).
         reqH = urlopen(req)
         resp = reqH.read()
-        contenttype = reqH.render_info()
+        contenttype = reqH.info()
 
         if (len(resp) > 0 and contenttype != u"image/png;charset=UTF-8"
                 and contenttype != u"image/jpeg;charset=UTF-8"
@@ -497,7 +497,7 @@ elif options.params:
 # Get parameter details
 elif options.paramDetail:
     printGetParameterDetails(options.paramDetail)
-# Print Client version
+# Print Client version
 elif options.version:
     print("Revision: %s" % version)
     sys.exit()
@@ -516,7 +516,8 @@ elif options.email and not options.jobid:
         else:  # Argument is a sequence id
             params[u'asequence'] = args[0]
             params[u'bsequence'] = args[0]
-    elif hasattr(options, "sequence") or (hasattr(options, "asequence") and hasattr(options, "bsequence")):  # Specified via option
+    elif hasattr(options, "sequence") or (
+            hasattr(options, "asequence") and hasattr(options, "bsequence")):  # Specified via option
         if hasattr(options, "sequence"):
             if os.path.exists(options.sequence):  # Read file into content
                 params[u'sequence'] = readFile(options.sequence)
@@ -536,18 +537,15 @@ elif options.email and not options.jobid:
         params['format'] = 'clw'
     if options.format:
         params['format'] = options.format
-    
 
     if not options.tree:
         params['tree'] = 'none'
     if options.tree:
         params['tree'] = options.tree
-    
-
 
     # Submit the job
     jobId = serviceRun(options.email, options.title, params)
-    if options.asyncjob: # Async mode
+    if options.asyncjob:  # Async mode
         print(jobId)
         if outputLevel > 0:
             print("To check status: python %s --status --jobid %s"

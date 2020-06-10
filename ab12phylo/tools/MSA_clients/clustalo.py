@@ -72,33 +72,38 @@ parser = OptionParser(add_help_option=False)
 
 # Tool specific options (Try to print all the commands automatically)
 parser.add_option('--guidetreeout', action='store_true', help=('Output guide tree.'))
-parser.add_option('--dismatout', action='store_true', help=('Output distance matrix. This is only calculated if the mBed-like'
-                  'clustering guide tree is set to false.'))
+parser.add_option('--dismatout', action='store_true',
+                  help=('Output distance matrix. This is only calculated if the mBed-like'
+                        'clustering guide tree is set to false.'))
 parser.add_option('--dealign', action='store_true', help=('Remove any existing alignment (gaps) from input sequences.'))
-parser.add_option('--mbed', action='store_true', help=('This option uses a sample of the input sequences and then represents'
-                  'all sequences as vectors to these sequences, enabling much more rapid'
-                  'generation of the guide tree, especially when the number of sequences'
-                  'is large.'))
-parser.add_option('--mbediteration', action='store_true', help=('Use mBed-like clustering during subsequent iterations.'))
+parser.add_option('--mbed', action='store_true',
+                  help=('This option uses a sample of the input sequences and then represents'
+                        'all sequences as vectors to these sequences, enabling much more rapid'
+                        'generation of the guide tree, especially when the number of sequences'
+                        'is large.'))
+parser.add_option('--mbediteration', action='store_true',
+                  help=('Use mBed-like clustering during subsequent iterations.'))
 parser.add_option('--iterations', type=int, help=('Number of (combined guide-tree/HMM) iterations.'))
-parser.add_option('--gtiterations', type=int, help=('Having set the number of combined iterations, this parameter can be'
-                  'changed to limit the number of guide tree iterations within the'
-                  'combined iterations.'))
-parser.add_option('--hmmiterations', type=int, help=('Having set the number of combined iterations, this parameter can be'
-                  'changed to limit the number of HMM iterations within the combined'
-                  'iterations.'))
+parser.add_option('--gtiterations', type=int,
+                  help=('Having set the number of combined iterations, this parameter can be'
+                        'changed to limit the number of guide tree iterations within the'
+                        'combined iterations.'))
+parser.add_option('--hmmiterations', type=int,
+                  help=('Having set the number of combined iterations, this parameter can be'
+                        'changed to limit the number of HMM iterations within the combined'
+                        'iterations.'))
 parser.add_option('--outfmt', type=str, help=('Format for generated multiple sequence alignment.'))
 parser.add_option('--order', type=str, help=('The order in which the sequences appear in the final alignment'))
 parser.add_option('--stype', type=str, help=('Defines the type of the sequences to be aligned'))
 parser.add_option('--sequence', type=str, help=('Three or more sequences to be aligned can be entered directly into'
-                  'this box. Sequences can be in GCG, FASTA, EMBL (Nucleotide only),'
-                  'GenBank, PIR, NBRF, PHYLIP or UniProtKB/Swiss-Prot (Protein only)'
-                  'format. Partially formatted sequences are not accepted. Adding a'
-                  'return to the end of the sequence may help certain applications'
-                  'understand the input. Note that directly using data from word'
-                  'processors may yield unpredictable results as hidden/control'
-                  'characters may be present. There is currently a sequence input limit'
-                  'of 4000 sequences and 4MB of data.'))
+                                                'this box. Sequences can be in GCG, FASTA, EMBL (Nucleotide only),'
+                                                'GenBank, PIR, NBRF, PHYLIP or UniProtKB/Swiss-Prot (Protein only)'
+                                                'format. Partially formatted sequences are not accepted. Adding a'
+                                                'return to the end of the sequence may help certain applications'
+                                                'understand the input. Note that directly using data from word'
+                                                'processors may yield unpredictable results as hidden/control'
+                                                'characters may be present. There is currently a sequence input limit'
+                                                'of 4000 sequences and 4MB of data.'))
 # General options
 parser.add_option('-h', '--help', action='store_true', help='Show this help message and exit.')
 parser.add_option('--email', help='E-mail address.')
@@ -178,7 +183,7 @@ def restRequest(url):
         # Make the request (HTTP GET).
         reqH = urlopen(req)
         resp = reqH.read()
-        contenttype = reqH.render_info()
+        contenttype = reqH.info()
 
         if (len(resp) > 0 and contenttype != u"image/png;charset=UTF-8"
                 and contenttype != u"image/jpeg;charset=UTF-8"
@@ -532,7 +537,7 @@ elif options.params:
 # Get parameter details
 elif options.paramDetail:
     printGetParameterDetails(options.paramDetail)
-# Print Client version
+# Print Client version
 elif options.version:
     print("Revision: %s" % version)
     sys.exit()
@@ -551,7 +556,8 @@ elif options.email and not options.jobid:
         else:  # Argument is a sequence id
             params[u'asequence'] = args[0]
             params[u'bsequence'] = args[0]
-    elif hasattr(options, "sequence") or (hasattr(options, "asequence") and hasattr(options, "bsequence")):  # Specified via option
+    elif hasattr(options, "sequence") or (
+            hasattr(options, "asequence") and hasattr(options, "bsequence")):  # Specified via option
         if hasattr(options, "sequence"):
             if os.path.exists(options.sequence):  # Read file into content
                 params[u'sequence'] = readFile(options.sequence)
@@ -573,66 +579,55 @@ elif options.email and not options.jobid:
         params['guidetreeout'] = 'true'
     if options.guidetreeout:
         params['guidetreeout'] = options.guidetreeout
-    
 
     if not options.dismatout:
         params['dismatout'] = 'true'
     if options.dismatout:
         params['dismatout'] = options.dismatout
-    
 
     if not options.dealign:
         params['dealign'] = 'false'
     if options.dealign:
         params['dealign'] = options.dealign
-    
 
     if not options.mbed:
         params['mbed'] = 'true'
     if options.mbed:
         params['mbed'] = options.mbed
-    
 
     if not options.mbediteration:
         params['mbediteration'] = 'true'
     if options.mbediteration:
         params['mbediteration'] = options.mbediteration
-    
 
     if not options.iterations:
         params['iterations'] = 0
     if options.iterations:
         params['iterations'] = options.iterations
-    
 
     if not options.gtiterations:
         params['gtiterations'] = -1
     if options.gtiterations:
         params['gtiterations'] = options.gtiterations
-    
 
     if not options.hmmiterations:
         params['hmmiterations'] = -1
     if options.hmmiterations:
         params['hmmiterations'] = options.hmmiterations
-    
 
     if not options.outfmt:
         params['outfmt'] = 'clustal_num'
     if options.outfmt:
         params['outfmt'] = options.outfmt
-    
 
     if not options.order:
         params['order'] = 'aligned'
     if options.order:
         params['order'] = options.order
-    
-
 
     # Submit the job
     jobId = serviceRun(options.email, options.title, params)
-    if options.asyncjob: # Async mode
+    if options.asyncjob:  # Async mode
         print(jobId)
         if outputLevel > 0:
             print("To check status: python %s --status --jobid %s"

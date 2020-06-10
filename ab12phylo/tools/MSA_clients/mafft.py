@@ -73,25 +73,26 @@ parser = OptionParser(add_help_option=False)
 # Tool specific options (Try to print all the commands automatically)
 parser.add_option('--format', type=str, help=('Format for generated multiple sequence alignment.'))
 parser.add_option('--matrix', type=str, help=('Protein comparison matrix to be used when adding sequences to the'
-                  'alignment.'))
+                                              'alignment.'))
 parser.add_option('--gapopen', type=str, help=('Penalty for first base/residue in a gap.'))
 parser.add_option('--gapext', type=str, help=('Penalty for each additional base/residue in a gap.'))
 parser.add_option('--order', type=str, help=('The order in which the sequences appear in the final alignment'))
 parser.add_option('--nbtree', type=int, help=('Tree Rebuilding Number'))
 parser.add_option('--treeout', action='store_true', help=('Generate guide tree file'))
-parser.add_option('--maxiterate', type=int, help=('Maximum number of iterations to perform when refining the alignment'))
+parser.add_option('--maxiterate', type=int,
+                  help=('Maximum number of iterations to perform when refining the alignment'))
 parser.add_option('--ffts', type=str, help=('Perform fast fourier transform'))
 parser.add_option('--stype', type=str, help=('Indicates if the sequences to align are protein or nucleotide'
-                  '(DNA/RNA).'))
+                                             '(DNA/RNA).'))
 parser.add_option('--sequence', type=str, help=('Three or more sequences to be aligned can be entered directly into'
-                  'this form. Sequences can be in GCG, FASTA, EMBL (Nucleotide only),'
-                  'GenBank, PIR, NBRF, PHYLIP or UniProtKB/Swiss-Prot (Protein only)'
-                  'format. Partially formatted sequences are not accepted. Adding a'
-                  'return to the end of the sequence may help certain applications'
-                  'understand the input. Note that directly using data from word'
-                  'processors may yield unpredictable results as hidden/control'
-                  'characters may be present. There is currently a sequence input limit'
-                  'of 500 sequences and 1MB of data.'))
+                                                'this form. Sequences can be in GCG, FASTA, EMBL (Nucleotide only),'
+                                                'GenBank, PIR, NBRF, PHYLIP or UniProtKB/Swiss-Prot (Protein only)'
+                                                'format. Partially formatted sequences are not accepted. Adding a'
+                                                'return to the end of the sequence may help certain applications'
+                                                'understand the input. Note that directly using data from word'
+                                                'processors may yield unpredictable results as hidden/control'
+                                                'characters may be present. There is currently a sequence input limit'
+                                                'of 500 sequences and 1MB of data.'))
 # General options
 parser.add_option('-h', '--help', action='store_true', help='Show this help message and exit.')
 parser.add_option('--email', help='E-mail address.')
@@ -171,7 +172,7 @@ def restRequest(url):
         # Make the request (HTTP GET).
         reqH = urlopen(req)
         resp = reqH.read()
-        contenttype = reqH.render_info()
+        contenttype = reqH.info()
 
         if (len(resp) > 0 and contenttype != u"image/png;charset=UTF-8"
                 and contenttype != u"image/jpeg;charset=UTF-8"
@@ -519,7 +520,7 @@ elif options.params:
 # Get parameter details
 elif options.paramDetail:
     printGetParameterDetails(options.paramDetail)
-# Print Client version
+# Print Client version
 elif options.version:
     print("Revision: %s" % version)
     sys.exit()
@@ -538,7 +539,8 @@ elif options.email and not options.jobid:
         else:  # Argument is a sequence id
             params[u'asequence'] = args[0]
             params[u'bsequence'] = args[0]
-    elif hasattr(options, "sequence") or (hasattr(options, "asequence") and hasattr(options, "bsequence")):  # Specified via option
+    elif hasattr(options, "sequence") or (
+            hasattr(options, "asequence") and hasattr(options, "bsequence")):  # Specified via option
         if hasattr(options, "sequence"):
             if os.path.exists(options.sequence):  # Read file into content
                 params[u'sequence'] = readFile(options.sequence)
@@ -560,58 +562,48 @@ elif options.email and not options.jobid:
         params['format'] = 'fasta'
     if options.format:
         params['format'] = options.format
-    
 
     if not options.matrix:
         params['matrix'] = 'bl62'
     if options.matrix:
         params['matrix'] = options.matrix
-    
 
     if not options.gapopen:
         params['gapopen'] = '1.53'
     if options.gapopen:
         params['gapopen'] = options.gapopen
-    
 
     if options.gapext:
         params['gapext'] = options.gapext
-    
 
     if not options.order:
         params['order'] = 'aligned'
     if options.order:
         params['order'] = options.order
-    
 
     if not options.nbtree:
         params['nbtree'] = 2
     if options.nbtree:
         params['nbtree'] = options.nbtree
-    
 
     if not options.treeout:
         params['treeout'] = 'true'
     if options.treeout:
         params['treeout'] = options.treeout
-    
 
     if not options.maxiterate:
         params['maxiterate'] = 2
     if options.maxiterate:
         params['maxiterate'] = options.maxiterate
-    
 
     if not options.ffts:
         params['ffts'] = 'none'
     if options.ffts:
         params['ffts'] = options.ffts
-    
-
 
     # Submit the job
     jobId = serviceRun(options.email, options.title, params)
-    if options.asyncjob: # Async mode
+    if options.asyncjob:  # Async mode
         print(jobId)
         if outputLevel > 0:
             print("To check status: python %s --status --jobid %s"
