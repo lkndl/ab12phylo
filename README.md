@@ -59,7 +59,7 @@ ab12phylo -abi <seq_dir> \
 where:
 * `<seq_dir>` contains all input ABI trace files, ending in `.ab1`
 * `<wellsplates_dir>` contains the `.csv` mappings of user-defined IDs to sequencer's isolate coordinates
-* `<barcode_gene>` was sequenced
+* `<barcode_gene>` was sequenced. more [info](#genes--references)
 * `<ref.fasta>` contains full GenBank reference records [like this](https://www.ncbi.nlm.nih.gov/nuccore/AF347033.1?report=fasta&log$=seqview&format=text)
 * 1000 `-bst` = `--bootstrap` trees will be generated
 * `<results>` is where results will be  
@@ -83,8 +83,8 @@ ab12phylo -rf <ref.fasta> \
 * **default:** AB12PHYLO will search for `.ab1` and `.csv` files in or below the current working directory
 * **default:** use the `./results` subdirectory
 * **default:** samples originate from `ITS1F`
-* use `<your_own>` BLAST+ database; in `<your_dir>`
-* only trace files listed in the [`<whitelist>`](#subset-analysis) will be read
+* use `<your_own>` [BLAST+ database](#blast-database); in `<your_dir>`
+* only trace files listed in the [`<whitelist>`](#results--motif-search) will be read
 * `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
 * `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed` or `strict`
 * `-st`: ML tree searches from `32` random and `16` parsimony-based starting trees
@@ -100,7 +100,7 @@ If results are moved or sent, motif search will be possible by using `ab12phylo-
 
 
 #### ab12phylo-visualize + ab12phylo-view
-`ab12phylo-visualize` will re-plot phylogenies and render a new `results.html`. An end user may use this to switch [support values](#support-values) or plot an [MSA visualization](#msa-visualization). 
+`ab12phylo-visualize` will re-plot phylogenies and render a new `results.html`. An end user may use this to switch [support values](#support-values) or plot an MSA visualization with `-msa-viz`. This will take some rendering time for wider alignments.
  `ab12phylo-view` shows results of a previous run in a browser, with motif search enabled. Both commands accept a path to the AB12PHYLO results or default to `.`, and are equivalent to appending to the original `ab12phylo` call.
 
 ```bash
@@ -115,7 +115,7 @@ ab12phylo -c <my-config.yaml> -bst 1000 (...) -view
 ## Advanced use
 
 #### Remote runs
-[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs, as well as [pre-supplying a BLAST+ db](#blast-database), adapting or replacing the [YAML](https://yaml.org/) config file and setting a fixed seed to create reproducibility at least on the same system. Also, you might consider plotting an additional rectangular tree with an MSA visualization by passing `-msa_viz`. This will take some rendering time for wider alignments.
+[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs, as well as [pre-supplying a BLAST+ db](#blast-database), adapting or replacing the [YAML](https://yaml.org/) config file and setting a fixed seed for reproducibility. Also, do consider plotting an additional rectangular tree with an MSA visualization by passing `-msa_viz`.
 
 
 #### Genes + References
@@ -140,6 +140,10 @@ BLAST API queries are de-prioritised after just a few attempts. Accordingly, if 
 
 #### Support Values
 For visualization, you can pick either Felsenstein Bootstrap Proportions `FBP` or [Transfer Bootstrap Expectation](https://doi.org/10.1038/s41586-018-0043-0) `TBE` support values with `-metric`. Newick tree files for both types are generated anyway, so switching the support value metric only requires re-running `ab12phylo-visualize`.
+
+
+#### MSA clients and T-Coffee
+As of June 2020, there is no T-Coffee package for python3.8 on Bioconda. The MSA algorithm can however still be used by using the EMBL-EBI [online tool](https://www.ebi.ac.uk/Tools/msa/) and the API client included in AB12PHYLO. If it doesn't work, try [refreshing](https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/T-coffee+Help+and+Documentation) the client.
 
 
 #### Log File
