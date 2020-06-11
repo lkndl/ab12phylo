@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.5&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.6&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -42,7 +42,7 @@ As AB12PHYLO is primarily a command line tool, you might want to take a look at 
 
 
 #### Test run
-This pipeline comes with its own test data set. If you pass `-test`, it will read options from an auxiliary (or backup) config file at `<ab12phylo_root>/ab12phylo/config/test_config.yaml` and run on these. The test run is set to `--verbose` and will run `--no_remote` BLAST search.
+The pipeline comes with its own test data set. If you pass `-test`, it will read options from an auxiliary (or backup) config file at `<ab12phylo_root>/ab12phylo/config/test_config.yaml` and run on these. The test run is set to `--verbose` and will run `--no_remote` BLAST search.
 
 
 #### Basic options
@@ -88,15 +88,15 @@ ab12phylo -rf <ref.fasta> \
 * `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
 * `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed` or `strict`
 * `-st`: ML tree searches from `32` random and `16` parsimony-based starting trees
-* `-s` sets the random [`--seed`](#seed) to `4` for reproducibility
+* `-s` fixes the random `--seed` to `4` for reproducibility
 * `-v` or `--verbose` will print all logged events to the console
 * `-skip` online BLAST for sequences not in the local BLAST+ db and [read why](#blast-api)
 
 
 #### Results + Motif Search
-Once ML tree inference, computing of support values and BLAST has finished, the pipeline will display a `result.html` in your web browser. This page contains a form that allows **Motif search** across node attributes, enables [subtree or subset selection](#subset-analysis) and calculates diversity metrics for you. 
+Once ML tree inference, bootstrapping and BLAST has finished, the pipeline will display a `result.html` in your web browser. This page contains a form that allows **Motif search** across node attributes and calculates diversity metrics for the matching subset/subtree. Enter `' '` or `''` to match all samples, and use the generated whitelist file for your subset analysis run. Pass it via `-sampleset` if using sample IDs, or via `-abiset` if using file paths. File paths are recommended to reliably exclude outlier versions with identical base ID.
 
-If results are moved or sent, motif search will be possible by using `ab12phylo-view` or starting a CGI server in the directory via `python3 -m http.server --cgi <port>`.
+If results are moved or sent, motif search will be possible by using `ab12phylo-view` or starting a CGI server in the directory via `python3 -m http.server --cgi <port>`. Find the `<port>` on the intro tab.
 
 
 #### ab12phylo-visualize + ab12phylo-view
@@ -115,25 +115,15 @@ ab12phylo -c <my-config.yaml> -bst 1000 (...) -view
 ## Advanced use
 
 #### Remote runs
-[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs, as well as [pre-supplying a BLAST+ db](#blast-database), adapting or replacing the [YAML](https://yaml.org/) config file and setting a seed.
+[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs, as well as [pre-supplying a BLAST+ db](#blast-database), adapting or replacing the [YAML](https://yaml.org/) config file and setting a fixed seed to create reproducibility at least on the same system. Also, you might consider plotting an additional rectangular tree with an MSA visualization by passing `-msa_viz`. This will take some rendering time for wider alignments.
 
 
-#### Seed 
-An integer that is used to initialize the python3 random number generator ([RNG](https://docs.python.org/3/library/random.html)) that will be used primarily for RAxML-NG. If you set it yourself via `-s` (otherwise it's, well,  random), runs with the same seed on the same system with identical numbers of ML tree searches and Bootstraps will generate precisely the same trees and save them in the same files. This is intentional reproducibility.
+#### Genes + References
+If data for several genes is supplied, AB12PHYLO will restrict the analysis to samples that are present for all genes. If this causes a lot of samples to be dropped, it might be worth leaving out a gene entirely by setting `-g` = `--genes` manually.
 
+Passing references is closely inter-linked: If a directory of reference files is supplied via `-rd` = `--ref_dir`, the package will try to match the `.FASTA` files inside to genes *by their filename*. For example, `ITS1F.fasta` will be matched to trace data from the *ITS1F* gene. Alternatively, an ordered list of reference files can be passed via `-rf` = `--ref`, and file names will be ignored. 
 
-#### Genes
-If data for several genes is supplied, AB12PHYLO will restrict the analysis to samples that are present for all genes. If this causes a lot of samples to be dropped, it might be worth leaving out a gene entirely by setting `-g` = `--genes`.
-
-
-#### Subset analysis
-Alternatively, you can pass a file that serves as a whitelist if you want to analyse only a certain subset of your data via `-abiset`. It is also possible to use sample IDs: Provide a file via `-sampleset`. Defining a subset this way does not influence exclusion via `-g`, of course.
-
-
-#### References
-Setting references is a bit like setting genes: If a directory of reference files is supplied via `-rd` = `--ref_dir`, the pipeline will try to match the `.FASTA` files in that directory to the genes in the analysis *by their filename*. For example, `ITS1F.fasta` will be matched to sequences from the *ITS1F* gene. Alternatively, an ordered list of reference files can be passed via `-rf` = `--ref`, and file names will be ignored. 
-
-If you're feeling neat and precise and set both the genes and individual references, be careful: The pipeline deliberately matches references and genes *by order* in this case. Accordingly, this will mess it up:
+If you're feeling this neat and precise and set both the genes and individual references, be careful: The pipeline deliberately matches references and genes *by order* in this case. So this will make a mess:
 
 ```bash
 -g ITS1F OPA10 -rf ../opa10.fasta ITS1F.phy
@@ -148,16 +138,12 @@ Sometimes, this pipeline might run headless on a server. To keep it from running
 BLAST API queries are de-prioritised after just a few attempts. Accordingly, if several runs are attempted on the same data set, the `-skip`=`--no_remote` flag can be set to use data from an earlier run or leave out species annotation for samples not found in the local database. Alternatively, BLAST can be skipped entirely with `-none`=`--no_BLAST`.
 
 
-#### MSA visualization
-An MSA visualization can be plotted to the rectangular tree by passing `-msa_viz`. This will take some rendering time for wider alignments.
-
-
 #### Support Values
-For visualization, you can pick either Felsenstein Bootstrap Proportions `FBP` or [Transfer Bootstrap Expectation](https://doi.org/10.1038/s41586-018-0043-0) `TBE` support values with `-metric`. Newick tree files for both types are generated anyway, so switching support value metric only requires re-running `ab12phylo-visualize`.
+For visualization, you can pick either Felsenstein Bootstrap Proportions `FBP` or [Transfer Bootstrap Expectation](https://doi.org/10.1038/s41586-018-0043-0) `TBE` support values with `-metric`. Newick tree files for both types are generated anyway, so switching the support value metric only requires re-running `ab12phylo-visualize`.
 
 
 #### Log File
-If you're having trouble, look at the log file! It will be in your results directory and is named `ab12phylo.log`. Alternatively, you can set the `--verbose` flag and get the same information in real-time to your commandline. Your choice.
+If you're having trouble, look at the log file! It will be in your results directory and is named `ab12phylo.log`. Alternatively, you can set the `--verbose` flag and get the same information in real-time to your commandline. Your choice!
 
 
 ## Dependencies

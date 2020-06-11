@@ -473,10 +473,10 @@ th, td {
 <h2 class="tabset"></h2>
 <div href='#intro' id="intro" class="section level3">
 <h3><strong>1</strong> intro</h3>
-<p>run started: {{run_start}} </p>
+<p>phylogeny run started: <code>{{run_start}}</code> </p>
 <p>arguments:<br> <code> {{run_args}} </code></p>
+<p>seed: <code>{{seed}}</code> &emsp; port: <code>{{port}}</code></p>
 <p><code>{{num_seq}}</code> samples for <code>{{genes}}</code></p>
-<p>seed was <code>{{seed}}</code></p>
 <hr/>
 <h4>Topology preview</h4>
      {{topo}}
@@ -484,10 +484,10 @@ th, td {
 
 <div href='#circular' id="circular" class="section level3">
 <h3><strong>2</strong> circular</h3>
-<p>This is a circular layout.<br>References are labeled in blue.</p>
-<p>Label colors encode the <code>%</code> identity with the best <code>BLAST</code> hit,
-from black for <code>100%</code> pid towards orange for <code>≤ 80%</code> pid.<br>
-Node sizes encode bootstrap support, with node color changing for support values
+<h4>Circular layout</h4>
+<p>References are labeled in blue. <br>Leaf label color generally encodes <code>%</code> identity
+with the best <code>BLAST</code> hit, from black for <code>100%</code> pid towards orange for <code>≤ 80%</code> pid. <br>
+Node sizes encode <code>{{metric}}</code> bootstrap support, with node color changing for support values
 above <code>{{threshold}}%</code>.<br>
 The minimal topological distance between any two nodes is <code>{{min_dist}}</code>.</p>
      {{circular}}
@@ -497,7 +497,7 @@ The minimal topological distance between any two nodes is <code>{{min_dist}}</co
 <h3><strong>3</strong> rect + motif</h3>
 <form name='theform' action="http://localhost:{{port}}/cgi-bin/ab12phylo.py" onsubmit='return validateinput()' method="POST">
   <div class="form-group">
-    <h3>Motif search</h3>
+    <h4>Motif search</h4>
     <p>Fetch all nodes matching your motifs with <code>MATCH</code>,
       or find their MRCA and return all its descendants with <code>SUBTREE</code>.<br />
        Separate motifs by <code>,</code> and run <code>ab12phylo-view</code> in this directory if the form is unresponsive.</p>
@@ -516,6 +516,8 @@ The minimal topological distance between any two nodes is <code>{{min_dist}}</co
 
 <div id="motif_result"></div>
 
+<hr/>
+<h4>Rectangular topology</h4>
 {{rectangular}}
 </div>
 
@@ -525,7 +527,7 @@ The minimal topological distance between any two nodes is <code>{{min_dist}}</co
 </div>
 
 <div href='#msa' id="msa" class="section level3">
-<h3><strong>5</strong> MSA</h3>
+<h3><strong>5</strong> raw MSA</h3>
 <pre include="T"><code>{{msa}}</code></pre>
 </div>
 

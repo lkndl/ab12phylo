@@ -151,7 +151,7 @@ class tree_build:
 
         self.log.debug('drawing circular tree')
         start = time()
-        ccanvas, axc = self.tree.draw(width=720, height=800, scalebar=True,
+        ccanvas, axc = self.tree.draw(width=800, height=800, scalebar=True,
                                       node_sizes=colors[2], node_colors=colors[3],
                                       tip_labels=True, tip_labels_align=False, tip_labels_colors=colors[1],
                                       layout='c', edge_type='c')
@@ -206,7 +206,7 @@ class tree_build:
         self.tree = toytree.tree(open(self.tree_file, 'r').read(), tree_format=0)
 
         # set dimensions of the canvas
-        preview = toyplot.Canvas(width=720, height=360, style={'background-color': 'white'})
+        preview = toyplot.Canvas(width=800, height=400, style={'background-color': 'white'})
         # dissect canvas into two cartesian areas
         ax0 = preview.cartesian(bounds=('5%', '48%', '5%', '95%'))
         ax1 = preview.cartesian(bounds=('52%', '95%', '5%', '95%'))
