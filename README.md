@@ -13,7 +13,7 @@ AB12PHYLO was developed to identify plant pathogen populations possibly under ba
 
 ## Installation
  
-First, please clone the AB12PHYLO GitLab repository:
+First, clone the AB12PHYLO repository:
  
 ```bash
 git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
@@ -59,7 +59,7 @@ ab12phylo -abi <seq_dir> \
 where:
 * `<seq_dir>` contains all input ABI trace files, ending in `.ab1`
 * `<wellsplates_dir>` contains the `.csv` mappings of user-defined IDs to sequencer's isolate coordinates
-* `<barcode_gene>` was sequenced. more [info](#genes--references)
+* `<barcode_gene>` was sequenced. more [info](#genes-and-references)
 * `<ref.fasta>` contains full GenBank reference records [like this](https://www.ncbi.nlm.nih.gov/nuccore/AF347033.1?report=fasta&log$=seqview&format=text)
 * 1000 `-bst` = `--bootstrap` trees will be generated
 * `<results>` is where results will be  
@@ -118,7 +118,7 @@ ab12phylo -c <my-config.yaml> -bst 1000 (...) -view
 [tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs, as well as [pre-supplying a BLAST+ db](#blast-database), adapting or replacing the [YAML](https://yaml.org/) config file and setting a fixed seed for reproducibility. Also, do consider plotting an additional rectangular tree with an MSA visualization by passing `-msa_viz`.
 
 
-#### Genes + References
+#### Genes and References
 If data for several genes is supplied, AB12PHYLO will restrict the analysis to samples that are present for all genes. If this causes a lot of samples to be dropped, it might be worth leaving out a gene entirely by setting `-g` = `--genes` manually.
 
 Passing references is closely inter-linked: If a directory of reference files is supplied via `-rd` = `--ref_dir`, the package will try to match the `.FASTA` files inside to genes *by their filename*. For example, `ITS1F.fasta` will be matched to trace data from the *ITS1F* gene. Alternatively, an ordered list of reference files can be passed via `-rf` = `--ref`, and file names will be ignored. 
