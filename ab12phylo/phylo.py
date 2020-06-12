@@ -154,7 +154,7 @@ class tree_build:
         ccanvas, axc = self.tree.draw(width=800, height=800, scalebar=True,
                                       node_sizes=colors[2], node_colors=colors[3],
                                       tip_labels=True, tip_labels_align=False, tip_labels_colors=colors[1],
-                                      layout='c', edge_type='c')
+                                      layout='c', edge_type='r')
         ccanvas.style['background-color'] = 'white'
         axc.show = False
         png.render(ccanvas, path.join(self.args.dir, 'circular.png'), scale=1.6)
@@ -215,7 +215,7 @@ class tree_build:
         # call draw with the 'axes' argument to pass it to a specific cartesian area
         self.log.debug('drawing preview')
         self.tree.draw(axes=ax0, layout='r', tip_labels=False)
-        self.tree.draw(axes=ax1, layout='c', edge_type='c', tip_labels=False)
+        self.tree.draw(axes=ax1, layout='c', edge_type='r', tip_labels=False)
 
         # hide the axes coordinates
         ax0.show = False
