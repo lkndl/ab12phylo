@@ -140,6 +140,7 @@ div.append(etree.fromstring('<div>%s</div>' % table))
 
 # edit logo and icon path
 ET.xpath('//img[@id="logo"]')[0].set('src', 'http://localhost:%d/.img/favicon.png' % port)
+ET.xpath('//img[@id="msa_viz"]')[0].set('src', 'http://localhost:%d/rectangular_msa.png' % port)
 ET.xpath('//link[@id="favicon"]')[0].set('href', 'http://localhost:%d/.img/favicon.ico' % port)
 
 # re-set metadata.tsv link

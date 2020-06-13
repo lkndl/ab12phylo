@@ -464,8 +464,8 @@ th, td {
 
 </div>
 <h1 class="title toc-ignore"> <img class="title" id="logo" src="cgi-bin/favicon.png" alt="logo" style="width:40px; heigth:40px;" />&ensp;AB12PHYLO results</h1>
-<h4 class="author">{{author}}</h4>
-<h4 class="date">2020</h4>
+<!--<h4 class="author">{{author}}</h4>-->
+<!--<h4 class="date">2020</h4>-->
 
 </div>
 
@@ -494,7 +494,7 @@ The minimal topological distance between any two nodes is <code>{{min_dist}}</co
 </div>
 
 <div href='#rectangular' id="rectangular" class="section level3">
-<h3><strong>3</strong> rect + motif</h3>
+<h3><strong>3</strong> rect +<strong>3.1</strong> motif</h3>
 <form name='theform' action="http://localhost:{{port}}/cgi-bin/ab12phylo.py" onsubmit='return validateinput()' method="POST">
   <div class="form-group">
     <h4>Motif search</h4>
@@ -517,45 +517,48 @@ The minimal topological distance between any two nodes is <code>{{min_dist}}</co
 <div id="motif_result"></div>
 
 <hr/>
-<h4>Rectangular topology</h4>
+<h4>Rectangular layout</h4>
 {{rectangular}}
 </div>
 
-<div href='#log-file' id="log-file" class="section level3">
-<h3><strong>4</strong> log file</h3>
-<pre include="T"><code>{{log}}</code></pre>
-</div>
+<!--msa_viz tab goes here if plotted-->
+{{msa_viz}}
 
-<div href='#msa' id="msa" class="section level3">
-<h3><strong>5</strong> raw MSA</h3>
-<pre include="T"><code>{{msa}}</code></pre>
-</div>
 
 <div href='#mview' id="mview" class="section level3">
-<h3><strong>6</strong> MView</h3>
+<h3><strong>4</strong> MView</h3>
 {{mview}}
 </div>
 
-<div href='#newick' id="newick" class="section level3">
-<h3><strong>7</strong> Newick</h3>
-<p>phylogeny in <a href="https://en.wikipedia.org/wiki/Newick_format">newick</a> format with species annotation,
+
+<div href='#raw' id="raw_files" class="section level3">
+<h3><strong>5</strong> raw files</h3>
+<h4>Missing samples</h4>
+<pre include="T"><code>{{missing}}</code></pre>
+<hr>
+<h4>Log</h4>
+<pre include="T"><code>{{log}}</code></pre>
+<hr>
+<h4>raw phylogeny</h4>
+<p>in <a href="https://en.wikipedia.org/wiki/Newick_format">newick</a> format with species annotation,
 <code>pid</code> of best BLAST hit and <code>{{metric}}</code> support values.</p>
 <pre include="T"><code>{{newick}}</code></pre>
+<hr>
+<p>Raw MSA</p>
+<pre include="T"><code>{{msa}}</code></pre>
 </div>
 
-<div href='#tabular-data' id="tabular-data" class="section level3">
-<h3><strong>8</strong> metadata</h3>
-<p>Only file <em>names</em> are displayed. The source <a id="tsv_link" href="{{metadata}}">.tsv</a> contains full paths.</p>
+<div href='#tables' id="tables" class="section level3">
+<h3><strong>6</strong> tabular data</h3>
+<h4>Troublesome trace files</h4>
+{{bad_seqs}}
+<hr>
+<h4>Metadata</h4>
+<p>File origins of samples, BLAST results and reference annotations. Only file <em>names</em>
+are displayed. The source <a id="tsv_link" href="{{metadata}}">.tsv</a> contains full paths.</p>
 {{table}}
 </div>
 
-<div href='#missing-seqs' id="missing-seqs" class="section level3">
-<h3><strong>9</strong> missing</h3>
-<h4>missing samples</h4>
-<pre include="T"><code>{{missing}}</code></pre><br />
-<h4>problematic trace files</h4>
-<p> {{bad_seqs}} </p>
-</div>
 
 </div>
 <div id="section-1" class="section level2">

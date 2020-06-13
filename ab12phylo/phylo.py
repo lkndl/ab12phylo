@@ -35,7 +35,7 @@ from toyplot import html, png, color, data, locator
 from ab12phylo import main, cli
 
 # adapted kxlin colors
-raw_rgbas = [(.56, 1, .14, 1), (.16, .44, .8, 1), (.06, 1, .6, 1), (.92, 1, .7, 1),
+raw_rgbas = [(.56, 1, .14, 1), (.16, .44, .8, 1), (.06, 1, .75, 1), (.92, 1, .7, 1),
              (.94, .94, .94, .6), (1, 1, 1, 0), (1, 1, 1, 0), (1, 1, 1, 0)] + [(1, 0, 0, 1)] * 20
 kxlin = color.Palette(colors=[color.rgba(i[0], i[1], i[2], i[3]) for i in raw_rgbas])
 # author colors
@@ -190,6 +190,15 @@ class tree_build:
             rcanvas_msa = self._with_matrix(colors, kxlin)
             png.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.png'), scale=2)
             self.log.debug('rendered w/ msa in %.2f sec' % (time() - start))
+
+        # but display it any way if it exists
+        if path.isfile(path.join(self.args.dir, 'rectangular_msa.png')):
+            render_dict['msa_viz'] = '<div id="msa_viz" href="msa_viz" class="section level3">' \
+                                     '<h3><strong>3.2</strong> +MSA</h3>' \
+                                     '<img id="msa_viz" src="rectangular_msa.png" alt="tree+MSA" ' \
+                                     'style="width:860px"/></div>'
+        else:
+            render_dict['msa_viz'] = ''
 
         self._write_html(render_dict, preview, ccanvas, rcanvas, tree_no_msa)
         if not self.args.headless:
@@ -420,7 +429,7 @@ class tree_build:
         self.log.debug('MView config')
 
         arg = '%s %s -in fasta -moltype dna -width 80 -conservation on -coloring consensus -threshold 80 ' \
-              '-label2 -label4 -label5 -consensus on -con_threshold 80 -html head -css on  -colormap kxlin %s > %s' % \
+              '-label2 -label4 -label5 -consensus on -con_threshold 80 -html head -css on  -colormap leo %s > %s' % \
               (perl_binary, path.join(mv_path, 'bin', 'mview'), self.args.new_msa, self.args.mview_msa)
 
         p = subprocess.run(arg, shell=True, stdout=subprocess.PIPE)

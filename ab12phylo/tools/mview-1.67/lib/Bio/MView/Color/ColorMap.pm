@@ -495,6 +495,14 @@ color  lin-Y               :  #e903a8
 color  lin-V               :  #5bfdfd
 
 ###########################################################################
+# Leo Kaindl's colour scheme based on KXLIN
+###########################################################################
+color  leo-A               :  #8FFF24
+color  leo-C               :  #2970CC
+color  leo-G               :  #10FFBF
+color  leo-T               :  #EBFFB2
+
+###########################################################################
 # Limited set of MView search block colours
 ###########################################################################
 color  find-A              :  #90fe23
@@ -995,6 +1003,35 @@ Zz       =>  light-gray      #E or Q
 Xx       ->  light-gray      #unknown
 ?        ->  light-gray      #unknown
 *        =>  black           #stop
+
+[LEO]
+#color scheme for AB12PHYLO https://gitlab.lrz.de/leokaindl/ab12phylo based on KXLIN
+Aa       =>  lin-A
+Rr       =>  lin-R
+Nn       =>  lin-N
+Dd       =>  lin-D
+Cc       =>  leo-C
+Qq       =>  lin-Q
+Ee       =>  lin-E
+Gg       =>  leo-G
+Hh       =>  lin-H
+Ii       =>  lin-I
+Ll       =>  lin-L
+Kk       =>  lin-K
+Mm       =>  lin-M
+Ff       =>  lin-F
+Pp       =>  lin-P
+Ss       =>  lin-S
+Tt       =>  leo-T
+Ww       =>  lin-W
+Yy       =>  lin-Y
+Vv       =>  lin-V
+Bb       =>  light-gray      #D or N
+Zz       =>  light-gray      #E or Q
+Xx       ->  light-gray      #unknown
+?        ->  light-gray      #unknown
+*        =>  black           #stop	
+
 
 [DSSP]
 #DSSP protein secondary structure assignments
