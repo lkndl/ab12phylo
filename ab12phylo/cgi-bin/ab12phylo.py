@@ -6,6 +6,10 @@ Makes result HTML interactive by enabling motif search.
 
 import cgi
 import cgitb
+import itertools
+
+import numpy as np
+import os
 import pickle
 import re
 import toytree
@@ -14,6 +18,7 @@ from os import path, makedirs
 from lxml import etree, html
 from lxml.html import builder as E
 from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 from dendropy import DnaCharacterMatrix
 from dendropy.calculate import popgenstat
 from toytree.utils import ToytreeError
@@ -40,6 +45,121 @@ def _to_files(leaves):
         sam_to_file = {leaves.index(sample): _file for sample, _file
                        in [line.split('\t')[1:3] for line in tsv.readlines()] if sample in leaves}
     return [_file for sample, _file in sorted(sam_to_file.items())]
+
+
+def _h(a):
+    # harmonic number
+    b = 0
+    for c in range(1, a):
+        b += 1 / c
+    return b
+
+
+def _qh(a):
+    # quadratic harmonic number
+    b = 0
+    for c in range(1, a):
+        b += 1 / np.power(c, 2)
+    return b
+
+
+def _diversity_stats(gene_now, records):
+    # also accept polyallelic sites as segregating sites
+    poly_allowed = True
+
+    # translate dictionary of Seqs to numpy int array
+    seqs = np.array([seq for seq in records.values()])
+    bases = ['A', 'C', 'G', 'T', '-']
+    weird_chars = np.setdiff1d(np.unique(seqs), bases)
+    codes = dict(zip(bases + list(weird_chars), range(len(bases) + len(weird_chars))))
+    coded_seqs = np.vectorize(codes.get)(seqs)
+
+    conserved, biallelic, polyallelic, unknown, gaps = 0, 0, 0, 0, 0
+    drop = set()
+
+    # iterate over MSA columns, search for segregating sites
+    for j in range(coded_seqs.shape[1]):
+        col = set(coded_seqs[:, j])
+        if len(col) == 1:
+            # singleton
+            it = col.pop()
+            if it > 4:
+                unknown += 1
+                drop.add(j)
+            elif it == 4:
+                gaps += 1
+                drop.add(j)
+            else:
+                conserved += 1
+        else:
+            # more than one item
+            if max(col) > 4:
+                unknown += 1
+                drop.add(j)
+            elif max(col) == 4:
+                gaps += 1
+                drop.add(j)
+            else:
+                # no gap, no unknown, more than one
+                if len(col) > 2:
+                    polyallelic += 1
+                    if not poly_allowed:
+                        drop.add(j)
+                else:
+                    biallelic += 1
+
+    seg_sites = biallelic
+    n_sites = coded_seqs.shape[1] - unknown
+    if poly_allowed:
+        seg_sites += polyallelic
+    else:
+        n_sites -= polyallelic
+    n = coded_seqs.shape[0]
+
+    # crop to allowed sites
+    coded_seqs = coded_seqs[:, list(set(range(coded_seqs.shape[1])) - drop)]
+
+    pi = 0
+    for combi in itertools.combinations(range(n), 2):
+        pi += np.sum(coded_seqs[combi[0]] != coded_seqs[combi[1]])
+    pi = pi * 2 / n / (n - 1)
+    pi_per_site = pi / n_sites
+
+    theta_w = seg_sites / _h(n)
+
+    # Tajima's D
+    try:
+        e1 = 1 / _h(n) * ((n + 1) / (3 * n - 3) - 1 / _h(n))
+        b2 = (2 * (n * n + n + 3)) / (9 * n * (n - 1))
+        c2 = b2 - ((n + 2) / (n * _h(n))) + (_qh(n) / (_h(n) * _h(n)))
+        e2 = c2 / (_h(n) * _h(n) + _qh(n))
+        td = (pi - theta_w) / np.sqrt(e1 * seg_sites + e2 * seg_sites * (seg_sites - 1))
+    except (ZeroDivisionError, RuntimeWarning) as z:
+        td = float('inf')
+
+    haplo = len(np.unique(coded_seqs, axis=0))
+
+    # # write to file
+    # max_gap = 0
+    # with open(path.join('popgen', gene_now), 'w') as fh:
+    #     for seq_id, seq in records.items():
+    #         SeqIO.write(SeqRecord(seq, id=seq_id, description=''), fh, 'fasta')
+    #         max_gap = max(max_gap, str(seq).count('-'))
+    # print(max_gap)
+    #
+    # # compute diversity / neutrality statistics
+    # dna = DnaCharacterMatrix.from_dict(records)
+    # seg_sites = popgenstat.num_segregating_sites(dna)
+    # pi = popgenstat.nucleotide_diversity(dna)
+    # theta_w = popgenstat.wattersons_theta(dna)
+    # haplo = len(set(records.values())) if seg_sites != 0 else 1
+    # try:
+    #     td = popgenstat.tajimas_d(dna)
+    # except ZeroDivisionError:
+    #     td = float('inf')
+
+    return '<tr><td>%s</td><td>%d</td><td>%.5f</td><td>%.5f</td><td>%.5f</td><td>%d</td></tr>' \
+           % (gene_now, seg_sites, pi, theta_w, td, haplo)
 
 
 cgitb.enable()
@@ -102,26 +222,33 @@ with open(_path, 'w') as txt_fh:
 
 # diversity stats
 if len(leaves) > 1:
-    seqs = {record.id.split(' ')[0]: record.seq
-            for record in SeqIO.parse(form['msa_path'].value, 'fasta')
-            if record.id.split(' ')[0] in leaves}
+    # per-gene metrics and Tajima's D in sliding-window
+    pop_seqs = {record.id.split(' ')[0]: record.seq
+                for record in SeqIO.parse(form['msa_path'].value, 'fasta')
+                if record.id.split(' ')[0] in leaves}
+    os.makedirs('popgen', exist_ok=True)
 
-    dna = DnaCharacterMatrix.from_dict(seqs)
-    S = popgenstat.num_segregating_sites(dna)
-    pi = popgenstat.nucleotide_diversity(dna)
-    theta = popgenstat.wattersons_theta(dna)
-    haplo = len(set(seqs.values())) if S != 0 else 1
-    try:
-        TD = popgenstat.tajimas_d(dna)
-    except ZeroDivisionError:
-        TD = float('inf')
+    # get gene lengths from form
+    g_lens = [entry.split(':') for entry in form['g_lens'].value.split('_')]
+    pos = 0
+    rows = ''
+
+    # calculate popgen stats per gene
+    for entry in g_lens:
+        gene, glen = entry[0], int(entry[1])
+        cut_seqs = {seq_id: seq[pos:pos + glen] for seq_id, seq in pop_seqs.items()}
+        rows += _diversity_stats(gene, cut_seqs)
+        pos += glen
+
+    # overall if sensible
+    if len(g_lens) > 1:
+        rows += _diversity_stats('overall', pop_seqs)
 
     # write raw html table
     table = '<table border="1" class="dataframe">' \
-            '<thead><tr style="text-align: justify;"><th>Segregating Sites</th><th>Nucleotide diversity π' \
+            '<thead><tr style="text-align: justify;"><th></th><th>Segregating Sites</th><th>Nucleotide diversity π' \
             '</th><th>Watterson\'s θ</th><th>Tajima\'s D</th><th>Haplotypes</th></tr></thead>' \
-            '<tbody><tr><td>%d</td><td>%.5f</td><td>%.5f</td><td>%.5f</td><td>%d</td></tr></tbody></table>' \
-            % (S, pi, theta, TD, haplo)
+            '<tbody>%s</tbody></table>' % rows
 else:
     table = ''
 
