@@ -180,7 +180,11 @@ class tree_build:
         png.render(rcanvas, path.join(self.args.dir, 'rectangular.png'), scale=1.6)
         self.log.debug('rendered rectangular in %.2f sec' % (time() - start))
 
-        self._mview_msa()
+        try:
+            self._mview_msa()
+        except Exception as ex:
+            with open(self.args.mview_msa, 'w') as fh:
+                fh.write('MView (Perl) failed for some reason')
 
         # render rectangular tree with MSA
         if self.args.msa_viz:
@@ -282,7 +286,7 @@ class tree_build:
         records = {record.id: record.seq for record in SeqIO.parse(self.args.msa, 'fasta')}
 
         # write re-named, re-ordered MSA
-        with open(self.args.new_msa, 'w') as msa:
+        with open(self.args.new_msa, 'w') as new_msa:
             for tip in self.tips:
                 # get seq and cut out artificial separator
                 seq = str(records[tip]).replace(self.args.sep, '')
@@ -306,12 +310,17 @@ class tree_build:
                 if 'replaces' in entry and not pd.isnull(entry.replaces):
                     des += '; replaces ' + entry.replaces
 
-                SeqIO.write(SeqRecord(Seq(seq), id=tip, description=des), msa, 'fasta')
+                SeqIO.write(SeqRecord(Seq(seq), id=tip, description=des), new_msa, 'fasta')
             self.log.debug('wrote updated MSA: %s' % self.args.new_msa)
 
         # save seqs if necessary
         if self.args.msa_viz:
             self.records = records
+
+        # get lengths of genes
+        self.g_lens = [(gene, len(seq)) for gene, seq in
+                       zip(self.genes, records[next(iter(records))].split(self.args.sep))]
+        self.log.debug('gene lengths: %s' % self.g_lens)
         return render_info
 
     def _with_matrix(self, colors, pal):
@@ -320,13 +329,8 @@ class tree_build:
         """
         start = time()
 
-        # get lengths of genes
-        glens = [(gene, len(seq)) for gene, seq in
-                 zip(self.genes, self.records[next(iter(self.records))].split(self.args.sep))]
-        self.log.debug('gene lengths: %s' % glens)
-
         # get ticks for gene ends
-        ticks = [item[1] for item in glens]
+        ticks = [item[1] for item in self.g_lens]
         for i in range(1, len(ticks)):
             ticks[i] += ticks[i - 1] + 12
         ticks = [p - 12 for p in ticks]  # shift sideways
@@ -386,7 +390,8 @@ class tree_build:
         self.log.info('drawing matrix')
         msa = rcanvas.matrix((coded_seqs, color.CategoricalMap(palette=pal)),
                              lshow=False, bshow=True, step=100, bounds=(0.25 * w - 40, w, 0, h),
-                             tlocator=locator.Explicit(ticks, [i[0] + '|' for i in glens], format='{:>12}'.format))
+                             tlocator=locator.Explicit(ticks, [i[0] + '|' for i in self.g_lens],
+                                                       format='{:>12}'.format))
         msa.body.gaps.rows[...] = 7
 
         # add BLAST score indicators
@@ -521,6 +526,10 @@ class tree_build:
         self.log.debug('read files in %.2f sec' % (time() - start))
 
         materials['metric'] = self.args.metric
+        materials['gap'] = self.args.gap_threshold
+        materials['unknown'] = self.args.unknown_threshold
+        materials['poly'] = self.args.poly_allelic
+        materials['g_lens'] = '_'.join([entry[0] + ':' + str(entry[1]) for entry in self.g_lens])
         materials['msa_path'] = path.abspath(self.args.new_msa)
         materials['threshold'] = int(self.args.threshold * 10)
         materials['min_dist'] = self.args.min_dist

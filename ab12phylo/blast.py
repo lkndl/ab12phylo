@@ -129,8 +129,8 @@ class blast_build(threading.Thread):
                 self.log.exception('BLAST+ db update failed, returned code %d' % e.returncode)
 
         # check database
-        self.log.debug('checking %s BLAST db %s in %s'
-                       % ('user-supplied' if not self.update else '', self.db, self.dbpath))
+        self.log.debug('checking %sBLAST db %s in %s'
+                       % ('user-supplied ' if not self.update else '', self.db, self.dbpath))
         arg = '%s -db %s -info' % (path.join(self.blast_dir, 'blastdbcmd'),
                                    path.join(self.dbpath, self.db))
         try:

@@ -42,6 +42,11 @@ evomodel: GTR+G  # no checks!
 #seed:
 replace: False  # if True, identical seqs will share one TreeNode
 
+## [population genetics]
+gap_threshold: 0.1  # do not discard a site that has just a few -
+unknown_threshold: 0.1 # or a few Ns
+poly_allelic: True
+
 ## [misc]
 verbose: False
 msa_viz: False

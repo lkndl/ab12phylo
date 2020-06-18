@@ -18,9 +18,6 @@ from os import path, makedirs
 from lxml import etree, html
 from lxml.html import builder as E
 from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
-from dendropy import DnaCharacterMatrix
-from dendropy.calculate import popgenstat
 from toytree.utils import ToytreeError
 
 
@@ -63,12 +60,12 @@ def _qh(a):
     return b
 
 
-def _diversity_stats(gene_now, records):
+def _diversity_stats(gene_now, records, limits, poly):
     # also accept polyallelic sites as segregating sites
-    poly_allowed = True
 
     # translate dictionary of Seqs to numpy int array
     seqs = np.array([seq for seq in records.values()])
+    n = len(records)
     bases = ['A', 'C', 'G', 'T', '-']
     weird_chars = np.setdiff1d(np.unique(seqs), bases)
     codes = dict(zip(bases + list(weird_chars), range(len(bases) + len(weird_chars))))
@@ -79,10 +76,10 @@ def _diversity_stats(gene_now, records):
 
     # iterate over MSA columns, search for segregating sites
     for j in range(coded_seqs.shape[1]):
-        col = set(coded_seqs[:, j])
-        if len(col) == 1:
+        col = coded_seqs[:, j]
+        if len(set(col)) == 1:
             # singleton
-            it = col.pop()
+            it = col[0]
             if it > 4:
                 unknown += 1
                 drop.add(j)
@@ -91,30 +88,34 @@ def _diversity_stats(gene_now, records):
                 drop.add(j)
             else:
                 conserved += 1
-        else:
-            # more than one item
-            if max(col) > 4:
+        else:  # more than one item
+            if max(col) > 4 and len(col[col > 4]) > limits[1] * n:
                 unknown += 1
                 drop.add(j)
-            elif max(col) == 4:
+            elif max(col) == 4 and len(col[col >= 4]) > limits[0] * n:
                 gaps += 1
                 drop.add(j)
             else:
                 # no gap, no unknown, more than one
-                if len(col) > 2:
+                if len(set(col[col < 4])) > 2:
                     polyallelic += 1
-                    if not poly_allowed:
+                    if not poly:
                         drop.add(j)
                 else:
                     biallelic += 1
+    # print('allsites:%d\tconserved:%d\tbiallelic:%d\tpolyallelic:%d\tunknown:%d\tgaps:%d\tpoly:%s\ndrop:%d'
+    #       % (coded_seqs.shape[1], conserved, biallelic, polyallelic, unknown, gaps, poly, len(drop)))
 
     seg_sites = biallelic
     n_sites = coded_seqs.shape[1] - unknown
-    if poly_allowed:
+    if poly:
         seg_sites += polyallelic
     else:
         n_sites -= polyallelic
-    n = coded_seqs.shape[0]
+
+    if seg_sites == 0:
+        return '<tr><td>%s</td><td>0</td><td>--</td><td>--</td><td>--</td><td>--</td>' \
+               '<td>--</td><td>%d</td><td>%d</td></tr>' % (gene_now, gaps, unknown)
 
     # crop to allowed sites
     coded_seqs = coded_seqs[:, list(set(range(coded_seqs.shape[1])) - drop)]
@@ -139,27 +140,9 @@ def _diversity_stats(gene_now, records):
 
     haplo = len(np.unique(coded_seqs, axis=0))
 
-    # # write to file
-    # max_gap = 0
-    # with open(path.join('popgen', gene_now), 'w') as fh:
-    #     for seq_id, seq in records.items():
-    #         SeqIO.write(SeqRecord(seq, id=seq_id, description=''), fh, 'fasta')
-    #         max_gap = max(max_gap, str(seq).count('-'))
-    # print(max_gap)
-    #
-    # # compute diversity / neutrality statistics
-    # dna = DnaCharacterMatrix.from_dict(records)
-    # seg_sites = popgenstat.num_segregating_sites(dna)
-    # pi = popgenstat.nucleotide_diversity(dna)
-    # theta_w = popgenstat.wattersons_theta(dna)
-    # haplo = len(set(records.values())) if seg_sites != 0 else 1
-    # try:
-    #     td = popgenstat.tajimas_d(dna)
-    # except ZeroDivisionError:
-    #     td = float('inf')
-
-    return '<tr><td>%s</td><td>%d</td><td>%.5f</td><td>%.5f</td><td>%.5f</td><td>%d</td></tr>' \
-           % (gene_now, seg_sites, pi, theta_w, td, haplo)
+    return '<tr><td>%s</td><td>%d</td><td>%.5f</td><td>%.5f</td>' \
+           '<td>%.5f</td><td>%.5f</td><td>%d</td><td>%d</td><td>%d</td></tr>' \
+           % (gene_now, seg_sites, pi, pi_per_site, theta_w, td, haplo, gaps, unknown)
 
 
 cgitb.enable()
@@ -170,6 +153,8 @@ print('Content-type: text/html\n\n')
 form = cgi.FieldStorage()
 call = form['submit'].value
 motifs = form['motifs'].value
+thresholds = float(form['gap'].value), float(form['unknown'].value)
+poly_allowed = True if form['poly'].value == 'True' else False
 as_files = True if form['out_type'].value == 'files' else False
 try:
     ex_motifs = form['exclude'].value
@@ -226,29 +211,30 @@ if len(leaves) > 1:
     pop_seqs = {record.id.split(' ')[0]: record.seq
                 for record in SeqIO.parse(form['msa_path'].value, 'fasta')
                 if record.id.split(' ')[0] in leaves}
-    os.makedirs('popgen', exist_ok=True)
 
     # get gene lengths from form
     g_lens = [entry.split(':') for entry in form['g_lens'].value.split('_')]
     pos = 0
     rows = ''
 
-    # calculate popgen stats per gene
+    # calculate diversity/neutrality statistics per gene
     for entry in g_lens:
         gene, glen = entry[0], int(entry[1])
         cut_seqs = {seq_id: seq[pos:pos + glen] for seq_id, seq in pop_seqs.items()}
-        rows += _diversity_stats(gene, cut_seqs)
+        rows += _diversity_stats(gene, cut_seqs, thresholds, poly_allowed)
         pos += glen
 
     # overall if sensible
     if len(g_lens) > 1:
-        rows += _diversity_stats('overall', pop_seqs)
+        rows += _diversity_stats('overall', pop_seqs, thresholds, poly_allowed)
 
     # write raw html table
-    table = '<table border="1" class="dataframe">' \
-            '<thead><tr style="text-align: justify;"><th></th><th>Segregating Sites</th><th>Nucleotide diversity π' \
-            '</th><th>Watterson\'s θ</th><th>Tajima\'s D</th><th>Haplotypes</th></tr></thead>' \
-            '<tbody>%s</tbody></table>' % rows
+    table = '<hr/><h4>Neutrality + Diversity Statistics</h4><p>Exclusion threshold for gap sites ' \
+            'was <code>%.2f</code>, and <code>%.2f</code> for unknown sites.</p>' \
+            '<table border="1" class="dataframe"><thead><tr style="text-align: justify;"><th></th>' \
+            '<th># Segregating Sites</th><th>Nucl. diversity π</th><th>π per site</th><th>Watterson\'s θ</th>' \
+            '<th>Tajima\'s D</th><th>Haplotypes</th><th>gaps</th><th>unknown</th></tr></thead>' \
+            '<tbody>%s</tbody></table>' % (thresholds[0], thresholds[1], rows)
 else:
     table = ''
 

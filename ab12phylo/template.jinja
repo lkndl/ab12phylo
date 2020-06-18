@@ -501,12 +501,16 @@ The minimal topological distance between any two nodes is <code>{{min_dist}}</co
     <p>Fetch all nodes matching your motifs with <code>MATCH</code>,
       or find their MRCA and return all its descendants with <code>SUBTREE</code>.<br />
        Separate motifs by <code>,</code> and run <code>ab12phylo-view</code> in this directory if the form is unresponsive.</p>
-    &emsp;<input type="text" id="motifs" name="motifs" value=""> &emsp;
+    &ensp;<input type="text" id="motifs" name="motifs" value=""> &emsp;
     <input type="hidden" name="pickle" value="{{pickle}}" />
     <input type="hidden" name="msa_path" value="{{msa_path}}" />
-    <button type="submit" name='submit' value='match'>MATCH</button> &emsp;
+    <input type="hidden" name="g_lens" value="{{g_lens}}" />
+    <input type="hidden" name="gap" value="{{gap}}" />
+    <input type="hidden" name="unknown" value="{{unknown}}" />
+    <input type="hidden" name="poly" value="{{poly}}" />
+    <button type="submit" name='submit' value='match'>MATCH</button> &ensp;
     <button type="submit" name='submit' value='subtree'>SUBTREE</button> &emsp;
-    exclude: &nbsp; <input type="text" id="exclude" name="exclude" value=""> &emsp;
+    exclude:&thinsp;<input type="text" id="exclude" name="exclude" value=""> &emsp;
     <select id="out_type" name="out_type">
       <option value="samples">samples</option>
       <option value="files">files</option>
