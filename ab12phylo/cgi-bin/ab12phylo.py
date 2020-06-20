@@ -2,6 +2,7 @@
 
 """
 Makes result HTML interactive by enabling motif search.
+Compute neutrality/diversity stats for selected population.
 """
 
 import cgi
@@ -9,7 +10,6 @@ import cgitb
 import itertools
 
 import numpy as np
-import os
 import pickle
 import re
 import toytree
@@ -61,8 +61,6 @@ def _qh(a):
 
 
 def _diversity_stats(gene_now, records, limits, poly):
-    # also accept polyallelic sites as segregating sites
-
     # translate dictionary of Seqs to numpy int array
     seqs = np.array([seq for seq in records.values()])
     n = len(records)
@@ -90,9 +88,11 @@ def _diversity_stats(gene_now, records, limits, poly):
                 conserved += 1
         else:  # more than one item
             if max(col) > 4 and len(col[col > 4]) > limits[1] * n:
+                # there is at least one unknown char in the column, maybe N
                 unknown += 1
                 drop.add(j)
             elif max(col) == 4 and len(col[col >= 4]) > limits[0] * n:
+                # found a gap at the site
                 gaps += 1
                 drop.add(j)
             else:
@@ -130,14 +130,18 @@ def _diversity_stats(gene_now, records, limits, poly):
 
     # Tajima's D
     try:
-        e1 = 1 / _h(n) * ((n + 1) / (3 * n - 3) - 1 / _h(n))
+        a1 = _h(n)
+        a2 = _qh(n)
+        e1 = 1 / a1 * ((n + 1) / (3 * n - 3) - 1 / a1)
         b2 = (2 * (n * n + n + 3)) / (9 * n * (n - 1))
-        c2 = b2 - ((n + 2) / (n * _h(n))) + (_qh(n) / (_h(n) * _h(n)))
-        e2 = c2 / (_h(n) * _h(n) + _qh(n))
+        c2 = b2 - ((n + 2) / (n * a1)) + (a2 / (a1 * a1))
+        e2 = c2 / (a1 * a1 + a2)
         td = (pi - theta_w) / np.sqrt(e1 * seg_sites + e2 * seg_sites * (seg_sites - 1))
     except (ZeroDivisionError, RuntimeWarning) as z:
         td = float('inf')
 
+    # set all unknown values to gap
+    coded_seqs[coded_seqs >= 4] = 4
     haplo = len(np.unique(coded_seqs, axis=0))
 
     return '<tr><td>%s</td><td>%d</td><td>%.5f</td><td>%.5f</td>' \
