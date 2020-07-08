@@ -26,6 +26,8 @@ no_BLAST: False # "True" -> {bool} True, anything else -> {bool} False.
 no_remote: False #True
 db: ITS_RefSeq_Fungi
 #dbpath: $blastdb   # will also disable updates
+remote_db: nt  # the NCBI database to search for seqs not found locally
+timeout: 600
 
 ## [MSA]
 msa_algo: mafft  # [mafft, clustalo, muscle, tcoffee]
@@ -50,5 +52,6 @@ poly_allelic: True
 ## [misc]
 verbose: False
 msa_viz: False
+out_fmt: pdf
 headless: False
 
