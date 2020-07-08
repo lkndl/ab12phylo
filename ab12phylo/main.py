@@ -5,6 +5,12 @@
 Main module of the pipeline. Imports the other package modules and serves as the interface
 between them. The `--visualize` and `--view` entry points are in the :class:`phylo` module.
 """
+__author__ = 'Leo Kaindl'
+__email__ = 'leo.kaindl@tum.de'
+__version__ = '0.1b.9'
+__date__ = '8 July 2020'
+__license__ = 'MIT'
+__status__ = 'Beta'
 
 import sys
 from ab12phylo import cli, i_o, msa, blast, raxml, phylo
