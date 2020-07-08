@@ -163,6 +163,7 @@ class msa_build:
         missing_genes = {gene: list() for gene in self.genes}
 
         with open(self.msa, 'w') as msa:
+            shared = 0
             # iterate over samples available for first gene
             for sample_id in set(all_records[self.genes[0]]):
                 # get SeqRecord for first gene
@@ -174,13 +175,21 @@ class msa_build:
                     try:
                         record += self.sep  # to visually separate genes in the MSA
                         record += all_records[gene].pop(sample_id)
+                        shared += 1
                     except KeyError:
                         missing_genes[gene].append(sample_id)
                         skip = True
                 # write to file
                 if not skip:
                     SeqIO.write(record, msa, 'fasta')
-        self.log.info('finished writing concat MSA')
+        if len(self.genes) > 1:
+            if shared == 0:
+                self.log.error('no shared samples between genes found')
+                exit(0)
+            else:
+                self.log.info('finished writing concat MSA with %d entries' % shared)
+        else:
+            self.log.info('copied MSA to result root')
 
         # any remaining samples were missing from first gene
         [missing_genes[self.genes[0]].extend(all_records[gene].keys()) for gene in self.genes[1:]]

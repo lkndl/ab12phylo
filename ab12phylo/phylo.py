@@ -154,7 +154,7 @@ class tree_build:
         ccanvas, axc = self.tree.draw(width=800, height=800, scalebar=True,
                                       node_sizes=colors[2], node_colors=colors[3],
                                       tip_labels=True, tip_labels_align=False, tip_labels_colors=colors[1],
-                                      layout='c', edge_type='r')
+                                      layout='c')
         ccanvas.style['background-color'] = 'white'
         axc.show = False
         png.render(ccanvas, path.join(self.args.dir, 'circular.png'), scale=1.6)
