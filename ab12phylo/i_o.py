@@ -187,11 +187,14 @@ class reader:
 
                         self.metadata[gene][record.id] = {'file': path.join(root, file), 'box': box}
 
-        if len(self.seqdata) == 0:
+        if count == 0:
             self.log.error('No .ab1 ABI trace files found.')
-            exit('I/O: No .ab1 ABI trace files found.')
-        self.log.debug('read %d .ab1 files in: %s' % (count, self.args.abi_dir))
-        self.log.debug('read %d sequences of acceptable quality' %
+            exit(1)
+        elif len(self.seqdata) == 0:
+            self.log.error('Found %d .ab1 ABI trace files, but none of acceptable quality.' % count)
+            exit(1)
+        self.log.debug('Found %d .ab1 files in: %s' % (count, self.args.abi_dir))
+        self.log.debug('Read %d sequences of acceptable quality' %
                        sum(len(gene_records) for gene_records in self.seqdata.values()))
         return
 
