@@ -86,7 +86,6 @@ ab12phylo -rf <ref.fasta> \
 ```
 * **default:** AB12PHYLO will search for `.ab1` and `.csv` files in or below the current working directory
 * **default:** use the `./results` subdirectory
-* **default:** samples originate from `ITS1F`
 * use `<your_own>` [BLAST+ database](#blast-database); in `<your_dir>`
 * only trace files listed in the [`<whitelist>`](#results--motif-search) will be read
 * `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
@@ -123,7 +122,7 @@ ab12phylo -c <my-config.yaml> -bst 1000 (...) -view
 
 
 #### Genes and References
-If data for several genes is supplied, AB12PHYLO will restrict the analysis to samples that are present for all genes. If this causes a lot of samples to be dropped, it might be worth leaving out a gene entirely by setting `-g` = `--genes` manually.
+If data for several genes is supplied, AB12PHYLO will restrict the analysis to samples that are present for all genes. If this causes a lot of samples to be dropped, it might be worth leaving out a gene entirely by setting `-g` = `--genes` manually. If you somehow have `No samples shared across all genes`, there might be some trace files that seemingly belong to another gene.
 
 Passing references is closely inter-linked: If a directory of reference files is supplied via `-rd` = `--ref_dir`, the package will try to match the `.FASTA` files inside to genes *by their filename*. For example, `ITS1F.fasta` will be matched to trace data from the *ITS1F* gene. Alternatively, an ordered list of reference files can be passed via `-rf` = `--ref`, and file names will be ignored. 
 

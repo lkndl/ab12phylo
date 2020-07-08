@@ -184,8 +184,8 @@ class msa_build:
                     SeqIO.write(record, msa, 'fasta')
         if len(self.genes) > 1:
             if shared == 0:
-                self.log.error('no shared samples between genes found')
-                exit(0)
+                self.log.error('No samples shared across all genes.')
+                exit(1)
             else:
                 self.log.info('finished writing concat MSA with %d entries' % shared)
         else:
