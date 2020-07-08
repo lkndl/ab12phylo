@@ -18,14 +18,18 @@ First, clone the AB12PHYLO repository:
 ```bash
 git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
 ```
-All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, so you could install them to a python3.8 [conda](https://docs.conda.io/) environment in one go:
+All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, which can make installation a bit more comfortable. To create a new or activate an existing python3.8 [conda](https://docs.conda.io/) environment:
+```bash
+conda create -n <your_python3.8_conda_env> python=3.8
+conda activate <your_python3.8_conda_env>
+```
+Then install the external tools in one go:
 
 ```bash
-conda activate <your_python3_conda_env>
 conda install -c bioconda "blast>=2.9.0" raxml-ng gblocks mafft clustalo muscle
 ```
 
-This will require you to `conda activate <your_python3_conda_env>` anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will suffice and should be easy.
+This will require you to `conda activate <your_python3.8_conda_env>` anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will suffice and should be easy.
  
 Install AB12PHYLO and all its [dependencies](#dependencies) via `pip` or `pip3` to your regular python3:
  

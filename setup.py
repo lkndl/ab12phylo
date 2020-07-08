@@ -1,16 +1,22 @@
 import sys
 from setuptools import setup
-from ab12phylo import main
 
 if sys.version_info[0] < 3:
     sys.stdout.write('package requires python3')
     sys.exit(1)
 
+__author__ = 'Leo Kaindl'
+__email__ = 'leo.kaindl@tum.de'
+__version__ = '0.1b.9'
+__date__ = '8 July 2020'
+__license__ = 'MIT'
+__status__ = 'Beta'
+
 setup(name='ab12phylo',
-      version=main.__version__,
-      author=main.__author__,
-      author_email=main.__email__,
-      license=main.__license__,
+      version=__version__,
+      author=__author__,
+      author_email=__email__,
+      license=__license__,
       description='An integrated pipeline for maximum likelihood '
                   'phylogenetic tree inference from ABI sequencing data',
       long_description=open('README.md', 'r').read(),
