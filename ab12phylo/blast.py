@@ -12,13 +12,11 @@ import os
 import shutil
 import subprocess
 import threading
-import urllib.error
 from os import path
 from time import time
 
 import pandas
 from Bio import SearchIO
-from Bio.Blast import NCBIWWW
 
 
 class blast_build(threading.Thread):
@@ -41,6 +39,8 @@ class blast_build(threading.Thread):
         self.no_remote = _args.no_remote
         self.gene = _args.genes[0]
         self.db = _args.db
+        self.remote_db = _args.remote_db
+        self.timeout = _args.timeout
 
         # Files / Paths
         self.FASTA = path.join(_args.dir, self.gene, self.gene + '.fasta')
@@ -109,7 +109,6 @@ class blast_build(threading.Thread):
             return
 
         self._blast_remote(not_found)
-        self._parse_remote_result()
 
     def _blast_local(self):
         """
@@ -194,23 +193,22 @@ class blast_build(threading.Thread):
             fh.write(records)
             self.log.debug('sequences not found in %s saved in %s' % (self.db, self.missing_fasta))
 
-        # send query
-        self.log.info('BLASTing online ...')
+        # run remote NCBI BLAST via BLAST+
+        self.log.debug('BLASTing online ...')
+        arg = '%s -db %s -query %s -remote -max_target_seqs 5 -outfmt 5 -out %s' \
+              % (path.join(self.blast_dir, 'blastn'), self.remote_db, self.missing_fasta, self.www_XML)
+
         start = time()
-        self.log.info('sequences not found in %s: %s' % (self.db, ' '.join(missing_seqs)))
+        self.log.debug(arg)
         try:
-            handle = NCBIWWW.qblast(program='blastn', database='nt',
-                                    sequence=records, format_type='XML', hitlist_size=10)
-            # save as .xml
-            self.log.info('finished NCBI BLAST in %.2f sec' % (time() - start))
-            with open(self.www_XML, 'w') as xml:
-                xml.write(handle.read())
-        except urllib.error.URLError as offline:
-            self.log.warning('online BLAST aborted, no internet connection')
-            return
-        except Exception as e:
-            self.log.exception(e)
-            return
+            subprocess.run(arg, shell=True, check=True, timeout=self.timeout)
+            self.log.info('finished remote BLAST in %.2f sec' % (time() - start))
+            self._parse_remote_result()
+        except subprocess.CalledProcessError as e:
+            self.log.exception('remote BLAST failed, returned %d\n%s'
+                               % (e.returncode, e.output.decode('utf-8') if e.output is not None else ''))
+        except subprocess.TimeoutExpired as e:
+            self.log.exception('remote BLAST timed out')
 
     def _parse(self, xml_entry):
         """Parses genus and species from a 'Hit' in the XML entry. Raises a ValueError if no hits."""
