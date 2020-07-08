@@ -134,7 +134,9 @@ class parser(argparse.ArgumentParser):
                           help='Path to .yaml config file with defaults. Command line arguments will override.')
 
         # [misc]
-        self.add_argument('-v', '--verbose', action='store_true', help='Show more information in console output.')
+        level = self.add_mutually_exclusive_group()
+        level.add_argument('-v', '--verbose', action='store_true', help='Show all runtime information in console.')
+        level.add_argument('-i', '--info', action='store_true', help='Show some more information in console output.')
         self.add_argument('-version', '--version', action='store_true', help='Print version information and exit.')
         self.add_argument('-test', '--test', action='store_true', help='Test run.')
         self.add_argument('-msa_viz', '--msa_viz', action='store_true',
@@ -363,6 +365,11 @@ class parser(argparse.ArgumentParser):
 
         # init shortened console logging
         sh = logging.StreamHandler(sys.stdout)
-        sh.setLevel(logging.DEBUG if self.args.verbose is True else logging.WARNING)
+        if self.args.verbose:
+            sh.setLevel(logging.DEBUG)
+        elif self.args.info:
+            sh.setLevel(logging.INFO)
+        else:
+            sh.setLevel(logging.WARNING)
         sh.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
         log.addHandler(sh)
