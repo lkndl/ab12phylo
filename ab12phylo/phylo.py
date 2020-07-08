@@ -30,7 +30,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from jinja2 import Template
 from lxml import etree
-from toyplot import html, png, color, data, locator
+from toyplot import html, pdf, png, svg, color, data, locator
 
 from ab12phylo import main, cli
 
@@ -157,7 +157,12 @@ class tree_build:
                                       layout='c')
         ccanvas.style['background-color'] = 'white'
         axc.show = False
-        png.render(ccanvas, path.join(self.args.dir, 'circular.png'), scale=1.6)
+        if self.args.out_fmt == 'png':
+            png.render(ccanvas, path.join(self.args.dir, 'circular.png'), scale=1.6)
+        elif self.args.out_fmt == 'pdf':
+            pdf.render(ccanvas, path.join(self.args.dir, 'circular.pdf'))
+        else:
+            svg.render(ccanvas, path.join(self.args.dir, 'circular.svg'))
         self.log.debug('rendered circular in %.2f sec' % (time() - start))
 
         # prep rectangular tree: save species and pid to name
@@ -177,7 +182,12 @@ class tree_build:
         axes.x.show = True
         axes.x.domain.max = self.tree.treenode.height / 5  # 0 is right-most tip of tree. -> divide space!
 
-        png.render(rcanvas, path.join(self.args.dir, 'rectangular.png'), scale=1.6)
+        if self.args.out_fmt == 'png':
+            png.render(rcanvas, path.join(self.args.dir, 'rectangular.png'), scale=1.6)
+        elif self.args.out_fmt == 'pdf':
+            pdf.render(rcanvas, path.join(self.args.dir, 'rectangular.pdf'))
+        else:
+            svg.render(rcanvas, path.join(self.args.dir, 'rectangular.svg'))
         self.log.debug('rendered rectangular in %.2f sec' % (time() - start))
 
         try:
@@ -233,7 +243,7 @@ class tree_build:
         ax0.show = False
         ax1.show = False
 
-        # render to imag
+        # render to image
         png.render(preview, self.args.topo)
         self.log.info('rendered preview %s' % self.args.topo)
         return preview
