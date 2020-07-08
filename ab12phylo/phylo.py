@@ -223,12 +223,11 @@ class tree_build:
         # dissect canvas into two cartesian areas
         ax0 = preview.cartesian(bounds=('5%', '48%', '5%', '95%'))
         ax1 = preview.cartesian(bounds=('52%', '95%', '5%', '95%'))
-        style = {'tip_labels': False, 'edge_type': 'c'}
 
         # call draw with the 'axes' argument to pass it to a specific cartesian area
         self.log.debug('drawing preview')
         self.tree.draw(axes=ax0, layout='r', tip_labels=False)
-        self.tree.draw(axes=ax1, layout='c', edge_type='r', tip_labels=False)
+        self.tree.draw(axes=ax1, layout='c', tip_labels=False)
 
         # hide the axes coordinates
         ax0.show = False
