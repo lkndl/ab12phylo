@@ -103,6 +103,11 @@ class parser(argparse.ArgumentParser):
                          type=lambda arg: arg if path.isdir(arg) else self.error(
                              'invalid path to directory containing BLAST database'))
 
+        bla.add_argument('-remotedb', '--remote_db',
+                         help='NCBI database to search for sequences not found locally. Default is \'nt\' for DNA.')
+
+        bla.add_argument('-timeout', '--timeout', type=int,
+                         help='Stop remote NCBI BLAST after this number of seconds and continue without results.')
         # [MSA]
         msa = parser.add_argument_group(self, title='MSA')
         msa.add_argument('-algo', '--msa_algo', choices=['clustalo', 'mafft', 'muscle', 't_coffee'],
@@ -124,8 +129,13 @@ class parser(argparse.ArgumentParser):
                          help='Bootstrap support metric: Either Felsenstein Bootstrap Proportions (FBP) '
                               'or Transfer Bootstrap Expectation(TBE).')
 
+        phy.add_argument('-threshold', '--threshold', type=float,
+                         help='Limit between 0 and 1 for support value color switch.')
+
         phy.add_argument('-s', '--seed', type=int,
                          help='Seed value for reproducible tree inference results. Will be random if not set.')
+
+        phy.add_argument('-evomodel', '--evomodel', help='Evolutionary model for RAxML-NG. Default is GTR+G, no checks!')
 
         # [config]
         self.add_argument('-config', '--config',
@@ -140,13 +150,15 @@ class parser(argparse.ArgumentParser):
         self.add_argument('-version', '--version', action='store_true', help='Print version information and exit.')
         self.add_argument('-test', '--test', action='store_true', help='Test run.')
         self.add_argument('-msa_viz', '--msa_viz', action='store_true',
-                          help='Also render a rectangular tree with MSA. Takes quite some extra time.')
+                          help='Also render a rectangular tree with MSA. Takes some extra time.')
+        self.add_argument('-out_fmt', '--out_fmt', choices=['pdf', 'png', 'svg'],
+                          help='Output file format for tree graphics.')
         self.add_argument('-viz', '--visualize', action='store_true',
                           help='Invoke ab12phylo-visualize by appending ab12phylo cmd.')
         self.add_argument('-view', '--view', action='store_true',
                           help='Invoke ab12phylo-view by appending ab12phylo cmd.')
         self.add_argument('-q', '--headless', action='store_true',
-                          help='Prevents starting of a CGI server and display in browser. For remote use.')
+                          help='Do not start a CGI server nor display in browser. For remote use.')
 
         # [ab12phylo-visualize]
         vie = parser.add_argument_group(self, title='ONLY FOR AB12PHYLO-VISUALIZE')
