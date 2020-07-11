@@ -354,8 +354,9 @@ class tree_build:
         # get ticks for gene ends
         ticks = [item[1] for item in self.g_lens]
         for i in range(1, len(ticks)):
-            ticks[i] += ticks[i - 1] + 12
-        ticks = [p - 12 for p in ticks]  # shift sideways
+            ticks[i] += ticks[i - 1] + 10
+        # ticks[-1] -= 1
+        ticks = [p - 3 for p in ticks]  # shift sideways
         self.log.debug('ticks: %s' % ':'.join(str(tick) for tick in ticks))
 
         # get seqs as numpy array in plot order
@@ -412,7 +413,7 @@ class tree_build:
         self.log.info('drawing matrix')
         msa = rcanvas.matrix((coded_seqs, color.CategoricalMap(palette=pal)),
                              lshow=False, bshow=True, step=100, bounds=(0.25 * w - 40, w, 0, h),
-                             tlocator=locator.Explicit(ticks, [i[0] + '|' for i in self.g_lens],
+                             tlocator=locator.Explicit(ticks, [i[0] + ']' for i in self.g_lens],
                                                        format='{:>12}'.format))
         msa.body.gaps.rows[...] = 7
 
@@ -423,8 +424,8 @@ class tree_build:
         #     axa.scatterplot(np.zeros(len(self.tips)) + 8, np.arange(len(self.tips)),
         #                     color=colors[4], size=8, marker='s')
         #     msa.right.column[-2].width = 30
-        msa.right.column[-2].width = 0
-        msa.left.column[-1].width = 30
+        msa.right.column[-2].width = 12
+        msa.left.column[1].width = 50
 
         # write species column
         msa.right.column[-1].data = dt['species']
