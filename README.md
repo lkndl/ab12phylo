@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.11&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.13&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -77,23 +77,36 @@ ab12phylo -rf <ref.fasta> \
     -db <your_own> \
     -dbpath <your_dir> \
     -abiset <whitelist> \
+    -regex3 <rx1 rx2 rx3> \
     -algo <mafft-clustalo-muscle-tcoffee> \
     -gbl relaxed \
+    -skip \
+    -i \
+    -p1
+
+ab12phylo -p2
     -bst 1000 \
     -st [32,16]  \
     -s 4 \
-    -v -skip
+    -v 
 ```
 * **default:** AB12PHYLO will search for `.ab1` and `.csv` files in or below the current working directory
 * **default:** use the `./results` subdirectory
+* **default:** use the `GTR+Γ` model of evolution
 * use `<your_own>` [BLAST+ database](#blast-database); in `<your_dir>`
 * only trace files listed in the [`<whitelist>`](#results--motif-search) will be read
+* plate number, gene name and well will be parsed from the `.ab1` filename using these three [RegEx](#regex).
 * `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
 * `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed` or `strict`
+* `-skip` online BLAST for sequences not in the local BLAST+ db and [read why](#blast-api)
+* `-i` or `--info` shows some more run details in the console
+* `-p1` run only part one, up until BLAST
+
+
+* `-p2` run part two of AB12PHYLO, starting with RAxML-NG
 * `-st`: ML tree searches from `32` random and `16` parsimony-based starting trees
 * `-s` fixes the random `--seed` to `4` for reproducibility
-* `-v` or `--verbose` will print all logged events to the console
-* `-skip` online BLAST for sequences not in the local BLAST+ db and [read why](#blast-api)
+* `-v` or `--verbose` shows all logged events in the console
 
 
 #### Results + Motif Search
@@ -133,6 +146,10 @@ If you're feeling this neat and precise and set both the genes and individual re
 ```
 
 
+#### RegEx
+If you provide wellsplates mappings, AB12PHYLO will parse plate number, gene name and the sequencer's isolate coordinates from the `.ab1` filename with a RegEx and fetch the user-defined ID from the corresponding `.csv` look-up table. To use your own, please consult `--help` and try out your RegEx [here](https://regex101.com/r/Yulwlf/1).
+
+
 #### BLAST+ Database
 Sometimes, this pipeline might run headless on a server. To keep it from running head-first in a firewall when it attempts to update its BLAST+ database via FTP, please pre-supply an unzipped, ready-to-use BLAST+ database via `-dbpath` (and `-db` name). Find databases on the [NCBI website](https://ftp.ncbi.nlm.nih.gov/blast/db/).
 
@@ -150,7 +167,7 @@ As of June 2020, there is no T-Coffee package for python3.8 on Bioconda. The MSA
 
 
 #### Log File
-If you're having trouble, look at the log file! It will be in your results directory and is named `ab12phylo.log`. Alternatively, you can set the `--verbose` flag and get the same information in real-time to your commandline. Your choice!
+If you're having trouble, look at the log file! It will be in your results directory and named like `ab12phylo[|-p1|-p2][-view|-viz]?.log`. Alternatively, you can set the `--verbose` flag and get the same information in real-time to your commandline. Your choice!
 
 
 ## Dependencies

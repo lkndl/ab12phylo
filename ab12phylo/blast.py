@@ -16,6 +16,7 @@ from os import path
 from time import time
 
 import pandas
+from numpy import nan
 from Bio import SearchIO
 
 
@@ -96,13 +97,18 @@ class blast_build(threading.Thread):
         if len(not_found) == 0:
             self.log.info('all seqs found in local %s' % self.db)
             return
-        elif self.no_remote is True:
-            self.log.warning('skip online BLAST for missing seqs')
 
+        # save missing sequences to file
+        with open(self.missing_fasta, 'w') as fh:
+            fh.write('\n'.join([self.seqdata[self.gene][seq_id].format('fasta') for seq_id in not_found]))
+            self.log.debug('sequences not found in %s saved in %s' % (self.db, self.missing_fasta))
+
+        if self.no_remote is True:
+            self.log.warning('skip online BLAST for missing seqs')
             # try reading old result
             if os.path.isfile(self.www_XML):
                 try:
-                    self.log.warning('reading XML result of previous NCBI BLAST')
+                    self.log.warning('reading XML result of previous online BLAST')
                     self._parse_remote_result()
                 except Exception as ex:
                     self.log.error(ex)
@@ -158,18 +164,23 @@ class blast_build(threading.Thread):
                                % (e.returncode, e.output.decode('utf-8') if e.output is not None else ''))
             return None
 
+        # read in metadata tsv
+        df = pandas.read_csv(self.TSV, sep='\t', dtype={'id': str})
+        df.set_index('id', inplace=True)
+        df['BLAST_species'] = ''
+        df['pid'] = nan
+
         # parse .xml and write best hits info to metadata
         missing_seqs = list()
         for entry in SearchIO.parse(self.XML, 'blast-xml'):
             try:
-                self.metadata[self.gene][entry.id].update(self._parse(entry))
+                res = self._parse(entry)
+                df.at[entry.id, 'BLAST_species'] = res[0]
+                df.at[entry.id, 'pid'] = res[1]
             except ValueError:
                 # no hits found -> save seq_id for online NCBI BLAST
                 missing_seqs.append(entry.id)
 
-        # make a pandas DataFrame from metadata
-        df = pandas.concat({gene: pandas.DataFrame.from_dict(records, orient='index')
-                            for gene, records in self.metadata.items()})
         # write to TSV
         df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)
         self.log.debug('wrote updated metadata to %s' % self.TSV)
@@ -184,14 +195,6 @@ class blast_build(threading.Thread):
         """
         self.log.warning('online BLAST: %d seq%s missing from %s'
                          % (len(missing_seqs), 's' if len(missing_seqs) > 1 else '', self.db))
-
-        # create query seq string
-        records = '\n'.join([self.seqdata[self.gene][seq_id].format('fasta') for seq_id in missing_seqs])
-
-        # save to file
-        with open(self.missing_fasta, 'w') as fh:
-            fh.write(records)
-            self.log.debug('sequences not found in %s saved in %s' % (self.db, self.missing_fasta))
 
         # run remote NCBI BLAST via BLAST+
         self.log.debug('BLASTing online ...')
@@ -208,7 +211,7 @@ class blast_build(threading.Thread):
             self.log.exception('remote BLAST failed, returned %d\n%s'
                                % (e.returncode, e.output.decode('utf-8') if e.output is not None else ''))
         except subprocess.TimeoutExpired as e:
-            self.log.exception('remote BLAST timed out')
+            self.log.error('remote BLAST timed out')
 
     def _parse(self, xml_entry):
         """Parses genus and species from a 'Hit' in the XML entry. Raises a ValueError if no hits."""
@@ -224,7 +227,7 @@ class blast_build(threading.Thread):
             _hsp = xml_entry.hsps[0]
             pid = _hsp.ident_num * 100 / (_hsp.aln_span + _hsp.gap_num)
 
-            return {'BLAST_species': ' '.join([genus, species]), 'pid': pid}
+            return ' '.join([genus, species]), pid
         except IndexError:
             raise ValueError
 
@@ -233,20 +236,23 @@ class blast_build(threading.Thread):
         Parses an XML from a previous online BLAST run
         :return:
         """
+        # read in metadata tsv
+        df = pandas.read_csv(self.TSV, sep='\t', dtype={'id': str})
+        df.set_index('id', inplace=True)
+
         # parse .xml and write best hits info to metadata
         with open(self.bad_seqs, 'a') as fh:
             for entry in SearchIO.parse(self.www_XML, 'blast-xml'):
                 try:
-                    self.metadata[self.gene][entry.id].update(self._parse(entry))
+                    res = self._parse(entry)
+                    df.at[entry.id, 'BLAST_species'] = res[0]
+                    df.at[entry.id, 'pid'] = res[1]
                 except ValueError:
                     fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
-                             % (self.metadata[self.gene][entry.id]['file'], entry.id,
-                                self.metadata[self.gene][entry.id]['box'], self.gene))
+                             % (df.at[entry.id, 'file'], entry.id,
+                                df.at[entry.id, 'box'], self.gene))
                     self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
 
-        # make a pandas DataFrame from metadata
-        df = pandas.concat({gene: pandas.DataFrame.from_dict(records, orient='index')
-                            for gene, records in self.metadata.items()})
         # write to TSV
         df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)
         self.log.debug('wrote newly updated metadata to %s' % self.TSV)

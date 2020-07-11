@@ -40,7 +40,8 @@ def _to_files(leaves):
     # translate to file paths
     with open('metadata.tsv', 'r') as tsv:
         sam_to_file = {leaves.index(sample): _file for sample, _file
-                       in [line.split('\t')[1:3] for line in tsv.readlines()] if sample in leaves}
+                       in [line.split('\t')[0:3:2]  # get first and third column
+                           for line in tsv.readlines()] if sample in leaves}
     return [_file for sample, _file in sorted(sam_to_file.items())]
 
 

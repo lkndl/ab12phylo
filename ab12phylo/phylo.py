@@ -163,7 +163,7 @@ class tree_build:
             pdf.render(ccanvas, path.join(self.args.dir, 'circular.pdf'))
         else:
             svg.render(ccanvas, path.join(self.args.dir, 'circular.svg'))
-        self.log.debug('rendered circular in %.2f sec' % (time() - start))
+        self.log.info('rendered circular in %.2f sec' % (time() - start))
 
         # prep rectangular tree: save species and pid to name
         tree_no_msa = self._edit2(copy.deepcopy(self.tree))
@@ -188,7 +188,7 @@ class tree_build:
             pdf.render(rcanvas, path.join(self.args.dir, 'rectangular.pdf'))
         else:
             svg.render(rcanvas, path.join(self.args.dir, 'rectangular.svg'))
-        self.log.debug('rendered rectangular in %.2f sec' % (time() - start))
+        self.log.info('rendered rectangular in %.2f sec' % (time() - start))
 
         try:
             self._mview_msa()
@@ -198,12 +198,15 @@ class tree_build:
 
         # render rectangular tree with MSA
         if self.args.msa_viz:
-            self.log.debug('drawing tree w/ msa')
-            start = time()
+            try:
+                self.log.warning('drawing tree w/ msa. You can interrupt and proceed via Cmd+C.')
+                start = time()
 
-            rcanvas_msa = self._with_matrix(colors, kxlin)
-            png.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.png'), scale=2)
-            self.log.debug('rendered w/ msa in %.2f sec' % (time() - start))
+                rcanvas_msa = self._with_matrix(colors, kxlin)
+                png.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.png'), scale=2)
+                self.log.info('rendered w/ msa in %.2f sec' % (time() - start))
+            except KeyboardInterrupt:
+                self.log.warning('cancel msa_viz')
 
         # but display it any way if it exists
         if path.isfile(path.join(self.args.dir, 'rectangular_msa.png')):
@@ -255,7 +258,17 @@ class tree_build:
 
         :return some information for HTML rendering as dict
         """
-        log = open(self.args.log, 'r').read()
+        if self.args.finish:
+            try:
+                log = open(self.args.log[:-5] + '1.log', 'r').read()
+            except FileNotFoundError:
+                try:
+                    log = open(self.args.log[:-7] + '.log', 'r').read()
+                except FileNotFoundError:
+                    self.log.error('no log file found')
+                    exit(1)
+        else:
+            log = open(self.args.log, 'r').read()
 
         # jinja
         render_info = dict()
@@ -285,8 +298,8 @@ class tree_build:
         render_info['genes'] = ', '.join(self.genes)
 
         # read in tabular data
-        self.df = pd.read_csv(self.args.tsv, sep='\t', index_col=1)
-        self.df.columns = ['gene'] + list(self.df.columns[1:])
+        self.df = pd.read_csv(self.args.tsv, sep='\t', dtype={'id': str})
+        self.df.set_index('id', inplace=True)
         # drop and order rows
         self.df = self.df[self.df.gene == gene]
         self.df = self.df.loc[self.tips]
@@ -389,9 +402,9 @@ class tree_build:
         rcanvas = toyplot.Canvas(width=w, height=h, style={'background-color': 'white'})
         axes = rcanvas.cartesian(bounds=(40, 0.26 * w, 40, h - 40))  # xstart xend ystart yend
 
-        self.log.info('drawing tree')
+        self.log.debug('drawing tree')
         self.tree.draw(axes=axes, scalebar=True, node_sizes=colors[2], node_colors=colors[3],
-                       tip_labels=True, tip_labels_align=True, tip_labels_colors=colors[0],
+                       tip_labels=True, tip_labels_align=True, tip_labels_colors=colors[0],  # was 0 before
                        edge_align_style={'stroke-width': .7, 'stroke': 'silver'})
         axes.y.show = False
         axes.x.show = True
@@ -403,13 +416,15 @@ class tree_build:
                                                        format='{:>12}'.format))
         msa.body.gaps.rows[...] = 7
 
-        # add BLAST score indicators
-        self.log.debug('adding annotations')
-        if not self.args.no_BLAST:
-            axa = msa.right.column[-2].cartesian()
-            axa.scatterplot(np.zeros(len(self.tips)) + 8, np.arange(len(self.tips)),
-                            color=colors[4], size=8, marker='s')
-            msa.right.column[-2].width = 30
+        # # add BLAST score indicators
+        # self.log.debug('adding annotations')
+        # if not self.args.no_BLAST:
+        #     axa = msa.right.column[-2].cartesian()
+        #     axa.scatterplot(np.zeros(len(self.tips)) + 8, np.arange(len(self.tips)),
+        #                     color=colors[4], size=8, marker='s')
+        #     msa.right.column[-2].width = 30
+        msa.right.column[-2].width = 0
+        msa.left.column[-1].width = 30
 
         # write species column
         msa.right.column[-1].data = dt['species']
@@ -420,7 +435,7 @@ class tree_build:
         # colorize species annotation for ref and missing
         shift = msa.shape[0] - len(self.tips) - 2  # line index shift because of 'top'
         for j in range(len(self.tips)):
-            msa.cells.cell[j + shift, -1].lstyle = {'fill': list(reversed(colors[0]))[j]}
+            msa.cells.cell[j + shift, -1].lstyle = {'fill': list(reversed(colors[4]))[j]}  # 4 was 0 before
         self.log.info('rectangular tree setup in %.2f sec' % (time() - start))
 
         return rcanvas
@@ -525,7 +540,7 @@ class tree_build:
         materials['topo'] = toyplot.html.tostring(topo)
         materials['circular'] = toyplot.html.tostring(circ)
         materials['rectangular'] = toyplot.html.tostring(rect)
-        self.log.debug('rendered embeddable HTMLs in %.2f sec' % (time() - start))
+        self.log.info('rendered embeddable HTMLs in %.2f sec' % (time() - start))
 
         start = time()
         materials['missing'] = open(self.args.missing_samples, 'r').read()
@@ -557,8 +572,8 @@ class tree_build:
         materials['port'] = port
 
         start = time()
-        df = pd.read_csv(self.args.tsv, sep='\t', index_col=1)
-        df.columns = ['gene'] + list(df.columns[1:])
+        df = pd.read_csv(self.args.tsv, sep='\t', dtype={'id': str})
+        df.set_index('id', inplace=True)
         # convert box to integer
         df.box = df.box.fillna(0).astype(int)
         # replace missing box with -
@@ -572,9 +587,10 @@ class tree_build:
         df.file = df.file.apply(lambda _path: _path.split('/')[-1])
         materials['table'] = df.to_html(na_rep='', justify='justify')
 
-        df2 = pd.read_csv(self.args.bad_seqs, sep='\t')
+        df2 = pd.read_csv(self.args.bad_seqs, sep='\t', dtype={'id': str})
         # re-order columns
         df2 = df2.reindex(columns=['id', 'problem', 'gene', 'box', 'file'])
+        df.box = df.box.replace(0, '-')
         materials['bad_seqs'] = df2.to_html(na_rep='', index=False, justify='justify')
         self.log.debug('rendered tables in %.2f sec' % (time() - start))
 

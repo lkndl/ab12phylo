@@ -7,6 +7,8 @@ def trim_ends(seqrecord, min_phred, end_ratio):
     Trims a supplied SeqRecord with given minimal quality score and ratio of good bases in end of given length.
     """
     phreds = seqrecord.letter_annotations['phred_quality']
+    if set(phreds) == {0}:
+        raise ValueError('no quality')
 
     # trim left
     start = _ok = 0
@@ -27,7 +29,7 @@ def trim_ends(seqrecord, min_phred, end_ratio):
         _ok = end_ratio[1] - Ns
 
     if start >= end:
-        raise ValueError()
+        raise ValueError('low quality')
 
     return seqrecord[start:end]
 

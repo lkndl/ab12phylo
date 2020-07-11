@@ -4,17 +4,17 @@
 Builds phylogenetic trees using raxml-ng, parallelized in threads.
 """
 
-import os
-import re
-import sys
-import pandas
-import random
-import string
-import shutil
 import logging
-import threading
+import os
+import random
+import re
+import shutil
+import string
 import subprocess
+import threading
 from os import path
+
+import pandas
 
 
 class raxml_build:
@@ -23,12 +23,11 @@ class raxml_build:
     https://doi.org/10.1093/bioinformatics/btz305
     """
 
-    def __init__(self, args, metadata):
+    def __init__(self, args):
         self.log = logging.getLogger(__name__)
         self.args = args
         self.runs = self.cpus = self._prefixes = self._best_tree = None
-        self.gene = args.genes[0]
-        self.metadata = metadata
+        self.msa = self.args.msa
 
         # seed RNG
         random.seed(args.seed)
@@ -55,7 +54,7 @@ class raxml_build:
         :return:
         """
         # check+parse msa, determine number of parallel raxml-ng instances and cpus for each
-        self.runs, self.cpus, self.args.msa = self._check_msa()
+        self.runs, self.cpus, self.msa = self._check_msa()
 
         # keep track of finished prefixes:
         self._prefixes = []
@@ -72,7 +71,7 @@ class raxml_build:
             prefix = 'ml_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
             self._prefixes.append(prefix)
             seed = random.randint(0, max(1000, self.args.bootstrap))
-            thread = raxml_thread((prefix, self.log, self._binary, self.args.msa, ml_searches[0],
+            thread = raxml_thread((prefix, self.log, self._binary, self.msa, ml_searches[0],
                                    ml_searches[1], self.args.evomodel, self.args.min_dist, seed,
                                    path.join(self._dir, prefix), self.cpus), mode='infer_topology')
             active_threads.append(thread)
@@ -110,7 +109,7 @@ class raxml_build:
             prefix = 'bs_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
             self._prefixes.append(prefix)
             seed = random.randint(0, max(1000, self.args.bootstrap))
-            thread = raxml_thread((prefix, self.log, self._binary, self.args.msa, self._best_tree,
+            thread = raxml_thread((prefix, self.log, self._binary, self.msa, self._best_tree,
                                    trees, self.args.evomodel, self.args.min_dist, seed,
                                    path.join(self._dir, prefix), self.cpus), mode='bootstrap')
             active_threads.append(thread)
@@ -154,7 +153,7 @@ class raxml_build:
 
         # check msa
         arg = '%s --msa %s --check --model %s --prefix %s' \
-              % (self._binary, self.args.msa, self.args.evomodel, paths[0])
+              % (self._binary, self.msa, self.args.evomodel, paths[0])
 
         res = _run_sp(arg)
 
@@ -162,30 +161,35 @@ class raxml_build:
         if self.args.replace:  # replace mode: replace sets of identical sequences by one representative. off by default
             # parse MSA check result for success and identical sequences
             pattern = re.compile(r'quences (.+?) and (.+?) are exactly identi')
-            abk = 'replaces'
             goners = 0
+
+            gene = self.args.genes[0]
+            df = pandas.read_csv(self.args.tsv, sep='\t', dtype={'id': str})
+            df.set_index('id', inplace=True)
+            df['replaces'] = ''
+            df['replaced_by'] = ''
+
+            # make temporary sub_df
+            df1 = df[df.gene == gene]
 
             for keeper, goner in re.findall(pattern, res):
                 goners += 1
                 keepers.add(keeper)
-                if abk not in self.metadata[self.gene][keeper]:
-                    self.metadata[self.gene][keeper][abk] = {goner}
+                if df1.at[keeper, 'replaces'] == '':
+                    df1.at[keeper, 'replaces'] = goner
                 else:
-                    self.metadata[self.gene][keeper][abk].add(goner)
-                self.metadata[self.gene][goner]['replaced_by'] = keeper
+                    df1.at[keeper, 'replaces'] = df1.at[keeper, 'replaces'] + ', ' + goner
+                df1.at[goner, 'replaced_by'] = keeper
 
-            # replace dicts with strings
-            for keeper in keepers:
-                self.metadata[self.gene][keeper][abk] = ', '.join(self.metadata[self.gene][keeper][abk])
+            # re-merge data frames
+            df[df.gene == gene] = df1
+            # swap columns
+            cols = df.columns.to_list()
 
+            # write to TSV
+            df.to_csv(self.args.tsv, sep='\t', na_rep='', header=True, index=True)
             if goners > 0:
                 self.log.warning('Identical sequences were found, %d replacements occurred' % goners)
-
-        # make a pandas DataFrame from metadata
-        df = pandas.concat({gene: pandas.DataFrame.from_dict(records, orient='index')
-                            for gene, records in self.metadata.items()})
-        # write to TSV
-        df.to_csv(self.args.tsv, sep='\t', na_rep='', header=True, index=True)
 
         # look if MSA check was ok
         if 'successfully' not in res:
@@ -194,7 +198,7 @@ class raxml_build:
         self.log.info('MSA check ok')
 
         # if any duplicates were found, a reduced alignment was written. ignore if not in replace mode
-        msa = paths[0] + '.raxml.reduced.phy' if len(keepers) > 0 else self.args.msa
+        msa = paths[0] + '.raxml.reduced.phy' if len(keepers) > 0 else self.msa
 
         # now parse, and use reduced alignment if duplicates found. resulting .rba will be smaller
         arg = '%s --msa %s --parse --model %s --prefix %s' \
@@ -212,10 +216,10 @@ class raxml_build:
                       % (cpus, '' if cpus == 1 else 's', os.cpu_count(), runs))
 
         if self.args.replace:
-            return runs, cpus, path.join(self._dir, paths[1] + '.raxml.rba')
+            return runs, cpus, path.join(paths[1] + '.raxml.rba')
         else:
             # if not in replace mode, just return the unparsed alignment
-            return runs, cpus, self.args.msa
+            return runs, cpus, self.msa
 
 
 def _run_sp(cmd):

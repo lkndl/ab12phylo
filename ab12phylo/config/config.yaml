@@ -7,13 +7,15 @@
 ## current working directory or absolute paths.
 
 ## [I/O]
-abi_dir: $ab12phylo/test_data
+#abi_dir: $ab12phylo/test_data
 #abi_set: $ab12phylo/test_data/file_set
 #sample_set: $ab12phylo/test_data/sample_set
-csv_dir: $ab12phylo/test_data
+#csv_dir: $ab12phylo/test_data
+regex: FN_pl([\d])_[\d]{1,2}_(.*)_([A-Z][\d]{2})_
+#regex3: FN_pl([\d])_[\d]{1,2}_.*_[A-Z][\d]{2}_ FN_pl[\d]_[\d]{1,2}_(.*)_[A-Z][\d]{2}_ FN_pl[\d]_[\d]{1,2}_.*_([A-Z][\d]{2})_
 dir: results
 #genes: ITS1F, OPA10, EndoPG  # first entry used for BLAST+ -> prefer ITS1F
-ref: $ab12phylo/test_data/ITS1F.fasta # separate multiple entries with comma: R1, R2, R3
+#ref: $ab12phylo/test_data/ITS1F.fasta # separate multiple entries with comma: R1, R2, R3
 #ref_dir:
 
 ## [quality]
@@ -23,7 +25,7 @@ end_ratio: 8/10
 
 ## [BLAST]
 no_BLAST: False # "True" -> {bool} True, anything else -> {bool} False.
-no_remote: False #True
+no_remote: True # True or False
 db: ITS_RefSeq_Fungi
 #dbpath: $blastdb   # will also disable updates
 remote_db: nt  # the NCBI database to search for seqs not found locally
@@ -32,9 +34,9 @@ timeout: 600
 ## [MSA]
 msa_algo: mafft  # [mafft, clustalo, muscle, tcoffee]
 user: leo.kaindl@tum.de
-gblocks: skip  # [skip, relaxed, strict] MSA trimming
+gblocks: relaxed  # [skip, relaxed, strict] MSA trimming
 
-## [raxml]
+## [RAxML-NG]
 start_trees: [10,10]  # [random,parsimony-based]
 bootstrap: 40
 metric: TBE  # [FBP, TBE]
@@ -52,6 +54,6 @@ poly_allelic: True
 ## [misc]
 verbose: False
 msa_viz: False
-out_fmt: pdf
+out_fmt: pdf  # [pdf, png, svg]
 headless: False
 

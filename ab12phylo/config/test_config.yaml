@@ -11,6 +11,8 @@ abi_dir: $ab12phylo/test_data
 #abi_set: $ab12phylo/test_data/file_set
 #sample_set: $ab12phylo/test_data/sample_set
 csv_dir: $ab12phylo/test_data
+regex: '[-_ ]pl([\d])[-_ ][\d]{1,2}[-_ ](.+)[-_ ]([A-Z][\d]{1,2})[-_ ]' # *DO* use single quotes here!
+#regex3: ['[-_\s]pl([\d]+)[-_\s]' '[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s](.+)[-_\s][A-Z][\d]{1,2}[-_\s]' '[-_\s]([A-Z][\d]{1,2})[-_\s]']
 dir: ab12phylo_test_results
 #genes: ITS1F, OPA10, EndoPG  # first entry used for BLAST+ -> prefer ITS1F
 ref: $ab12phylo/test_data/ITS1F.fasta # separate multiple entries with comma: R1, R2, R3
@@ -32,9 +34,9 @@ timeout: 600
 ## [MSA]
 msa_algo: mafft  # [mafft, clustalo, muscle, tcoffee]
 user: leo.kaindl@tum.de
-gblocks: skip  # [skip, relaxed, strict] MSA trimming
+gblocks: relaxed  # [skip, relaxed, strict] MSA trimming
 
-## [raxml]
+## [RAxML-NG]
 start_trees: [10,10]  # [random,parsimony-based]
 bootstrap: 20
 metric: TBE  # [FBP, TBE]

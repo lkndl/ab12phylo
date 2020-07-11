@@ -67,6 +67,10 @@ class reader:
         Reads in well-to-isolate coordinates from all .csv files in :param:`csv_dir`
         as :class:`pandas.DataFrame` objects. Box numbers are extracted from filenames.
         """
+        if not self.args.csv_dir:
+            self.args.csv_dir = os.getcwd()
+            self.log.debug('searching for wellsplates in current working directory: %s' % self.args.csv_dir)
+
         for root, dirs, files in os.walk(self.args.csv_dir):
             for file in files:
                 if file.endswith('.csv'):
@@ -74,10 +78,11 @@ class reader:
                     df.index = list(range(1, df.shape[0] + 1))
                     df.columns = list(string.ascii_uppercase[0:df.shape[1]])
                     box = re.sub(r'\D', '', str(file).split('_')[-1])
+                    if box in self.csvs:
+                        self.log.error('wellsplate %s already read in. overwrite with %s' % (box, file))
                     self.csvs[box] = df
         if len(self.csvs) == 0:
-            self.log.error('No .csv files found.')
-            exit('No .csv files found.')
+            self.log.warning('No .csv files provided nor in cwd. Running AB12PHYLO without wellsplates.')
         self.log.debug('read %d .csv files in: %s' % (len(self.csvs), self.args.csv_dir))
         return
 
@@ -89,6 +94,9 @@ class reader:
         filter.py module. Skips seq if file parsing or coordinate extraction fails, or
         sequence has too low quality. Versionize if ID is duplicated.
         """
+        if not self.args.abi_dir:
+            self.args.abi_dir = os.getcwd()
+            self.log.debug('searching for trace files in current working directory: %s' % self.args.abi_dir)
 
         # Prepare subset analysis via file or sample ID
         file_subsetting = sample_subsetting = False
@@ -108,7 +116,11 @@ class reader:
             self.log.info('read sample ID whitelist with %d entries' % len(sample_whitelist))
 
         count = 0
-        pattern = re.compile(r'FN_pl([\d])_[\d]{1,2}_(.*)_([A-Z][\d]{2})_')
+        # differentiate between one-regex-to-rule-them-all or three
+        if self.args.regex:
+            pattern = re.compile(self.args.regex)
+        else:
+            pattern = [re.compile(regex) for regex in self.args.regex3]
 
         with open(self.args.bad_seqs, 'w') as bad_seqs:
             bad_seqs.write('file\tid\tbox\tgene\tproblem\n')
@@ -134,16 +146,30 @@ class reader:
                         # parse box, gene and coordinates from name
                         # NOTE: ID of a SeqRecord sometimes indicates wrong box. -> use name.
                         try:
-                            m = pattern.search(record.name)
-                            box, gene, coords = m.groups()
-                            (row, col) = (int(coords[1:]), coords[0])
+                            if self.args.regex:
+                                # single regex
+                                m = pattern.search(record.name)
+                                box, gene, coords = m.groups()
+                            else:
+                                # 3 regex
+                                box = pattern[0].search(record.name).groups()[0]
+                                gene = pattern[1].search(record.name).groups()[0]
+                                coords = pattern[2].search(record.name).groups()[0]
+
                             try:
+                                (row, col) = (int(coords[1:]), coords[0])
                                 # swap out well coordinates for isolate numbers
                                 record.id = self.csvs[box].loc[row, col]
-                            except KeyError:
-                                bad_seqs.write('%s\t \t%s\t%s\tbox not found\n' % (file, box, gene))
-                                self.log.warning('SeqIO box %s not found %s' % (box, file))
-                                continue
+                            except (KeyError, ValueError):
+                                if len(self.csvs) == 0:
+                                    # record.id = record.name.replace(gene, '')
+                                    if box in ['', ' ', '-', '_']:
+                                        record.id = coords.upper()
+                                    else:
+                                        record.id = box + '_' + coords
+                                else:
+                                    bad_seqs.write('%s\t \t%s\t%s\tbox not found\n' % (file, box, gene))
+                                    self.log.warning('SeqIO box %s not found %s' % (box, file))
 
                             # filter with whitelist
                             if sample_subsetting and record.id not in sample_whitelist:
@@ -164,10 +190,11 @@ class reader:
                         try:
                             record = filter.trim_ends(record, self.args.min_phred, self.args.end_ratio)
                             record = filter.mark_bad_stretches(record, self.args.min_phred, self.args.bad_stretch)
-                        except ValueError:
-                            bad_seqs.write('%s\t%s\t%s\t%s\tlow quality\n' % (file, record.id, box, gene))
-                            self.log.warning('low quality: %s' % file)
-                            continue
+                        except ValueError as v:
+                            bad_seqs.write('%s\t%s\t%s\t%s\t%s\n' % (file, record.id, box, gene, v))
+                            self.log.info('%s: %s' % (v, file))
+                            if v.args[0] == 'low quality':
+                                continue
 
                         # ensure gene dict is present
                         if gene not in self.seqdata:
@@ -190,8 +217,8 @@ class reader:
         if count == 0:
             self.log.error('No .ab1 ABI trace files found.')
             exit(1)
-        elif len(self.seqdata) == 0:
-            self.log.error('Found %d .ab1 ABI trace files, but none of acceptable quality.' % count)
+        elif len(self.seqdata) <= 1:
+            self.log.error('Found %d .ab1 ABI trace files, but not enough of acceptable quality.' % count)
             exit(1)
         self.log.debug('Found %d .ab1 files in: %s' % (count, self.args.abi_dir))
         self.log.debug('Read %d sequences of acceptable quality' %
@@ -204,7 +231,8 @@ class reader:
         the per-gene-per-box dictionary of seqs. IDs are replaced by short, random ids and
         original descriptions are saved in the :code:`metadata` dictionary.
         """
-        if self.args.ref is None:
+        if not self.args.ref or len(self.args.ref) == 0:
+            self.log.warning('Running AB12PHYLO without references.')
             return
 
         # use random but reproducible prefixes. different seed from raxml -> less confusion
@@ -329,6 +357,10 @@ class writer:
         # make a pandas DataFrame from metadata
         df = pandas.concat({gene: pandas.DataFrame.from_dict(records, orient='index')
                             for gene, records in _reader.metadata.items()})
+        df.reset_index(level=[0], inplace=True)
+        df.columns = ['gene'] + list(df.columns[1:])
+        df.index.name = 'id'
+
         # write to TSV
         df.to_csv(args.tsv, sep='\t', na_rep='', header=True, index=True)
         self.log.debug('wrote metadata to %s' % args.tsv)

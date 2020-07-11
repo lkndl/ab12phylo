@@ -30,33 +30,47 @@ class parser(argparse.ArgumentParser):
         # if empty commandline show help
         args = args if len(args[0]) > 0 else (['-h'],) + args[1:]
 
+        # [modes]
+        mod = parser.add_argument_group(self, title='RUN MODES')
+        mod.add_argument('-viz', '--visualize', action='store_true',
+                         help='Invoke ab12phylo-visualize by appending ab12phylo cmd.')
+        mod.add_argument('-view', '--view', action='store_true',
+                         help='Invoke ab12phylo-view by appending ab12phylo cmd.')
+        parts = mod.add_mutually_exclusive_group()
+        parts.add_argument('-p1', '--prepare', action='store_true',
+                           help='Run first part of ab12phylo, including BLAST but excluding RAxML-NG.')
+        parts.add_argument('-p2', '--finish', action='store_true',
+                           help='Run second part of ab12phylo, beginning with RAxML-NG.')
+
+        # [I/O]
         ion = parser.add_argument_group(self, title='FILE I/O')
         ion.add_argument('-abi', '--abi_dir',
                          help='Root directory of ABI trace files. Defaults to test data set.',
                          type=lambda arg: arg if path.isdir(arg) else self.error(
                              '%s: invalid ABI trace file directory' % arg))
-
         ion.add_argument('-abiset', '--abi_set',
-                         help='Whitelist file defining subset of ABI traces for the analysis.'
+                         help='Whitelist file defining subset of ABI traces for the analysis. '
                               'Files must be in or below provided \'--abi_dir\' directory.',
                          type=lambda arg: arg if path.isfile(arg) else self.error(
                              '%s: invalid whitelist file' % arg))
-
         ion.add_argument('-sampleset', '--sample_set',
-                         help='Whitelist file defining subset of sample IDs for the analysis.'
+                         help='Whitelist file defining subset of sample IDs for the analysis. '
                               'Different versions of a sample will be included.',
                          type=lambda arg: arg if path.isfile(arg) else self.error(
                              '%s: invalid sample whitelist' % arg))
-
         ion.add_argument('-csv', '--csv_dir',
-                         help='Root directory of .csv files with well-to-isolate coordinates. '
-                              'Defaults to test data set',
+                         help='Root directory of .csv files with well-to-isolate coordinates.',
                          type=lambda arg: arg if path.isdir(arg) else self.error(
                              '%s: invalid directory of well-to-isolate coordinate .csv files' % arg))
-
+        rxp = ion.add_mutually_exclusive_group()
+        rxp.add_argument('-rx1', '--regex', help='RegEx to parse plate number, gene name and well position '
+                                                 'from an .ab1 filename in that order. Enter without quotes.')
+        rxp.add_argument('-r3', '--regex3', nargs=3,
+                         help='Alternative to --regex. 3 regular expressions to parse plate number, gene name and well '
+                              'from an .ab1 filename. Provide the regular expressions in that order without quotes or '
+                              'commas between. Use a single capturing group in each regex.')
         ion.add_argument('-dir', '--dir',
-                         help='Directory that output files will be created in. Defaults to \'./results\'')
-
+                         help='Output directory. Defaults to \'./results\'')
         ion.add_argument('-g', '--genes', nargs='+',
                          help='Gene(s) to be considered; first argument defines gene for species annotation. '
                               'If set, only ABI traces with a filename matching one of these patterns will be read.')
@@ -67,7 +81,6 @@ class parser(argparse.ArgumentParser):
                                'Files will be matched to genes by order if --genes is set, otherwise by filename.',
                           type=lambda arg: arg if path.isfile(arg) else self.error(
                               'invalid file path(s) with .fasta-formatted reference sequences:\n%s' % arg))
-
         refs.add_argument('-rd', '--ref_dir', type=self._valid_ref_dir,
                           help='Directory of .fasta files with reference sequences. Files will be matched to genes '
                                'by their filename. Provide at most one option from {--ref, --ref_dir}.')
@@ -75,14 +88,11 @@ class parser(argparse.ArgumentParser):
         # [quality]
         qal = parser.add_argument_group(self, title='QUALITY')
         qal.add_argument('-qal', '--min_phred', type=int,
-                         help='Minimal phred quality score to define \'good\' bases in ABI trace files. '
-                              'Default minimal score is 30.')
-
+                         help='Minimal phred quality score to define \'good\' bases in ABI trace files.')
         qal.add_argument('-bad', '--bad_stretch', type=int,
                          help='Number of consecutive \'bad bases\': Any sequence of bases in an ABI trace file '
                               'with a phred quality score below the minimum and at least as long as the number '
                               'supplied here will be replaced by a sequence of Ns of equal length.')
-
         qal.add_argument('-end', '--end_ratio', type=self._valid_end_ratio,
                          help='Defines a \'good end\' of a sequence in an ABI trace file for trimming. '
                               'Enter as "<int>/<int>".')
@@ -95,74 +105,66 @@ class parser(argparse.ArgumentParser):
                                 'nucleotide BLAST for seqs missing from the local database.')
         skips.add_argument('-none', '--no_BLAST', action='store_true',
                            help='Skip BLAST entirely.')
-
-        bla.add_argument('-db', '--db', help='Selected BLAST+ database name, mostly untested.')
-
+        bla.add_argument('-db', '--db', help='BLAST+ database to use. Will attempt to download or update this db from '
+                                             'https://ftp.ncbi.nlm.nih.gov/blast/db/ unless provided via -dbpath.')
         bla.add_argument('-dbpath', '--dbpath',
-                         help='Optional path to directory with BLAST+ database. Set if tool is not allowed FTP access.',
+                         help='Path to directory with a BLAST+ database. Set this option for a user-created database '
+                              'or if ab12phylo is not allowed FTP access. You might have to define -db as well.',
                          type=lambda arg: arg if path.isdir(arg) else self.error(
                              'invalid path to directory containing BLAST database'))
-
         bla.add_argument('-remotedb', '--remote_db',
                          help='NCBI database to search for sequences not found locally. Default is \'nt\' for DNA.')
-
         bla.add_argument('-timeout', '--timeout', type=int,
                          help='Stop remote NCBI BLAST after this number of seconds and continue without results.')
+
         # [MSA]
         msa = parser.add_argument_group(self, title='MSA')
         msa.add_argument('-algo', '--msa_algo', choices=['clustalo', 'mafft', 'muscle', 't_coffee'],
                          help='Select an algorithm to build the Multiple Sequence Alignment. Default is MAFFT.')
-
         msa.add_argument('-gbl', '--gblocks', choices=['skip', 'relaxed', 'strict'],
                          help='Activate/set MSA trimming with Gblocks.')
 
-        # [raxml]
+        # [RAxML-NG]
         phy = parser.add_argument_group(self, title='RAxML-NG')
         phy.add_argument('-st', '--start_trees', type=self._valid_start_trees,
                          help='Numbers of starting trees for raxml-ng tree inference: '
                               '[<int random trees>,<int parsimony-based trees>].')
-
         phy.add_argument('-bst', '--bootstrap', type=self._valid_bootstrap,
-                         help='Maximum number of bootstrap trees for raxml-ng.')
-
+                         help='Maximum number of bootstrap trees for raxml-ng. MRE bootstrap convergence test may stop '
+                              'it before, but is unlikely. https://doi.org/10.1089/cmb.2009.0179')
         phy.add_argument('-metric', '--metric', choices=['TBE', 'FBP'],
                          help='Bootstrap support metric: Either Felsenstein Bootstrap Proportions (FBP) '
-                              'or Transfer Bootstrap Expectation(TBE).')
-
-        phy.add_argument('-threshold', '--threshold', type=float,
-                         help='Limit between 0 and 1 for support value color switch.')
-
+                              'or Transfer Bootstrap Expectation (TBE). https://doi.org/10.1038/s41586-018-0043-0')
         phy.add_argument('-s', '--seed', type=int,
                          help='Seed value for reproducible tree inference results. Will be random if not set.')
+        phy.add_argument('-evomodel', '--evomodel',
+                         help='Evolutionary model for RAxML-NG. Default is GTR+G, no checks!')
 
-        phy.add_argument('-evomodel', '--evomodel', help='Evolutionary model for RAxML-NG. Default is GTR+G, no checks!')
-
-        # [config]
-        self.add_argument('-config', '--config',
-                          default=path.abspath(path.join(path.dirname(__file__), 'config', 'config.yaml')),
-                          type=lambda arg: arg if path.isfile(arg) else self.error('%s: invalid .config path'),
-                          help='Path to .yaml config file with defaults. Command line arguments will override.')
+        # [visualize]
+        viz = parser.add_argument_group(self, title='VISUALIZATION')
+        viz.add_argument('result_dir', nargs='?',
+                         help='ONLY FOR AB12PHYLO-VISUALIZE/-VIEW: Path to results of earlier run.')
+        viz.add_argument('-msa_viz', '--msa_viz', action='store_true',
+                         help='Also render a rectangular tree with MSA color matrix. Takes some extra time.')
+        viz.add_argument('-threshold', '--threshold', type=float,
+                         help='Limit between 0 and 1 for support value color switch.')
+        viz.add_argument('-out_fmt', '--out_fmt', choices=['pdf', 'png', 'svg'],
+                         help='Output file format for tree graphics.')
+        viz.add_argument('-min_dist', '--min_dist', type=float,
+                         help='Minimal distance in tree between any pair of nodes.')
 
         # [misc]
         level = self.add_mutually_exclusive_group()
-        level.add_argument('-v', '--verbose', action='store_true', help='Show all runtime information in console.')
         level.add_argument('-i', '--info', action='store_true', help='Show some more information in console output.')
+        level.add_argument('-v', '--verbose', action='store_true', help='Show all runtime information in console.')
+        self.add_argument('-config', '--config',
+                          default=path.abspath(path.join(path.dirname(__file__), 'config', 'config.yaml')),
+                          type=lambda arg: arg if path.isfile(arg) else self.error('%s: invalid .config path'),
+                          help='Path to .yaml config file with defaults. Command line arguments will override it.')
         self.add_argument('-version', '--version', action='store_true', help='Print version information and exit.')
         self.add_argument('-test', '--test', action='store_true', help='Test run.')
-        self.add_argument('-msa_viz', '--msa_viz', action='store_true',
-                          help='Also render a rectangular tree with MSA. Takes some extra time.')
-        self.add_argument('-out_fmt', '--out_fmt', choices=['pdf', 'png', 'svg'],
-                          help='Output file format for tree graphics.')
-        self.add_argument('-viz', '--visualize', action='store_true',
-                          help='Invoke ab12phylo-visualize by appending ab12phylo cmd.')
-        self.add_argument('-view', '--view', action='store_true',
-                          help='Invoke ab12phylo-view by appending ab12phylo cmd.')
         self.add_argument('-q', '--headless', action='store_true',
                           help='Do not start a CGI server nor display in browser. For remote use.')
-
-        # [ab12phylo-visualize]
-        vie = parser.add_argument_group(self, title='ONLY FOR AB12PHYLO-VISUALIZE')
-        vie.add_argument('result_dir', nargs='?', help='Path to results of earlier run.')
 
         self.args = self.parse_args(args[0])
 
@@ -187,7 +189,7 @@ class parser(argparse.ArgumentParser):
         # provide defaults for unset options
         for key, val in config.items():
             if key not in self.args:
-                # for itemw without CLI equivalent (avoid bloated CLI)
+                # for items without CLI equivalent (avoid bloated CLI)
                 config_only[key] = val
             elif self.args.__dict__.get(key) in [None, False]:
                 # access the namespace itself without var names -> access dict
@@ -200,11 +202,18 @@ class parser(argparse.ArgumentParser):
                     # make absolute paths
                     val = [path.join(path.dirname(path.dirname(__file__)), ref[1:])
                            if ref[0] == '$' else ref for ref in val]
+                if key == 'regex' and self.args.regex3 or key == 'regex3' and self.args.regex:
+                    # do not interfere with user-defined exclusive group
+                    continue
 
                 self.args.__dict__[key] = val
 
         # ab12phylo with --visualize or --view: guess real results path and skip re-parsing
         if len(kwargs) > 0 or self.args.visualize or self.args.view:
+            if self.args.visualize:
+                print('starting -viz re-plotting run', file=sys.stderr)
+            elif self.args.view:
+                print('re-view results', file=sys.stderr)
             # look in current working directory and ./results
             found = False
             for outer in [self.args.result_dir, self.args.dir, os.getcwd()]:
@@ -240,9 +249,9 @@ class parser(argparse.ArgumentParser):
             # now rebuild a command line and parse it again
             commandline = list()
             for key, val in self.args.__dict__.items():
-                if key in ['genes', 'ref'] and val is not None:
+                if key in ['genes', 'ref', 'regex3'] and val is not None:
                     commandline.append('--%s' % key)
-                    [commandline.append(gene) for gene in val]
+                    [commandline.append(v) for v in val]
                 elif val not in [None, False, True]:
                     commandline += ['--%s' % key, str(val)]
                 elif val is True:
@@ -277,7 +286,12 @@ class parser(argparse.ArgumentParser):
         self.args.missing_fasta = path.join(self.args.dir, 'missing.fasta')
         self.args.final_tree = path.join(self.args.dir, 'tree')
         self.args.annotated_tree = path.join(self.args.dir, 'tree_%s_annotated.nwk' % self.args.metric)
-        self.args.log = path.join(self.args.dir, 'ab12phylo.log')
+        if self.args.prepare:
+            self.args.log = path.join(self.args.dir, 'ab12phylo-p1.log')
+        elif self.args.finish:
+            self.args.log = path.join(self.args.dir, 'ab12phylo-p2.log')
+        else:
+            self.args.log = path.join(self.args.dir, 'ab12phylo.log')
         self.args.sep = 'SSSSSSSSSS'  # to visually separate genes in the concat MSA
         # now also load config-only defaults
         self.args.__dict__.update(config_only)
