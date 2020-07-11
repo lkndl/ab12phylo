@@ -103,6 +103,7 @@ ab12phylo -p2
 * `-p1` run only part one, up until BLAST
 
 
+For the second invocation:
 * `-p2` run part two of AB12PHYLO, starting with RAxML-NG
 * `-st`: ML tree searches from `32` random and `16` parsimony-based starting trees
 * `-s` fixes the random `--seed` to `4` for reproducibility
