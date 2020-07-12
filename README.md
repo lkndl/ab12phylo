@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.13&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.14&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 

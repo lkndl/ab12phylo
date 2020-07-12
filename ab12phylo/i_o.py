@@ -197,6 +197,7 @@ class reader:
                             self.log.error('SeqIO unexpected name of ABI record %s' % file)
                             continue
 
+                        attributes = {'file': path.join(root, file), 'box': box}
                         # quality check
                         try:
                             record = filter.trim_ends(record, self.args.min_phred, self.args.end_ratio)
@@ -204,11 +205,14 @@ class reader:
                             # accept reverse reads
                             if reverse_read:
                                 record = record.reverse_complement(record.id, description='')
+                                attributes['direction'] = 'reverse'
                         except ValueError as v:
                             bad_seqs.write('%s\t%s\t%s\t%s\t%s\n' % (file, record.id, box, gene, v))
                             self.log.info('%s: %s' % (v, file))
                             if v.args[0] == 'low quality':
                                 continue
+                            else:
+                                attributes['quality'] = v.args[0]
 
                         # ensure gene dict is present
                         if gene not in self.seqdata:
@@ -225,7 +229,7 @@ class reader:
 
                         # save SeqRecord by position
                         self.seqdata[gene][record.id] = record
-                        self.metadata[gene][record.id] = {'file': path.join(root, file), 'box': box}
+                        self.metadata[gene][record.id] = attributes
 
         if count == 0:
             self.log.error('No .ab1 ABI trace files found.')
