@@ -11,8 +11,6 @@
 #abi_set: $ab12phylo/test_data/file_set
 #sample_set: $ab12phylo/test_data/sample_set
 #csv_dir: $ab12phylo/test_data
-regex: '[-_ ]pl([\d])[-_ ][\d]{1,2}[-_ ](.+)[-_ ]([A-Z][\d]{1,2})[-_ ]' # *DO* use single quotes here!
-#regex3: ['[-_\s]pl([\d]+)[-_\s]' '[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s](.+)[-_\s][A-Z][\d]{1,2}[-_\s]' '[-_\s]([A-Z][\d]{1,2})[-_\s]']
 dir: results
 #genes: ITS1F, OPA10, EndoPG  # first entry used for BLAST+ -> prefer ITS1F
 #ref: $ab12phylo/test_data/ITS1F.fasta # separate multiple entries with comma: R1, R2, R3
@@ -22,10 +20,13 @@ dir: results
 min_phred: 30
 bad_stretch: 5
 end_ratio: 8/10
+regex: '[-_ ]pl([\d])[-_ ][\d]{1,2}[-_ ](.+)[-_ ]([A-Z][\d]{1,2})[-_ ]' # *DO* use single quotes here!
+#regex3: ['[-_\s]pl([\d]+)[-_\s]' '[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s](.+)[-_\s][A-Z][\d]{1,2}[-_\s]' '[-_\s]([A-Z][\d]{1,2})[-_\s]']
+#regexR: '^[A-Z]-[a-zA-Z]*?[sSaA][0-9]+([Rr]+)[a-zA-Z|_|-]' # if option is set, use argument to identify reverse reads
 
 ## [BLAST]
 no_BLAST: False # "True" -> {bool} True, anything else -> {bool} False.
-no_remote: True # True or False
+#no_remote: True
 db: ITS_RefSeq_Fungi
 #dbpath: $blastdb   # will also disable updates
 remote_db: nt  # the NCBI database to search for seqs not found locally

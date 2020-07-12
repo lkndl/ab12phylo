@@ -62,13 +62,6 @@ class parser(argparse.ArgumentParser):
                          help='Root directory of .csv files with well-to-isolate coordinates.',
                          type=lambda arg: arg if path.isdir(arg) else self.error(
                              '%s: invalid directory of well-to-isolate coordinate .csv files' % arg))
-        rxp = ion.add_mutually_exclusive_group()
-        rxp.add_argument('-rx1', '--regex', help='RegEx to parse plate number, gene name and well position '
-                                                 'from an .ab1 filename in that order. Enter without quotes.')
-        rxp.add_argument('-r3', '--regex3', nargs=3,
-                         help='Alternative to --regex. 3 regular expressions to parse plate number, gene name and well '
-                              'from an .ab1 filename. Provide the regular expressions in that order without quotes or '
-                              'commas between. Use a single capturing group in each regex.')
         ion.add_argument('-dir', '--dir',
                          help='Output directory. Defaults to \'./results\'')
         ion.add_argument('-g', '--genes', nargs='+',
@@ -96,6 +89,14 @@ class parser(argparse.ArgumentParser):
         qal.add_argument('-end', '--end_ratio', type=self._valid_end_ratio,
                          help='Defines a \'good end\' of a sequence in an ABI trace file for trimming. '
                               'Enter as "<int>/<int>".')
+        rxp = qal.add_mutually_exclusive_group()
+        rxp.add_argument('-r1', '--regex', help='RegEx to parse plate number, gene name and well position '
+                                                'from an .ab1 filename in that order. Enter without quotes.')
+        rxp.add_argument('-r3', '--regex3', nargs=3,
+                         help='Alternative to --regex. 3 regular expressions to parse plate number, gene name and well '
+                              'from an .ab1 filename. Provide the regular expressions in that order without quotes or '
+                              'commas between. Use a single capturing group in each regex.')
+        qal.add_argument('-r4', '--regexR', help='RegEx to identify reverse reads from their .ab1 filename.')
 
         # [BLAST]
         bla = parser.add_argument_group(self, title='BLAST')

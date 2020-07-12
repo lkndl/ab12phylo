@@ -121,6 +121,12 @@ class reader:
             pattern = re.compile(self.args.regex)
         else:
             pattern = [re.compile(regex) for regex in self.args.regex3]
+        # check if we're on the lookout for reverse reads
+        reverse_reads = 0
+        if self.args.regexR:
+            self.args.regexR = re.compile(self.args.regexR)
+        else:
+            reverse_read = False
 
         with open(self.args.bad_seqs, 'w') as bad_seqs:
             bad_seqs.write('file\tid\tbox\tgene\tproblem\n')
@@ -156,6 +162,11 @@ class reader:
                                 gene = pattern[1].search(record.name).groups()[0]
                                 coords = pattern[2].search(record.name).groups()[0]
 
+                            # check if read is reverse read
+                            if self.args.regexR:
+                                reverse_read = True if re.search(self.args.regexR, record.name) else False
+                                reverse_reads += reverse_read
+
                             try:
                                 (row, col) = (int(coords[1:]), coords[0])
                                 # swap out well coordinates for isolate numbers
@@ -190,6 +201,9 @@ class reader:
                         try:
                             record = filter.trim_ends(record, self.args.min_phred, self.args.end_ratio)
                             record = filter.mark_bad_stretches(record, self.args.min_phred, self.args.bad_stretch)
+                            # accept reverse reads
+                            if reverse_read:
+                                record = record.reverse_complement(record.id, description='')
                         except ValueError as v:
                             bad_seqs.write('%s\t%s\t%s\t%s\t%s\n' % (file, record.id, box, gene, v))
                             self.log.info('%s: %s' % (v, file))
@@ -211,7 +225,6 @@ class reader:
 
                         # save SeqRecord by position
                         self.seqdata[gene][record.id] = record
-
                         self.metadata[gene][record.id] = {'file': path.join(root, file), 'box': box}
 
         if count == 0:
@@ -220,6 +233,8 @@ class reader:
         elif len(self.seqdata) <= 1:
             self.log.error('Found %d .ab1 ABI trace files, but not enough of acceptable quality.' % count)
             exit(1)
+        if reverse_reads > 0:
+            self.log.debug('Found %d reverse reads.' % reverse_reads)
         self.log.debug('Found %d .ab1 files in: %s' % (count, self.args.abi_dir))
         self.log.debug('Read %d sequences of acceptable quality' %
                        sum(len(gene_records) for gene_records in self.seqdata.values()))

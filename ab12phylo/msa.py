@@ -139,7 +139,7 @@ class msa_build:
                 # minimal number for a conserved flanking position
                 flank = cons
                 # keep no, half or all gap positions
-                gaps = ['n', 'h', 'a'][2]
+                gaps = ['n', 'h', 'a'][1]
                 self.log.info('running relaxed Gblocks')
             else:
                 cons = int(seq_count * 0.9)
@@ -175,12 +175,12 @@ class msa_build:
                     try:
                         record += self.sep  # to visually separate genes in the MSA
                         record += all_records[gene].pop(sample_id)
-                        shared += 1
                     except KeyError:
                         missing_genes[gene].append(sample_id)
                         skip = True
                 # write to file
                 if not skip:
+                    shared += 1
                     SeqIO.write(record, msa, 'fasta')
         if len(self.genes) > 1:
             if shared == 0:
