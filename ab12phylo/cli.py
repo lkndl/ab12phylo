@@ -60,8 +60,7 @@ class parser(argparse.ArgumentParser):
                              '%s: invalid sample whitelist' % arg))
         ion.add_argument('-csv', '--csv_dir',
                          help='Root directory of .csv files with well-to-isolate coordinates.',
-                         type=lambda arg: arg if path.isdir(arg) else self.error(
-                             '%s: invalid directory of well-to-isolate coordinate .csv files' % arg))
+                         type=lambda arg: arg if path.isdir(arg) else 'ignore')
         ion.add_argument('-dir', '--dir',
                          help='Output directory. Defaults to \'./results\'')
         ion.add_argument('-g', '--genes', nargs='+',

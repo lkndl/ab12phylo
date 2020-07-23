@@ -69,7 +69,10 @@ class reader:
         """
         if not self.args.csv_dir:
             self.args.csv_dir = os.getcwd()
-            self.log.debug('searching for wellsplates in current working directory: %s' % self.args.csv_dir)
+            self.log.warning('searching for wellsplates in current working directory: %s' % self.args.csv_dir)
+        elif self.args.csv_dir == 'ignore':
+            self.log.warning('-csv argument is no valid directory. Running AB12PHYLO without wellsplates.')
+            return
 
         for root, dirs, files in os.walk(self.args.csv_dir):
             for file in files:
@@ -82,7 +85,7 @@ class reader:
                         self.log.error('wellsplate %s already read in. overwrite with %s' % (box, file))
                     self.csvs[box] = df
         if len(self.csvs) == 0:
-            self.log.warning('No .csv files provided nor in cwd. Running AB12PHYLO without wellsplates.')
+            self.log.warning('No .csv files in directory. Running AB12PHYLO without wellsplates.')
         self.log.debug('read %d .csv files in: %s' % (len(self.csvs), self.args.csv_dir))
         return
 
@@ -233,9 +236,6 @@ class reader:
 
         if count == 0:
             self.log.error('No .ab1 ABI trace files found.')
-            exit(1)
-        elif len(self.seqdata) <= 1:
-            self.log.error('Found %d .ab1 ABI trace files, but not enough of acceptable quality.' % count)
             exit(1)
         if reverse_reads > 0:
             self.log.debug('Found %d reverse reads.' % reverse_reads)

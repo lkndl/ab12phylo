@@ -70,6 +70,8 @@ red = color.rgba(red[0], red[1], red[2], red[3])
 pg = color.brewer.palette('PinkGreen', reverse=True) \
      + color.Palette(colors=[color.rgba(.26, .26, .26, 1), color.brewer.palette('Spectral')[1]])
 
+base_legend = '<svg class="toyplot-canvas-Canvas" xmlns:toyplot="http://www.sandia.gov/toyplot" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="100.0px" height="40.0px" viewBox="0 0 100.0 40.0" preserveAspectRatio="xMidYMid meet" style="background-color:transparent;border-color:#292724;border-style:none;border-width:1.0;fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:Helvetica;font-size:12px;opacity:1.0;stroke:rgb(16.1%,15.3%,14.1%);stroke-opacity:1.0;stroke-width:1.0" id="ta084f8acf92540e38738f50593e76861"><g class="toyplot-coordinates-Table" id="t9e2f7ff350ea4dbebe0c12a7395bb879"><rect x="0.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(56%,100%,14%);fill-opacity:1.0;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><rect x="20.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(16%,44%,80%);fill-opacity:1.0;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><rect x="40.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(6%,100%,75%);fill-opacity:1.0;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><rect x="60.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(92%,100%,70%);fill-opacity:1.0;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><rect x="80.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(94%,94%,94%);fill-opacity:0.6;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><g transform="translate(10.0,30.0)"><text x="-4.332" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">A</text></g><g transform="translate(30.0,30.0)"><text x="-4.332" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">C</text></g><g transform="translate(50.0,30.0)"><text x="-4.668" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">G</text></g><g transform="translate(70.0,30.0)"><text x="-3.666" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">T</text></g><g transform="translate(90.0,30.0)"><text x="-4.332" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">N</text></g></g></svg>'
+
 
 def _visualize(*args):
     """Entry point for re-visualization."""
@@ -213,7 +215,7 @@ class tree_build:
             render_dict['msa_viz'] = '<div id="msa_viz" href="msa_viz" class="section level3">' \
                                      '<h3><strong>3.2</strong> +MSA</h3>' \
                                      '<img id="msa_viz" src="rectangular_msa.png" alt="tree+MSA" ' \
-                                     'style="width:860px"/></div>'
+                                     'style="width:860px"/><h4>%s</h4></div>' % base_legend
         else:
             render_dict['msa_viz'] = ''
 
@@ -390,8 +392,11 @@ class tree_build:
             lines = lines.fillna('no BLAST hit')
             dt = pd.concat([self.df.loc[:, ['pid']], lines.iloc[:, 0]], axis=1)
         # rename last column
-        dt.columns = list(dt.columns)[:-1] + ['species']
-        dt = toyplot.data.Table(dt)
+        try:
+            dt.columns = list(dt.columns)[:-1] + ['species']
+            dt = toyplot.data.Table(dt)
+        except ValueError:
+            dt['species'] = ''
 
         hh, ww = coded_seqs.shape
 

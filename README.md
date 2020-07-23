@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.14&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.15&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -77,7 +77,7 @@ ab12phylo -rf <ref.fasta> \
     -db <your_own> \
     -dbpath <your_dir> \
     -abiset <whitelist> \
-    -regex3 <rx1 rx2 rx3> \
+    -regex3 <"rx1" "rx2" "rx3"> \
     -algo <mafft-clustalo-muscle-tcoffee> \
     -gbl relaxed \
     -skip \
@@ -148,7 +148,7 @@ If you're feeling this neat and precise and set both the genes and individual re
 
 
 #### RegEx
-If you provide wellsplates mappings, AB12PHYLO will parse plate number, gene name and the sequencer's isolate coordinates from the `.ab1` filename with a RegEx and fetch the user-defined ID from the corresponding `.csv` look-up table. To use your own, please consult `--help` and try out your RegEx [here](https://regex101.com/r/Yulwlf/1) or [there](https://regex101.com/r/Yulwlf/2).
+If you provide wellsplates mappings, AB12PHYLO will parse plate number, gene name and the sequencer's isolate coordinates from the `.ab1` filename with a RegEx and fetch the user-defined ID from the corresponding `.csv` look-up table. To use your own, please consult `--help` and try out your RegEx [here](https://regex101.com/r/Yulwlf/3) or [there](https://regex101.com/r/Yulwlf/5). From a bash shell, enclose the terms with double quotes `"`, zsh might work without.
 
 Provide a RegEx to `--regexR` and AB12PHYLO will look out for reverse reads, and add their reverse complement to the data set.
 
