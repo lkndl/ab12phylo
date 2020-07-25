@@ -209,6 +209,8 @@ class reader:
                             if reverse_read:
                                 record = record.reverse_complement(record.id, description='')
                                 attributes['direction'] = 'reverse'
+                                bad_seqs.write('%s\t%s\t%s\t%s\treverse read\n' % (file, record.id, box, gene))
+                                self.log.info('reverse read %s: %s' % (record.id, file))
                         except ValueError as v:
                             bad_seqs.write('%s\t%s\t%s\t%s\t%s\n' % (file, record.id, box, gene, v))
                             self.log.info('%s: %s' % (v, file))

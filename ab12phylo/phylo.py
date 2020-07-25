@@ -560,7 +560,7 @@ class tree_build:
         materials['unknown'] = self.args.unknown_threshold
         materials['poly'] = self.args.poly_allelic
         materials['g_lens'] = '_'.join([entry[0] + ':' + str(entry[1]) for entry in self.g_lens])
-        materials['msa_path'] = path.abspath(self.args.new_msa)
+        materials['msa_path'] = path.basename(self.args.new_msa)  # path.abspath(self.args.new_msa)
         materials['threshold'] = int(self.args.threshold * 10)
         materials['min_dist'] = self.args.min_dist
         materials['metadata'] = path.relpath(self.args.tsv, self.args.dir)
@@ -603,7 +603,7 @@ class tree_build:
         # dump tree and function
         with open(path.join(self.args.dir, 'tree.pickle'), 'wb') as out_file:
             pickle.dump(tree, out_file)
-        materials['pickle'] = path.abspath(path.join(self.args.dir, 'tree.pickle'))
+        materials['pickle'] = 'tree.pickle'  # path.abspath(path.join(self.args.dir, 'tree.pickle'))
 
         # copy cgi-bin directory to output directory
         shutil.copytree(src=path.join(path.dirname(__file__), 'cgi-bin'),

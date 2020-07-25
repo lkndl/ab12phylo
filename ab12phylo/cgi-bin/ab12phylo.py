@@ -206,7 +206,8 @@ except (ToytreeError, ValueError) as ex:
     leaves = []
 
 # save result in file
-_path = path.join('queries', call + '_' + motifs + '_' + ex_motifs + '.txt')
+_path = path.join('queries', call + '_' + motifs + '_' + ex_motifs)
+_path += '_files.txt' if as_files else '_samples.txt'
 with open(_path, 'w') as txt_fh:
     txt_fh.write(txt.replace(', ', '\n') + '\n')
 
