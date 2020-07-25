@@ -406,7 +406,7 @@ class tree_build:
 
         self.log.debug('dim w/ msa %spx by %spx' % (w, h))
         rcanvas = toyplot.Canvas(width=w, height=h, style={'background-color': 'white'})
-        axes = rcanvas.cartesian(bounds=(40, 0.26 * w, 40, h - 40))  # xstart xend ystart yend
+        axes = rcanvas.cartesian(bounds=(40, 0.27 * w, 40, h - 40))  # xstart xend ystart yend
 
         self.log.debug('drawing tree')
         self.tree.draw(axes=axes, scalebar=True, node_sizes=colors[2], node_colors=colors[3],
@@ -430,7 +430,7 @@ class tree_build:
         #                     color=colors[4], size=8, marker='s')
         #     msa.right.column[-2].width = 30
         msa.right.column[-2].width = 12
-        msa.left.column[1].width = 50
+        msa.left.column[1].width = 12
 
         # write species column
         msa.right.column[-1].data = dt['species']
@@ -480,6 +480,7 @@ class tree_build:
         """
 
         type_colors, BLAST_colors = dict(), dict()
+        multi = True if len(self.genes) > 1 else False
 
         # rename reference nodes and add features
         for node in self.tree.treenode.traverse():
@@ -487,7 +488,10 @@ class tree_build:
                 entry = self.df.loc[node.name]
 
                 if node.name.startswith('REF_'):
-                    node.name = entry.accession
+                    if multi and 'strain' in entry.reference_species:
+                        node.name = entry.reference_species[entry.reference_species.find('strain') + 7:]
+                    else:
+                        node.name = entry.accession
                     type_colors[node.idx] = blue
                     node.add_feature('species', entry.reference_species)
                     BLAST_colors[node.idx] = 0  # this is the position of blue in the palette
@@ -500,7 +504,7 @@ class tree_build:
                     BLAST_colors[node.idx] = 1 + np.ceil(min(100 - entry.pid, 20) / 2)  # map to the palette
 
                 else:
-                    type_colors[node.idx] = rocket[-2] if self.args.no_BLAST else red
+                    type_colors[node.idx] = rocket[1] if self.args.no_BLAST else red
                     BLAST_colors[node.idx] = 1 if self.args.no_BLAST else 11
                     # dark gray if no BLASTing, else bad light color
 

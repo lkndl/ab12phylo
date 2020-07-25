@@ -302,7 +302,7 @@ class reader:
                     ix = strain.index('strain')
                     strain = ' '.join(strain[ix + 1:ix + 3])
                 except ValueError:
-                    strain = ' '.join(strain[:3])
+                    strain = species
 
                 # retrieve or generate random key
                 if strain in lookup:
@@ -315,7 +315,7 @@ class reader:
                 # save original id+description
                 self.metadata[gene][_id] = {'file': ref_file,
                                             'accession': accession,
-                                            'reference_species': species}
+                                            'reference_species': species + ' strain ' + strain}
                 record.id = _id
                 record.description = ''  # MARK do not delete deletion
                 # save ref record

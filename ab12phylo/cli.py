@@ -236,7 +236,10 @@ class parser(argparse.ArgumentParser):
 
             # move ref file list from ref_dir to ref
             if self.args.ref_dir:
-                self.args.ref = self._valid_ref_dir(self.args.ref_dir)
+                if type(self.args.ref_dir) == list:
+                    self.args.ref = self.args.ref_dir
+                else:
+                    self.args.ref = self._valid_ref_dir(self.args.ref_dir)
                 del self.args.ref_dir
 
             # check for duplicates in genes and references
