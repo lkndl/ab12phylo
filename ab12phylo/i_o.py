@@ -297,8 +297,10 @@ class reader:
                 # parse species and possibly strain
                 strain = re.split(r'[\s_]', record.description.strip().split(',')[0])
                 accession = strain.pop(0)
+                species = strain.pop(0) + ' ' + strain.pop(0)
                 try:
-                    strain = ' '.join(strain[:strain.index('strain') + 3])
+                    ix = strain.index('strain')
+                    strain = ' '.join(strain[ix + 1:ix + 3])
                 except ValueError:
                     strain = ' '.join(strain[:3])
 
@@ -313,7 +315,7 @@ class reader:
                 # save original id+description
                 self.metadata[gene][_id] = {'file': ref_file,
                                             'accession': accession,
-                                            'reference_species': strain}
+                                            'reference_species': species}
                 record.id = _id
                 record.description = ''  # MARK do not delete deletion
                 # save ref record
