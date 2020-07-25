@@ -285,6 +285,10 @@ class reader:
 
         # read in refs
         for ref_file, gene_pos in zip(self.args.ref, order):
+            # skip if ref file does not match any gene
+            if gene_pos == -1:
+                continue
+            # without skip, -1 just gets the last and reads to many references
             gene = self.args.genes[gene_pos]
             count = 0
 
