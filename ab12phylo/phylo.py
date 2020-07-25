@@ -406,7 +406,7 @@ class tree_build:
 
         self.log.debug('dim w/ msa %spx by %spx' % (w, h))
         rcanvas = toyplot.Canvas(width=w, height=h, style={'background-color': 'white'})
-        axes = rcanvas.cartesian(bounds=(40, 0.27 * w, 40, h - 40))  # xstart xend ystart yend
+        axes = rcanvas.cartesian(bounds=(40, 0.26 * w, 40, h - 40))  # xstart xend ystart yend
 
         self.log.debug('drawing tree')
         self.tree.draw(axes=axes, scalebar=True, node_sizes=colors[2], node_colors=colors[3],
@@ -430,7 +430,7 @@ class tree_build:
         #                     color=colors[4], size=8, marker='s')
         #     msa.right.column[-2].width = 30
         msa.right.column[-2].width = 12
-        msa.left.column[1].width = 12
+        msa.left.column[1].width = 44
 
         # write species column
         msa.right.column[-1].data = dt['species']
