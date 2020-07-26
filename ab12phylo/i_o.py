@@ -74,13 +74,15 @@ class reader:
             self.log.warning('-csv argument is no valid directory. Running AB12PHYLO without wellsplates.')
             return
 
+        pattern = re.compile(self.args.regex_csv)
+
         for root, dirs, files in os.walk(self.args.csv_dir):
             for file in files:
                 if file.endswith('.csv'):
                     df = pandas.read_csv(path.join(root, file), header=None)
                     df.index = list(range(1, df.shape[0] + 1))
                     df.columns = list(string.ascii_uppercase[0:df.shape[1]])
-                    box = re.sub(r'\D', '', str(file).split('_')[-1])
+                    box = pattern.search(str(file)).groups()[0]
                     if box in self.csvs:
                         self.log.error('wellsplate %s already read in. overwrite with %s' % (box, file))
                     self.csvs[box] = df
@@ -120,14 +122,14 @@ class reader:
 
         count = 0
         # differentiate between one-regex-to-rule-them-all or three
-        if self.args.regex:
-            pattern = re.compile(self.args.regex)
+        if self.args.regex_abi:
+            pattern = re.compile(self.args.regex_abi)
         else:
-            pattern = [re.compile(regex) for regex in self.args.regex3]
+            pattern = [re.compile(regex) for regex in self.args.regex_3]
         # check if we're on the lookout for reverse reads
         reverse_reads = 0
-        if self.args.regexR:
-            self.args.regexR = re.compile(self.args.regexR)
+        if self.args.regex_rev:
+            self.args.regex_rev = re.compile(self.args.regex_rev)
         else:
             reverse_read = False
 
@@ -155,7 +157,7 @@ class reader:
                         # parse box, gene and coordinates from name
                         # NOTE: ID of a SeqRecord sometimes indicates wrong box. -> use name.
                         try:
-                            if self.args.regex:
+                            if self.args.regex_abi:
                                 # single regex
                                 m = pattern.search(record.name)
                                 box, gene, coords = m.groups()
@@ -166,8 +168,8 @@ class reader:
                                 coords = pattern[2].search(record.name).groups()[0]
 
                             # check if read is reverse read
-                            if self.args.regexR:
-                                reverse_read = True if re.search(self.args.regexR, record.name) else False
+                            if self.args.regex_rev:
+                                reverse_read = True if re.search(self.args.regex_rev, record.name) else False
                                 reverse_reads += reverse_read
 
                             try:

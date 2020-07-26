@@ -7,8 +7,8 @@ between them. The `--visualize` and `--view` entry points are in the :class:`phy
 """
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.1b.16'
-__date__ = '25 July 2020'
+__version__ = '0.1b.17'
+__date__ = '26 July 2020'
 __license__ = 'MIT'
 __status__ = 'Beta'
 
@@ -40,6 +40,8 @@ def _main():
         if args.prepare:
             # wait for BLAST if necessary
             blaster.join()
+            # visualize MSA for inspection
+            phylo.mview_msa(args)
             print('finished -p1 prep run', file=sys.stderr)
             exit(0)
 

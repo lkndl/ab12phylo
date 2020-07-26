@@ -131,6 +131,32 @@ def tree_view(_dir):
     return
 
 
+def mview_msa(args):
+    """
+    Using MView, create an .html visualization for the annotated MSA.
+    """
+    # hacky re-configuration
+    mv_path = path.join(path.abspath(path.dirname(__file__)), 'tools', 'mview-1.67')
+    perl_binary = shutil.which('perl')
+    if not perl_binary:
+        raise ValueError
+    lines = open(path.join(mv_path, 'bin', 'mview'), 'r').read().split('\n')
+    lines[0] = '#!' + perl_binary
+    line = lines[25].split('"')
+    line[1] = mv_path
+    lines[25] = '"'.join(line)
+
+    # over-write file
+    open(path.join(mv_path, 'bin', 'mview'), 'w').write('\n'.join(lines))
+
+    arg = '%s %s -in fasta -moltype dna -width 80 -conservation on -coloring consensus -threshold 80 ' \
+          '-label2 -label4 -label5 -consensus on -con_threshold 80 -html head -css on  -colormap leo %s > %s' % \
+          (perl_binary, path.join(mv_path, 'bin', 'mview'), args.new_msa, args.mview_msa)
+
+    p = subprocess.run(arg, shell=True, stdout=subprocess.PIPE)
+    return 'MView run ' + p.stdout.decode('utf-8').strip()
+
+
 class tree_build:
     """
     Tree visualization based on toytree and toyplot. Also calls tree_view()
@@ -193,7 +219,7 @@ class tree_build:
         self.log.info('rendered rectangular in %.2f sec' % (time() - start))
 
         try:
-            self._mview_msa()
+            self.log.info(mview_msa(self.args))
         except Exception as ex:
             with open(self.args.mview_msa, 'w') as fh:
                 fh.write('MView (Perl) failed for some reason')
@@ -445,31 +471,6 @@ class tree_build:
         self.log.info('rectangular tree setup in %.2f sec' % (time() - start))
 
         return rcanvas
-
-    def _mview_msa(self):
-        """
-        Using MView, create an .html visualization for the annotated MSA.
-        """
-        # hacky re-configuration
-        mv_path = path.join(path.abspath(path.dirname(__file__)), 'tools', 'mview-1.67')
-        perl_binary = shutil.which('perl')
-        lines = open(path.join(mv_path, 'bin', 'mview'), 'r').read().split('\n')
-        lines[0] = '#!' + perl_binary
-        line = lines[25].split('"')
-        line[1] = mv_path
-        lines[25] = '"'.join(line)
-
-        # over-write file
-        open(path.join(mv_path, 'bin', 'mview'), 'w').write('\n'.join(lines))
-        self.log.debug('MView config')
-
-        arg = '%s %s -in fasta -moltype dna -width 80 -conservation on -coloring consensus -threshold 80 ' \
-              '-label2 -label4 -label5 -consensus on -con_threshold 80 -html head -css on  -colormap leo %s > %s' % \
-              (perl_binary, path.join(mv_path, 'bin', 'mview'), self.args.new_msa, self.args.mview_msa)
-
-        p = subprocess.run(arg, shell=True, stdout=subprocess.PIPE)
-        self.log.debug('MView run ' + p.stdout.decode('utf-8').strip())
-        return
 
     def _edit1(self):
         """

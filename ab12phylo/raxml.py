@@ -54,7 +54,7 @@ class raxml_build:
         :return:
         """
         # check+parse msa, determine number of parallel raxml-ng instances and cpus for each
-        self.runs, self.cpus, self.msa = self._check_msa()
+        self.runs, self.cpus, self.msa = self._check_msa
 
         # keep track of finished prefixes:
         self._prefixes = []
@@ -140,6 +140,7 @@ class raxml_build:
         shutil.move(path.join(self._dir, '_sup.raxml.supportTBE'), self.args.final_tree + '_TBE.nwk')
         self.log.info('final trees %s_[FBP,TBE].nwk' % self.args.final_tree)
 
+    @property
     def _check_msa(self):
         """
         Checks if the MSA can be understood by raxml-ng,
@@ -158,7 +159,8 @@ class raxml_build:
         res = _run_sp(arg)
 
         keepers = set()
-        if self.args.replace:  # replace mode: replace sets of identical sequences by one representative. off by default
+        if 'replace' in self.args and self.args.replace:
+            # replace mode: replace sets of identical sequences by one representative. off by default
             # parse MSA check result for success and identical sequences
             pattern = re.compile(r'quences (.+?) and (.+?) are exactly identi')
             goners = 0
@@ -212,10 +214,13 @@ class raxml_build:
 
         # how many parallel runs on how many cores?
         runs = os.cpu_count() // cpus
+        # potentially limit threads
+        if 'max_threads' in self.args:
+            runs = min(runs, self.args.max_threads)
         self.log.info('use %d cpu%s per raxml-ng. found %d physical cores. create %d instances'
                       % (cpus, '' if cpus == 1 else 's', os.cpu_count(), runs))
 
-        if self.args.replace:
+        if 'replace' in self.args and self.args.replace:
             return runs, cpus, path.join(paths[1] + '.raxml.rba')
         else:
             # if not in replace mode, just return the unparsed alignment

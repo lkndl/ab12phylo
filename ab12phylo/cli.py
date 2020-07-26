@@ -44,8 +44,13 @@ class parser(argparse.ArgumentParser):
 
         # [I/O]
         ion = parser.add_argument_group(self, title='FILE I/O')
+        ion.add_argument('-dir', '--dir',
+                         help='Output directory. Defaults to \'./results\'')
+        ion.add_argument('-g', '--genes', nargs='+',
+                         help='Gene(s) to be considered; first argument defines gene for species annotation. '
+                              'If set, only ABI traces with a filename matching one of these patterns will be read.')
         ion.add_argument('-abi', '--abi_dir',
-                         help='Root directory of ABI trace files. Defaults to test data set.',
+                         help='Root directory of all ABI trace files. Defaults to current working directory',
                          type=lambda arg: arg if path.isdir(arg) else self.error(
                              '%s: invalid ABI trace file directory' % arg))
         ion.add_argument('-abiset', '--abi_set',
@@ -61,11 +66,16 @@ class parser(argparse.ArgumentParser):
         ion.add_argument('-csv', '--csv_dir',
                          help='Root directory of .csv files with well-to-isolate coordinates.',
                          type=lambda arg: arg if path.isdir(arg) else 'ignore')
-        ion.add_argument('-dir', '--dir',
-                         help='Output directory. Defaults to \'./results\'')
-        ion.add_argument('-g', '--genes', nargs='+',
-                         help='Gene(s) to be considered; first argument defines gene for species annotation. '
-                              'If set, only ABI traces with a filename matching one of these patterns will be read.')
+        ion.add_argument('-r2', '--regex_csv', help='RegEx to parse the wellsplate number from a .csv filename. '
+                                                    'Use a single capturing group, and double quotes in bash.')
+        rxp = ion.add_mutually_exclusive_group()
+        rxp.add_argument('-r1', '--regex_abi', help='RegEx to parse plate number, gene name and well position '
+                                                    'from an .ab1 filename in that order. Use double quotes in bash.')
+        rxp.add_argument('-r3', '--regex_3', nargs=3,
+                         help='Alternative to --regex_abi. 3 regular expressions to parse plate number, gene name and '
+                              'well from an .ab1 filename. Provide the regular expressions in that order without commas'
+                              ', but with double quotes from bash. Use a single capturing group in each regex.')
+        ion.add_argument('-r4', '--regex_rev', help='RegEx to identify reverse reads from their .ab1 filename.')
 
         refs = ion.add_mutually_exclusive_group()
         refs.add_argument('-rf', '--ref', nargs='+',
@@ -75,7 +85,7 @@ class parser(argparse.ArgumentParser):
                               'invalid file path(s) with .fasta-formatted reference sequences:\n%s' % arg))
         refs.add_argument('-rd', '--ref_dir', type=self._valid_ref_dir,
                           help='Directory of .fasta files with reference sequences. Files will be matched to genes '
-                               'by their filename. Provide at most one option from {--ref, --ref_dir}.')
+                               'by their filename. Set only one option from {--ref, --ref_dir}.')
 
         # [quality]
         qal = parser.add_argument_group(self, title='QUALITY')
@@ -88,14 +98,6 @@ class parser(argparse.ArgumentParser):
         qal.add_argument('-end', '--end_ratio', type=self._valid_end_ratio,
                          help='Defines a \'good end\' of a sequence in an ABI trace file for trimming. '
                               'Enter as "<int>/<int>".')
-        rxp = qal.add_mutually_exclusive_group()
-        rxp.add_argument('-r1', '--regex', help='RegEx to parse plate number, gene name and well position '
-                                                'from an .ab1 filename in that order. Enter without quotes.')
-        rxp.add_argument('-r3', '--regex3', nargs=3,
-                         help='Alternative to --regex. 3 regular expressions to parse plate number, gene name and well '
-                              'from an .ab1 filename. Provide the regular expressions in that order without quotes or '
-                              'commas between. Use a single capturing group in each regex.')
-        qal.add_argument('-r4', '--regexR', help='RegEx to identify reverse reads from their .ab1 filename.')
 
         # [BLAST]
         bla = parser.add_argument_group(self, title='BLAST')
@@ -132,18 +134,18 @@ class parser(argparse.ArgumentParser):
         phy.add_argument('-bst', '--bootstrap', type=self._valid_bootstrap,
                          help='Maximum number of bootstrap trees for raxml-ng. MRE bootstrap convergence test may stop '
                               'it before, but is unlikely. https://doi.org/10.1089/cmb.2009.0179')
+        phy.add_argument('-evomodel', '--evomodel',
+                         help='Evolutionary model for RAxML-NG. Default is GTR+G, no checks!')
+        phy.add_argument('-s', '--seed', type=int,
+                         help='Seed value for reproducible tree inference results. Will be random if not set.')
         phy.add_argument('-metric', '--metric', choices=['TBE', 'FBP'],
                          help='Bootstrap support metric: Either Felsenstein Bootstrap Proportions (FBP) '
                               'or Transfer Bootstrap Expectation (TBE). https://doi.org/10.1038/s41586-018-0043-0')
-        phy.add_argument('-s', '--seed', type=int,
-                         help='Seed value for reproducible tree inference results. Will be random if not set.')
-        phy.add_argument('-evomodel', '--evomodel',
-                         help='Evolutionary model for RAxML-NG. Default is GTR+G, no checks!')
 
         # [visualize]
         viz = parser.add_argument_group(self, title='VISUALIZATION')
         viz.add_argument('result_dir', nargs='?',
-                         help='ONLY FOR AB12PHYLO-VISUALIZE/-VIEW: Path to results of earlier run.')
+                         help='ONLY FOR AB12PHYLO-VISUALIZE/-VIEW: Path to earlier run. Pass without keyword!')
         viz.add_argument('-msa_viz', '--msa_viz', action='store_true',
                          help='Also render a rectangular tree with MSA color matrix. Takes some extra time.')
         viz.add_argument('-threshold', '--threshold', type=float,
@@ -160,7 +162,7 @@ class parser(argparse.ArgumentParser):
         self.add_argument('-config', '--config',
                           default=path.abspath(path.join(path.dirname(__file__), 'config', 'config.yaml')),
                           type=lambda arg: arg if path.isfile(arg) else self.error('%s: invalid .config path'),
-                          help='Path to .yaml config file with defaults. Command line arguments will override it.')
+                          help='Path to .yaml config file with defaults; command line arguments will override them.')
         self.add_argument('-version', '--version', action='store_true', help='Print version information and exit.')
         self.add_argument('-test', '--test', action='store_true', help='Test run.')
         self.add_argument('-q', '--headless', action='store_true',
@@ -202,7 +204,7 @@ class parser(argparse.ArgumentParser):
                     # make absolute paths
                     val = [path.join(path.dirname(path.dirname(__file__)), ref[1:])
                            if ref[0] == '$' else ref for ref in val]
-                if key == 'regex' and self.args.regex3 or key == 'regex3' and self.args.regex:
+                if key == 'regex_abi' and self.args.regex_3 or key == 'regex_3' and self.args.regex_abi:
                     # do not interfere with user-defined exclusive group
                     continue
 
@@ -252,7 +254,7 @@ class parser(argparse.ArgumentParser):
             # now rebuild a command line and parse it again
             commandline = list()
             for key, val in self.args.__dict__.items():
-                if key in ['genes', 'ref', 'regex3'] and val is not None:
+                if key in ['genes', 'ref', 'regex_3'] and val is not None:
                     commandline.append('--%s' % key)
                     [commandline.append(v) for v in val]
                 elif val not in [None, False, True]:
