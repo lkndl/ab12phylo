@@ -149,9 +149,11 @@ def mview_msa(args):
     # over-write file
     open(path.join(mv_path, 'bin', 'mview'), 'w').write('\n'.join(lines))
 
+    used_msa = args.new_msa if path.isfile(args.new_msa) else args.msa
+
     arg = '%s %s -in fasta -moltype dna -width 80 -conservation on -coloring consensus -threshold 80 ' \
           '-label2 -label4 -label5 -consensus on -con_threshold 80 -html head -css on  -colormap leo %s > %s' % \
-          (perl_binary, path.join(mv_path, 'bin', 'mview'), args.new_msa, args.mview_msa)
+          (perl_binary, path.join(mv_path, 'bin', 'mview'), used_msa, args.mview_msa)
 
     p = subprocess.run(arg, shell=True, stdout=subprocess.PIPE)
     return 'MView run ' + p.stdout.decode('utf-8').strip()
