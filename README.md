@@ -77,7 +77,7 @@ ab12phylo -rf <ref.fasta> \
     -db <your_own> \
     -dbpath <your_dir> \
     -abiset <whitelist> \
-    -regex3 <"rx1" "rx2" "rx3"> \
+    -regex_3 <"rx1" "rx2" "rx3"> \
     -algo <mafft-clustalo-muscle-tcoffee> \
     -gbl relaxed \
     -skip \
@@ -100,7 +100,7 @@ ab12phylo -p2
 * `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed` or `strict`
 * `-skip` online BLAST for sequences not in the local BLAST+ db and [read why](#blast-api)
 * `-i` or `--info` shows some more run details in the console
-* `-p1` run only part one, up until BLAST
+* `-p1` run only part one, up until BLAST; and generates an MView visualization HTML of the MSA for inspection
 
 
 For the second invocation:
@@ -148,9 +148,9 @@ If you're feeling this neat and precise and set both the genes and individual re
 
 
 #### RegEx
-If you provide wellsplates mappings, AB12PHYLO will parse plate number, gene name and the sequencer's isolate coordinates from the `.ab1` filename with a RegEx and fetch the user-defined ID from the corresponding `.csv` look-up table. To use your own, please consult `--help` and try out your RegEx [here](https://regex101.com/r/Yulwlf/3) or [there](https://regex101.com/r/Yulwlf/5). From a bash shell, enclose the terms with double quotes `"`, zsh might work without.
+If you provide wellsplates mappings, AB12PHYLO will parse plate number, gene name and the sequencer's isolate coordinates from the `.ab1` filename with a RegEx and fetch the user-defined ID from the corresponding `.csv` look-up table. To use your own, please consult `--help` and try out your RegEx [here](https://regex101.com/r/Yulwlf/3) or [there](https://regex101.com/r/Yulwlf/5). From a bash shell, enclose the terms with double quotes `"`. The wellsplate number is also parsed from the `.csv` filename with a RegEx.
 
-Provide a RegEx to `--regexR` and AB12PHYLO will look out for reverse reads, and add their reverse complement to the data set.
+Provide a RegEx to `--regex_rev` and AB12PHYLO will look out for reverse reads, and add their reverse complement to the data set.
 
 
 #### BLAST+ Database
