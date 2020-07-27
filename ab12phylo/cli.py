@@ -11,6 +11,7 @@ import os
 import sys
 import yaml
 import random
+import shutil
 import logging
 import argparse
 
@@ -307,6 +308,8 @@ class parser(argparse.ArgumentParser):
             log = logging.getLogger(__name__)
             log.debug('--AB12PHYLO-VISUALIZE--')
             log.debug(' '.join(args[0]))
+            # copy config
+            shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
             phylo.tree_build(self.args)
             sys.exit(0)
 
@@ -316,6 +319,8 @@ class parser(argparse.ArgumentParser):
             log = logging.getLogger(__name__)
             log.debug('--AB12PHYLO-VIEW--')
             log.debug(' '.join(args[0]))
+            # copy config
+            shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
             phylo.tree_view(self.args.dir)
             sys.exit(0)
 
@@ -332,6 +337,10 @@ class parser(argparse.ArgumentParser):
             log.info('seed for this run: %s' % self.args.seed)
             if by_order is True:
                 log.info('will match references to genes by order')
+
+        # copy config
+        shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
+        return
 
     def _valid_ref_dir(self, ref_dir):
         """
