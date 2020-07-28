@@ -9,6 +9,7 @@ Contains both non-primary entry points; -viz and -view
 
 import copy
 import logging
+import math
 import os
 import pickle
 import shutil
@@ -35,18 +36,18 @@ from toyplot import html, pdf, png, svg, color, data, locator
 from ab12phylo import main, cli
 
 # adapted kxlin colors
-raw_rgbas = [(.56, 1, .14, 1), (.16, .44, .8, 1), (.06, 1, .75, 1), (.92, 1, .7, 1),
-             (.94, .94, .94, .6), (1, 1, 1, 0), (1, 1, 1, 0), (1, 1, 1, 0)] + [(1, 0, 0, 1)] * 20
-kxlin = color.Palette(colors=[color.rgba(i[0], i[1], i[2], i[3]) for i in raw_rgbas])
+kxlin = [(.56, 1, .14, 1), (.16, .44, .8, 1), (.06, 1, .75, 1), (.92, 1, .7, 1),
+         (.94, .94, .94, .6), (1, 1, 1, 0), (1, 1, 1, 0), (1, 1, 1, 0)] + [(1, 0, 0, 1)] * 20
+kxlin_pal = color.Palette(colors=[color.rgba(i[0], i[1], i[2], i[3]) for i in kxlin])
 # author colors
-raw_rgbas = [(1.0000, 0.9453, 0.9101), (1.0000, 0.9257, 0.1406), (0.9687, 0.7968, 0.6523),
-             (0.5117, 0.4648, 0.6132), (0.1640, 0.6757, 0.9882), (0.3750, 0.4726, 0.7851),
-             (0.1171, 0.1718, 0.3242), (0.4960, 0.1484, 0.3281), (1.0000, 0.0039, 0.3007),
-             (1.0000, 0.4687, 0.6640)]
-pal2 = toyplot.color.Palette(colors=[toyplot.color.rgba(i[0], i[1], i[2], 1) for i in raw_rgbas])
+pal2 = [(1.0000, 0.9453, 0.9101), (1.0000, 0.9257, 0.1406), (0.9687, 0.7968, 0.6523),
+        (0.5117, 0.4648, 0.6132), (0.1640, 0.6757, 0.9882), (0.3750, 0.4726, 0.7851),
+        (0.1171, 0.1718, 0.3242), (0.4960, 0.1484, 0.3281), (1.0000, 0.0039, 0.3007),
+        (1.0000, 0.4687, 0.6640)]
+# pal2 = toyplot.color.Palette(colors=[toyplot.color.rgba(i[0], i[1], i[2], 1) for i in pal2])
 
-blue = (0.1960, 0.5333, 0.7411, 1)
-red = (0.6196, 0.0039, 0.2588, 1)
+blue = (0.1960, 0.5333, 0.7411)
+red = (0.6196, 0.0039, 0.2588)
 
 # seaborn rocket palette
 rocket = [blue] + [(0.1237, 0.0717, 0.1822), (0.2452, 0.1049, 0.2639),
@@ -55,20 +56,20 @@ rocket = [blue] + [(0.1237, 0.0717, 0.1822), (0.2452, 0.1049, 0.2639),
                    (0.8949, 0.2178, 0.2531), (0.9429, 0.3754, 0.2636),
                    (0.9592, 0.5330, 0.3748), (0.9644, 0.6702, 0.5150),
                    (0.9689, 0.7980, 0.6851)]
-rocket = color.Palette(colors=[color.rgba(t[0], t[1], t[2], 1) for t in rocket])
+# rocket = color.Palette(colors=[color.rgba(t[0], t[1], t[2], 1) for t in rocket])
 
 # seaborn cubehelix palette
 cubehelix = [blue] + [[0.1725, 0.1195, 0.2432], [0.2109, 0.1988, 0.3548], [0.2323, 0.2908, 0.4444],
                       [0.2499, 0.3901, 0.5053], [0.2775, 0.4896, 0.5382], [0.3256, 0.5824, 0.5512],
                       [0.3949, 0.6591, 0.5567], [0.4926, 0.7267, 0.5693], [0.6081, 0.7816, 0.6017],
                       [0.7294, 0.8282, 0.6624], [0.8423, 0.8737, 0.7524]]
-cubehelix = color.Palette(colors=[color.rgba(t[0], t[1], t[2], 1) for t in cubehelix])
+# cubehelix = color.Palette(colors=[color.rgba(t[0], t[1], t[2], 1) for t in cubehelix])
 
-blue = color.rgba(blue[0], blue[1], blue[2], blue[3])
-red = color.rgba(red[0], red[1], red[2], red[3])
+# blue = color.rgb(blue[0], blue[1], blue[2])
+# red = color.rgb(red[0], red[1], red[2])
 
 pg = color.brewer.palette('PinkGreen', reverse=True) \
-     + color.Palette(colors=[color.rgba(.26, .26, .26, 1), color.brewer.palette('Spectral')[1]])
+     + color.Palette(colors=[color.rgb(.26, .26, .26), color.brewer.palette('Spectral')[1]])
 
 base_legend = '<svg class="toyplot-canvas-Canvas" xmlns:toyplot="http://www.sandia.gov/toyplot" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="100.0px" height="40.0px" viewBox="0 0 100.0 40.0" preserveAspectRatio="xMidYMid meet" style="background-color:transparent;border-color:#292724;border-style:none;border-width:1.0;fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:Helvetica;font-size:12px;opacity:1.0;stroke:rgb(16.1%,15.3%,14.1%);stroke-opacity:1.0;stroke-width:1.0" id="ta084f8acf92540e38738f50593e76861"><g class="toyplot-coordinates-Table" id="t9e2f7ff350ea4dbebe0c12a7395bb879"><rect x="0.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(56%,100%,14%);fill-opacity:1.0;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><rect x="20.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(16%,44%,80%);fill-opacity:1.0;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><rect x="40.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(6%,100%,75%);fill-opacity:1.0;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><rect x="60.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(92%,100%,70%);fill-opacity:1.0;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><rect x="80.0" y="0.0" width="20.0" height="20.0" style="fill:rgb(94%,94%,94%);fill-opacity:0.6;stroke:rgb(100%,100%,100%);stroke-opacity:1.0;stroke-width:4" /><g transform="translate(10.0,30.0)"><text x="-4.332" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">A</text></g><g transform="translate(30.0,30.0)"><text x="-4.332" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">C</text></g><g transform="translate(50.0,30.0)"><text x="-4.668" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">G</text></g><g transform="translate(70.0,30.0)"><text x="-3.666" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">T</text></g><g transform="translate(90.0,30.0)"><text x="-4.332" y="3.066" style="fill:rgb(16.1%,15.3%,14.1%);fill-opacity:1.0;font-family:helvetica;font-size:12.0px;font-weight:bold;stroke:none;vertical-align:baseline;white-space:pre">N</text></g></g></svg>'
 
@@ -177,13 +178,18 @@ class tree_build:
 
         render_dict = self._annotate_msa()
 
-        colors = self._edit1()
+        self._edit1()
 
         self.log.debug('drawing circular tree')
         start = time()
         ccanvas, axc = self.tree.draw(width=800, height=800, scalebar=True,
-                                      node_sizes=colors[2], node_colors=colors[3],
-                                      tip_labels=True, tip_labels_align=False, tip_labels_colors=colors[1],
+                                      node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                      node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                                          self.tree.get_node_values('color', 1, 1))],
+                                      tip_labels=True, tip_labels_align=False,
+                                      tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                                         for n in list(self.tree.get_node_values('score', 1, 1))
+                                                         if n != -1][::-1],
                                       layout='c')
         ccanvas.style['background-color'] = 'white'
         axc.show = False
@@ -205,8 +211,12 @@ class tree_build:
         # get dim for canvas
         w, h = 1200, len(self.tips) * 14 + 80
         rcanvas, axes = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
-                                         node_sizes=colors[2], node_colors=colors[3],
-                                         tip_labels_colors=colors[1])
+                                         node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                         node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                                             self.tree.get_node_values('color', 1, 1))],
+                                         tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                                            for n in list(self.tree.get_node_values('score', 1, 1))
+                                                            if n != -1][::-1])
         rcanvas.style['background-color'] = 'white'
         axes.y.show = False
         axes.x.show = True
@@ -232,7 +242,7 @@ class tree_build:
                 self.log.warning('drawing tree w/ msa. You can interrupt and proceed via Cmd+C.')
                 start = time()
 
-                rcanvas_msa = self._with_matrix(colors, kxlin)
+                rcanvas_msa = self._with_matrix(kxlin_pal)
                 png.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.png'), scale=2)
                 self.log.info('rendered w/ msa in %.2f sec' % (time() - start))
             except KeyboardInterrupt:
@@ -375,7 +385,7 @@ class tree_build:
         self.log.debug('gene lengths: %s' % self.g_lens)
         return render_info
 
-    def _with_matrix(self, colors, pal):
+    def _with_matrix(self, pal):
         """
         Create a toytree with a matrix representation of the MSA.
         """
@@ -437,9 +447,13 @@ class tree_build:
         axes = rcanvas.cartesian(bounds=(40, 0.26 * w, 40, h - 40))  # xstart xend ystart yend
 
         self.log.debug('drawing tree')
-        self.tree.draw(axes=axes, scalebar=True, node_sizes=colors[2], node_colors=colors[3],
-                       tip_labels=True, tip_labels_align=True, tip_labels_colors=colors[0],  # was 0 before
-                       edge_align_style={'stroke-width': .7, 'stroke': 'silver'})
+        self.tree.draw(axes=axes, scalebar=True, tip_labels=True, tip_labels_align=True,
+                       edge_align_style={'stroke-width': .7, 'stroke': 'silver'},
+                       node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                       node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                           self.tree.get_node_values('color', 1, 1))],
+                       tip_labels_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                           self.tree.get_node_values('type', 1, 1)) if n != 0][::-1])
         axes.y.show = False
         axes.x.show = True
 
@@ -469,7 +483,10 @@ class tree_build:
         # colorize species annotation for ref and missing
         shift = msa.shape[0] - len(self.tips) - 2  # line index shift because of 'top'
         for j in range(len(self.tips)):
-            msa.cells.cell[j + shift, -1].lstyle = {'fill': list(reversed(colors[4]))[j]}  # 4 was 0 before
+            msa.cells.cell[j + shift, -1].lstyle = \
+                {'fill': [color.rgb(cubehelix[n][0], cubehelix[n][1], cubehelix[n][2])
+                          for n in list(self.tree.get_node_values('score', 1, 1))
+                          if n != -1][j]}
         self.log.info('rectangular tree setup in %.2f sec' % (time() - start))
 
         return rcanvas
@@ -481,8 +498,6 @@ class tree_build:
         support -> larger dot means better support.
         :return:
         """
-
-        type_colors, BLAST_colors = dict(), dict()
         multi = True if len(self.genes) > 1 else False
 
         # rename reference nodes and add features
@@ -495,36 +510,35 @@ class tree_build:
                         node.name = entry.reference_species[entry.reference_species.find('strain') + 7:]
                     else:
                         node.name = entry.accession
-                    type_colors[node.idx] = blue
+                    node.add_feature('type', blue)
                     node.add_feature('species', entry.reference_species)
-                    BLAST_colors[node.idx] = 0  # this is the position of blue in the palette
+                    node.add_feature('score', 0)  # this is the position of blue in the palette
 
                 elif 'BLAST_species' in entry and not pd.isnull(entry.BLAST_species):
-                    type_colors[node.idx] = color.rgba(.2, .2, .2, 1)
+                    node.add_feature('type', (.2, .2, .2, 1))
                     node.add_feature('species', entry.BLAST_species)
                     # node.add_feature('score', '%.2f' % entry.pid if entry.pid < 100 else '100')
                     node.add_feature('pid', entry.pid)
-                    BLAST_colors[node.idx] = 1 + np.ceil(min(100 - entry.pid, 20) / 2)  # map to the palette
+                    node.add_feature('score', 1 + math.ceil(min(100 - entry.pid, 20) / 2))  # map to the palette
 
                 else:
-                    type_colors[node.idx] = rocket[1] if self.args.no_BLAST else red
-                    BLAST_colors[node.idx] = 1 if self.args.no_BLAST else 11
+                    node.add_feature('type', rocket[1] if self.args.no_BLAST else red)
+                    node.add_feature('score', 1 if self.args.no_BLAST else 11)
                     # dark gray if no BLASTing, else bad light color
 
                 if self.replace and 'replaces' in entry and not pd.isnull(entry.replaces):
                     node.name += ', ' + entry.replaces
 
-        # convert to lists ordered by increasing index -> matching tips
-        label_colors = [type_colors[i] for i in sorted(type_colors)]
-        score_colors = [rocket[BLAST_colors[i]] for i in sorted(BLAST_colors)]
-        score_colors_rg = [cubehelix[BLAST_colors[i]] for i in sorted(BLAST_colors)]
-
-        # use support values for node size
-        min_size = 2
-        node_sizes = [min_size + float(siz) * self.scale if siz else 0
-                      for siz in self.tree.get_node_values('support', 1, 0)]
-        node_colors = [kxlin[1] if siz > self.args.threshold + min_size else pal2[8] for siz in node_sizes]
-        return label_colors, score_colors, node_sizes, node_colors, score_colors_rg
+                node.add_feature('size', 0)
+                node.add_feature('color', kxlin[1])  # just so the field exists
+            else:
+                # use support values for node size
+                min_size = 2
+                node.add_feature('size', min_size + float(node.support) * self.scale if node.support else 0)
+                node.add_feature('color', kxlin[1] if node.size > self.args.threshold + min_size else pal2[8])
+                node.add_feature('score', -1)  # just so the field exists
+                node.add_feature('type', 0)  # just so the field exists
+        return
 
     def _edit2(self, _tree):
         """

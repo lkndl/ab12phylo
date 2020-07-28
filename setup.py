@@ -7,8 +7,8 @@ if sys.version_info[0] < 3:
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.1b.17'
-__date__ = '26 July 2020'
+__version__ = '0.1b.18'
+__date__ = '28 July 2020'
 __license__ = 'MIT'
 __status__ = 'Beta'
 
