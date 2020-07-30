@@ -12,21 +12,27 @@ import os
 import shutil
 import subprocess
 import threading
+import urllib.error
 from os import path
-from time import time
+from time import time, sleep
 
 import pandas
 from numpy import nan
 from Bio import SearchIO
+from Bio.Blast import NCBIWWW
 
 
 class blast_build(threading.Thread):
     """
-    Looks for pre-installed BLAST+. If 2.9.0 or newer, updates or downloads the database
-    (usually ITS_RefSeq_Fungi). If no or an outdated BLAST+ installation is found,
-    module exits with error.
-    Updates and searches in local BLAST+ db with blastn and parses resulting .xml to the
-    metadata .tsv. Runs an online NCBI BLAST for missing seqs.
+    -none: do nothing
+    -xml: read in result files and nothing else
+    -local: do not run remote BLAST
+    -remote: do not run local BLAST (depreciated)
+    If a local search is run:
+    Looks for pre-installed BLAST+ 2.9.0 or newer, updates or downloads a database if not
+    specified via path, else checks integrity. Runs online Bio.BLAST.NCBIWWW.qblast unless
+    prohibited, otherwise checks for earlier result.
+    Writes information from best hit to metadata.tsv.
     """
 
     def __init__(self, _args, reader):
@@ -38,6 +44,7 @@ class blast_build(threading.Thread):
         if self.no_BLAST is True:
             return
         self.no_remote = _args.no_remote
+        self.no_local = _args.no_local
         self.gene = _args.genes[0]
         self.db = _args.db
         self.remote_db = _args.remote_db
@@ -47,51 +54,40 @@ class blast_build(threading.Thread):
         self.FASTA = path.join(_args.dir, self.gene, self.gene + '.fasta')
         self.XML = _args.xml
         self.www_XML = _args.www_xml
+        self.read_XML = _args.BLAST_xml
         self.TSV = _args.tsv
         self.bad_seqs = _args.bad_seqs
         self.missing_fasta = _args.missing_fasta
         self.dbpath = _args.dbpath
         self.blast_dir = None
+        os.makedirs(path.join(_args.dir, 'BLAST'), exist_ok=True)
 
         # data in memory
         self.seqdata = reader.seqdata
         self.metadata = reader.metadata
 
-        # if BLAST db path was provided, use and don't update
-        if self.dbpath is not None:
-            self.update = False
-        else:
-            # save BLAST db in root directory
-            self.dbpath = path.join(path.dirname(path.dirname(__file__)), 'blastdb', self.db)
-            self.update = True
-            os.makedirs(self.dbpath, exist_ok=True)
-
-        try:
-            binary = shutil.which('blastn')
-            if binary is None:
-                raise ValueError('BLAST+ not installed (not on the $PATH)')
-            output = subprocess.check_output(binary + ' -version', shell=True).decode('utf-8')
-            version = [int(i) for i in output.split(',')[0].split(' ')[-1].split('.')]
-            if version[0] >= 2 and version[1] >= 9:
-                self.blast_dir = path.dirname(binary)
-            else:
-                raise ValueError('BLAST+ in %s is outdated' % self.blast_dir)
-        except (subprocess.CalledProcessError, ValueError) as e:
-            self.log.error(e)
-            exit(e)
-
     def run(self):
-        # skip all BLASTing
         if self.no_BLAST is True:
             self.log.info('--SKIPPING BLAST--')  # leave it alone!
             return
-
-        # run local BLAST
-        not_found = self._blast_local()
-
-        # if local BLAST failed, continue without annotation
-        if not_found is None:
+        elif self.read_XML:
+            self.log.info('reading BLAST xml')
+            try:
+                self._parse_remote_result(self.read_XML)
+            except Exception as ex:
+                self.log.error(ex)
             return
+
+        if not self.no_local:
+            # run local BLAST
+            not_found = self._blast_local()
+            # if local BLAST failed, continue without annotation
+            if not_found is None:
+                return
+        else:
+            self.log.debug('skip local BLAST')
+            # get all IDs for a remote BLAST
+            not_found = list(self.seqdata[self.gene].keys())
 
         # online BLAST for seqs missing from local db
         if len(not_found) == 0:
@@ -109,7 +105,7 @@ class blast_build(threading.Thread):
             if os.path.isfile(self.www_XML):
                 try:
                     self.log.warning('reading XML result of previous online BLAST')
-                    self._parse_remote_result()
+                    self._parse_remote_result(self.www_XML)
                 except Exception as ex:
                     self.log.error(ex)
             return
@@ -118,10 +114,34 @@ class blast_build(threading.Thread):
 
     def _blast_local(self):
         """
-        Optionally update a local BLAST+ database, then check integrity.
+        Optionally check BLAST+ installation, update a local BLAST+ database, check integrity.
         Run a BLAST+ search and finally write updated non-seq data to a .csv file.
         :return: missing sequences as list of sample IDs
         """
+        # check BLAST+
+        try:
+            binary = shutil.which('blastn')
+            if binary is None:
+                raise ValueError('BLAST+ not installed (not on the $PATH)')
+            output = subprocess.check_output(binary + ' -version', shell=True).decode('utf-8')
+            version = [int(i) for i in output.split(',')[0].split(' ')[-1].split('.')]
+            if version[0] >= 2 and version[1] >= 9:
+                self.blast_dir = path.dirname(binary)
+            else:
+                raise ValueError('BLAST+ in %s is outdated' % self.blast_dir)
+        except (subprocess.CalledProcessError, ValueError) as e:
+            self.log.error(e)
+            exit(e)
+
+        # if BLAST db path was provided, use and don't update
+        if self.dbpath is not None:
+            self.update = False
+        else:
+            # save BLAST db in root directory
+            self.dbpath = path.join(path.dirname(path.dirname(__file__)), 'blastdb', self.db)
+            self.update = True
+            os.makedirs(self.dbpath, exist_ok=True)
+
         # update database
         if self.update:
             self.log.debug('updating BLAST+ db ...')
@@ -196,22 +216,33 @@ class blast_build(threading.Thread):
         self.log.warning('online BLAST: %d seq%s missing from %s'
                          % (len(missing_seqs), 's' if len(missing_seqs) > 1 else '', self.db))
 
-        # run remote NCBI BLAST via BLAST+
-        self.log.debug('BLASTing online ...')
-        arg = '%s -db %s -query %s -remote -max_target_seqs 5 -outfmt 5 -out %s' \
-              % (path.join(self.blast_dir, 'blastn'), self.remote_db, self.missing_fasta, self.www_XML)
+        # run remote NCBI BLAST via Biopython
+        runs = round(len(missing_seqs) / 10)
+        self.log.debug('BLASTing online in %d runs.' % runs)
+        # prep file paths
+        self.www_XML = [self.www_XML[:-4] + '_%d.xml' % run for run in range(1, runs + 1)]
 
-        start = time()
-        self.log.debug(arg)
-        try:
-            subprocess.run(arg, shell=True, check=True, timeout=self.timeout)
-            self.log.info('finished remote BLAST in %.2f sec' % (time() - start))
-            self._parse_remote_result()
-        except subprocess.CalledProcessError as e:
-            self.log.exception('remote BLAST failed, returned %d\n%s'
-                               % (e.returncode, e.output.decode('utf-8') if e.output is not None else ''))
-        except subprocess.TimeoutExpired as e:
-            self.log.error('remote BLAST timed out')
+        for run in range(runs):
+            start = time()
+            # create query search string
+            records = '\n'.join([self.seqdata[self.gene][seq_id].format('fasta')
+                                 for seq_id in missing_seqs[run * 10: run * 10 + 10]])
+            try:
+                handle = NCBIWWW.qblast(program='blastn', database=self.remote_db,
+                                        sequence=records, format_type='XML', hitlist_size=5)
+                # save as .xml
+                with open(self.www_XML[run], 'w') as fh:
+                    fh.write(handle.read())
+                self.log.info('remote BLAST %d:%d complete after %.2f sec' % (run, runs, time() - start))
+                sleep(11)
+                self._parse_remote_result([self.www_XML[run]])
+            except urllib.error.URLError as offline:
+                self.log.warning('online BLAST aborted, no internet connection')
+                return
+            except Exception as e:
+                self.log.exception(e)
+                sleep(11)
+        self.log.info('finished remote BLAST')
 
     def _parse(self, xml_entry):
         """Parses genus and species from a 'Hit' in the XML entry. Raises a ValueError if no hits."""
@@ -231,27 +262,38 @@ class blast_build(threading.Thread):
         except IndexError:
             raise ValueError
 
-    def _parse_remote_result(self):
+    def _parse_remote_result(self, in_xmls):
         """
-        Parses an XML from a previous online BLAST run
+        Parses a list of XML files from previous online BLAST run
         :return:
         """
+        # file check
+        xmls = list()
+        for xml in in_xmls:
+            if path.isfile(xml):
+                xmls.append(xml)
+            else:
+                self.log.warning('XML path invalid: %s' % xml)
+        if not xmls:
+            self.log.warning('no valid paths.')
+            return
         # read in metadata tsv
         df = pandas.read_csv(self.TSV, sep='\t', dtype={'id': str})
         df.set_index('id', inplace=True)
 
         # parse .xml and write best hits info to metadata
         with open(self.bad_seqs, 'a') as fh:
-            for entry in SearchIO.parse(self.www_XML, 'blast-xml'):
-                try:
-                    res = self._parse(entry)
-                    df.at[entry.id, 'BLAST_species'] = res[0]
-                    df.at[entry.id, 'pid'] = res[1]
-                except ValueError:
-                    fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
-                             % (df.at[entry.id, 'file'], entry.id,
-                                df.at[entry.id, 'box'], self.gene))
-                    self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
+            for xml in xmls:
+                for entry in SearchIO.parse(xml, 'blast-xml'):
+                    try:
+                        res = self._parse(entry)
+                        df.at[entry.id, 'BLAST_species'] = res[0]
+                        df.at[entry.id, 'pid'] = res[1]
+                    except ValueError:
+                        fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
+                                 % (df.at[entry.id, 'file'], entry.id,
+                                    df.at[entry.id, 'box'], self.gene))
+                        self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
 
         # write to TSV
         df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)

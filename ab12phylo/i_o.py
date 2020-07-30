@@ -194,7 +194,7 @@ class reader:
                             # skip seqs from wrong gene
                             if self.args.genes is not None and gene not in self.args.genes:
                                 bad_seqs.write('%s\t%s\t%s\t%s\twrong gene\n' % (file, record.id, box, gene))
-                                self.log.info('SeqIO wrong gene %s' % file)
+                                self.log.debug('SeqIO wrong gene %s' % file)
                                 continue
 
                         except AttributeError:
@@ -212,7 +212,7 @@ class reader:
                                 record = record.reverse_complement(record.id, description='')
                                 attributes['direction'] = 'reverse'
                                 bad_seqs.write('%s\t%s\t%s\t%s\treverse read\n' % (file, record.id, box, gene))
-                                self.log.info('reverse read %s: %s' % (record.id, file))
+                                self.log.debug('reverse read %s: %s' % (record.id, file))
                         except ValueError as v:
                             bad_seqs.write('%s\t%s\t%s\t%s\t%s\n' % (file, record.id, box, gene, v))
                             self.log.info('%s: %s' % (v, file))
@@ -232,7 +232,7 @@ class reader:
                             record = filter.new_version(record, self.seqdata[gene].keys())
                             bad_seqs.write('%s\t%s\t%s\t%s\tnew id, %s already present\n'
                                            % (file, record.id, box, gene, old_id))
-                            self.log.info('version id %s: %s' % (record.id, file))
+                            self.log.debug('version id %s: %s' % (record.id, file))
 
                         # save SeqRecord by position
                         self.seqdata[gene][record.id] = record

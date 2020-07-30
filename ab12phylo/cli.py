@@ -103,11 +103,14 @@ class parser(argparse.ArgumentParser):
         # [BLAST]
         bla = parser.add_argument_group(self, title='BLAST')
         skips = bla.add_mutually_exclusive_group()
-        skips.add_argument('-skip', '--no_remote', action='store_true',
+        skips.add_argument('-local', '--no_remote', action='store_true',
                            help='NCBI BLAST API queries are de-prioritized very quickly. Set this flag to skip online '
                                 'nucleotide BLAST for seqs missing from the local database.')
         skips.add_argument('-none', '--no_BLAST', action='store_true',
                            help='Skip BLAST entirely.')
+        skips.add_argument('-remote', '--no_local', action='store_true',
+                           help='BLAST only in remote database; discouraged.')
+        skips.add_argument('-xml', '--BLAST_xml', nargs='+', help='Supply available BLAST results as .XML files.')
         bla.add_argument('-db', '--db', help='BLAST+ database to use. Will attempt to download or update this db from '
                                              'https://ftp.ncbi.nlm.nih.gov/blast/db/ unless provided via -dbpath.')
         bla.add_argument('-dbpath', '--dbpath',
@@ -117,8 +120,6 @@ class parser(argparse.ArgumentParser):
                              'invalid path to directory containing BLAST database'))
         bla.add_argument('-remotedb', '--remote_db',
                          help='NCBI database to search for sequences not found locally. Default is \'nt\' for DNA.')
-        bla.add_argument('-timeout', '--timeout', type=int,
-                         help='Stop remote NCBI BLAST after this number of seconds and continue without results.')
 
         # [MSA]
         msa = parser.add_argument_group(self, title='MSA')
@@ -147,20 +148,31 @@ class parser(argparse.ArgumentParser):
         viz = parser.add_argument_group(self, title='VISUALIZATION')
         viz.add_argument('result_dir', nargs='?',
                          help='ONLY FOR AB12PHYLO-VISUALIZE/-VIEW: Path to earlier run. Pass without keyword!')
-        viz.add_argument('-msa_viz', '--msa_viz', action='store_true',
-                         help='Also render a rectangular tree with MSA color matrix. Takes some extra time.')
+        viz.add_argument('-msa_viz', '--msa_viz', nargs='*', choices=['pdf', 'png'],
+                         help='Also render a rectangular tree with MSA color matrix in chosen format(s). '
+                              'Takes some extra time.')
         viz.add_argument('-threshold', '--threshold', type=float,
                          help='Limit between 0 and 1 for support value color switch.')
-        viz.add_argument('-out_fmt', '--out_fmt', choices=['pdf', 'png', 'svg'],
+        viz.add_argument('-out_fmt', '--out_fmt', nargs='+', choices=['pdf', 'png', 'svg'],
                          help='Output file format for tree graphics.')
-        viz.add_argument('-min_dist', '--min_dist', type=float,
-                         help='Minimal distance in tree between any pair of nodes.')
+        viz.add_argument('-md', '--min_dist', type=float,
+                         help='Minimal phylogenetic distance between any pair of samples for RAxML-NG.')
+        viz.add_argument('-mpd', '--min_plot_dist', type=float,
+                         help='Minimal artificial distance of a node in the visualization to .')
+        viz.add_argument('-drop', '--drop_nodes', nargs='+', type=int,
+                         help='Drop the node(s) with this idx and its descendants from the tree. '
+                              'Use the motif subtree search to find the node or MRCA idx of the target.')
+        viz.add_argument('-replace', '--replace_nodes', nargs='+', type=int,
+                         help='Replace the node(s) with this idx and its descendants with a placeholder.')
+        viz.add_argument('-root', '--root', type=int, help='Root the tree at the node with this index.')
+        viz.add_argument('-supp', '--print_supports', action='store_true',
+                         help='Print the support values in percent of the optimal value in the rectangular tree.')
 
         # [misc]
         level = self.add_mutually_exclusive_group()
         level.add_argument('-i', '--info', action='store_true', help='Show some more information in console output.')
         level.add_argument('-v', '--verbose', action='store_true', help='Show all runtime information in console.')
-        self.add_argument('-config', '--config',
+        self.add_argument('-c', '--config',
                           default=path.abspath(path.join(path.dirname(__file__), 'config', 'config.yaml')),
                           type=lambda arg: arg if path.isfile(arg) else self.error('%s: invalid .config path'),
                           help='Path to .yaml config file with defaults; command line arguments will override them.')
@@ -255,7 +267,7 @@ class parser(argparse.ArgumentParser):
             # now rebuild a command line and parse it again
             commandline = list()
             for key, val in self.args.__dict__.items():
-                if key in ['genes', 'ref', 'regex_3'] and val is not None:
+                if key in ['genes', 'ref', 'regex_3', 'BLAST_xml'] and val is not None:
                     commandline.append('--%s' % key)
                     [commandline.append(v) for v in val]
                 elif val not in [None, False, True]:
@@ -280,8 +292,8 @@ class parser(argparse.ArgumentParser):
                 self.args.seed = random.randint(0, 1000)
 
         # set some default values where options would be useless
-        self.args.xml = path.join(self.args.dir, 'local_blast+_result.xml')
-        self.args.www_xml = path.join(self.args.dir, 'online_blast_result.xml')
+        self.args.xml = path.join(self.args.dir, 'BLAST', 'local_blast+_result.xml')
+        self.args.www_xml = path.join(self.args.dir, 'BLAST', 'online_blast_result.xml')
         self.args.bad_seqs = path.join(self.args.dir, 'bad_seqs.tsv')
         self.args.missing_samples = path.join(self.args.dir, 'missing_samples.tsv')
         self.args.tsv = path.join(self.args.dir, 'metadata.tsv')

@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.1b.18&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.2b.1&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -80,7 +80,7 @@ ab12phylo -rf <ref.fasta> \
     -regex_3 <"rx1" "rx2" "rx3"> \
     -algo <mafft-clustalo-muscle-tcoffee> \
     -gbl relaxed \
-    -skip \
+    -local \
     -i \
     -p1
 
@@ -98,9 +98,9 @@ ab12phylo -p2
 * plate number, gene name and well will be parsed from the `.ab1` filename using these three [RegEx](#regex).
 * `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
 * `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed` or `strict`
-* `-skip` online BLAST for sequences not in the local BLAST+ db and [read why](#blast-api)
+* `-local` skips online BLAST for sequences not in the local BLAST+ db and [read why](#blast-api)
 * `-i` or `--info` shows some more run details in the console
-* `-p1` run only part one, up until BLAST; and generates an MView visualization HTML of the MSA for inspection
+* `-p1` run only part one, up until BLAST; also generates an MView HTML of the MSA to find funny sequences
 
 
 For the second invocation:
@@ -116,6 +116,20 @@ Once ML tree inference, bootstrapping and BLAST has finished, the pipeline will 
 If results are moved or sent, motif search will be possible by using `ab12phylo-view` or starting a CGI server in the directory via `python3 -m http.server --cgi <port>`. Find the `<port>` on the intro tab.
 
 
+## BLAST
+If none of the smaller BLAST+ databases is sufficient for your search, you are better of with a [web BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi). Collate your data by running `-p1 --no_BLAST`, then upload the `<gene>/<gene>.fasta` for the gene you wish to use for species annotation. Pass the result via `--BLAST_xml`. You can pass more than one file; AB12PHYLO will use the last annotation for a sample and ignore everything but the first hit.
+
+
+#### BLAST API
+AB12PHYLO is perfectly capable of running online BLAST searches without a BLAST+ installation. However, this is not a suitable main BLAST strategy as BLAST API queries are de-prioritised after just a few attempts. Accordingly, if several runs are attempted on the same data set, passing the `--no_remote` flag will use data from an earlier run by default. You can also leave out species annotation by skipping BLAST entirely with `--no_BLAST`.
+
+
+#### BLAST+ Database
+Sometimes, this pipeline might run headless on a server. To keep it from running head-first in a firewall when it attempts to update its BLAST+ database via FTP, please pre-supply an unzipped, ready-to-use BLAST+ database via `-dbpath` (and `-db` name). Find databases on the [NCBI website](https://ftp.ncbi.nlm.nih.gov/blast/db/), but [web BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi) and `--BLAST_xml` might be both easier and faster.
+
+
+## Visualization
+
 #### ab12phylo-visualize + ab12phylo-view
 `ab12phylo-visualize` will re-plot phylogenies and render a new `results.html`. An end user may use this to switch [support values](#support-values) or plot an MSA visualization with `-msa-viz`. This will take some rendering time for wider alignments.
  `ab12phylo-view` shows results of a previous run in a browser, with motif search enabled. Both commands accept a path to the AB12PHYLO results or default to `.`, and are equivalent to appending to the original `ab12phylo` call.
@@ -129,10 +143,24 @@ ab12phylo-view
 ab12phylo -c <my-config.yaml> -bst 1000 (...) -view
 ```
 
+
+#### Support Values
+For visualization, you can pick either Felsenstein Bootstrap Proportions `FBP` or [Transfer Bootstrap Expectation](https://doi.org/10.1038/s41586-018-0043-0) `TBE` support values with `-metric`. Newick tree files for both types are generated anyway, so switching the support value metric only requires re-running `ab12phylo-visualize`.
+
+
+#### MSA visualization
+AB12PHYLO can plot an additional rectangular tree with an MSA visualization next to it by passing `-msa_viz`. This is single-threaded and takes some extra time for larger MSAs.
+
+
+#### Tree modifications
+You can `-drop_nodes`, `-replace_nodes` or subtrees with a placeholder, or `-root` the tree with an outgroup sequence. These options accept integer node indices from [motif search](#results--motif-search).
+
+Also see the `VISUALIZATION` section of `--help`.
+
 ## Advanced use
 
 #### Remote runs
-[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs, as well as [pre-supplying a BLAST+ db](#blast-database), adapting or replacing the [YAML](https://yaml.org/) config file and setting a fixed seed for reproducibility. Also, do consider plotting an additional rectangular tree with an MSA visualization by passing `-msa_viz`.
+[tmux](https://askubuntu.com/questions/8653/how-to-keep-processes-running-after-ending-ssh-session/220880#220880) and `--headless` are highly recommended for remote runs, as well as [pre-supplying a BLAST+ db](#blast-database), adapting or replacing the [YAML](https://yaml.org/) config file and setting a fixed seed for reproducibility. 
 
 
 #### Genes and References
@@ -153,18 +181,6 @@ If you provide wellsplates mappings, AB12PHYLO will parse plate number, gene nam
 Provide a RegEx to `--regex_rev` and AB12PHYLO will look out for reverse reads, and add their reverse complement to the data set.
 
 
-#### BLAST+ Database
-Sometimes, this pipeline might run headless on a server. To keep it from running head-first in a firewall when it attempts to update its BLAST+ database via FTP, please pre-supply an unzipped, ready-to-use BLAST+ database via `-dbpath` (and `-db` name). Find databases on the [NCBI website](https://ftp.ncbi.nlm.nih.gov/blast/db/).
-
-
-#### BLAST API
-BLAST API queries are de-prioritised after just a few attempts. Accordingly, if several runs are attempted on the same data set, the `-skip`=`--no_remote` flag can be set to use data from an earlier run or leave out species annotation for samples not found in the local database. Alternatively, BLAST can be skipped entirely with `-none`=`--no_BLAST`.
-
-
-#### Support Values
-For visualization, you can pick either Felsenstein Bootstrap Proportions `FBP` or [Transfer Bootstrap Expectation](https://doi.org/10.1038/s41586-018-0043-0) `TBE` support values with `-metric`. Newick tree files for both types are generated anyway, so switching the support value metric only requires re-running `ab12phylo-visualize`.
-
-
 #### MSA clients and T-Coffee
 As of June 2020, there is no T-Coffee package for python3.8 on Bioconda. The MSA algorithm can however still be used by using the EMBL-EBI [online tool](https://www.ebi.ac.uk/Tools/msa/) and the API client included in AB12PHYLO. If it doesn't work, try [refreshing](https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/T-coffee+Help+and+Documentation) the client.
 
@@ -178,7 +194,7 @@ If you're having trouble, look at the log file! It will be in your results direc
 
 
 ## External Tools
-* [BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) version >=2.9
+* [BLAST+](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) version >=2.9 *(optional, recommended if small or custom [database](#blast-database))*
 * [RAxML-NG](https://github.com/amkozlov/raxml-ng/) *(optional, included)*
 * an MSA tool: [MAFFT](https://mafft.cbrc.jp/alignment/software/), [Clustal Omega](http://www.clustal.org/omega/), [MUSCLE](https://www.drive5.com/muscle/downloads.htm) or [T-Coffee](http://www.tcoffee.org/Projects/tcoffee/index.html#DOWNLOAD) *(optional, **slow** online clients for [EMBL interface](https://www.ebi.ac.uk/Tools/msa/) included)*
 * [Gblocks](http://molevol.cmima.csic.es/castresana/Gblocks.html) for MSA trimming *(optional, included)*

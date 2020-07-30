@@ -26,12 +26,13 @@ bad_stretch: 5
 end_ratio: 8/10
 
 ## [BLAST]
+no_remote: False # first 4 options form exclusive group
+no_local: False
 no_BLAST: False # "True" -> {bool} True, anything else -> {bool} False.
-#no_remote: True
+#BLAST_xml: [/path/to/BLAST/result.xml, other.xml]  # as list
 db: ITS_RefSeq_Fungi
 #dbpath: $blastdb   # will also disable updates
 remote_db: nt  # the NCBI database to search for seqs not found locally
-timeout: 600  # seconds allowed for online BLAST
 
 ## [MSA]
 msa_algo: mafft  # [mafft, clustalo, muscle, tcoffee]
@@ -46,7 +47,8 @@ evomodel: GTR+G  # no checks!
 metric: TBE  # [FBP, TBE]
 threshold: .7  # of best possible score
 #max_threads: 12
-min_dist: .05  # minimal distance in tree
+min_dist: .01  # minimal distance in tree
+#min_plot_dist: 1
 replace: False  # if True, identical seqs will share one TreeNode
 
 ## [population genetics]
@@ -56,7 +58,7 @@ poly_allelic: True
 
 ## [misc]
 verbose: False
-msa_viz: False
-out_fmt: pdf  # [pdf, png, svg]
+#msa_viz: png  # [pdf, png]
+out_fmt: [pdf]  # [pdf, png, svg]
 headless: False
 

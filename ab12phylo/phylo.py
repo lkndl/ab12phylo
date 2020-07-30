@@ -4,7 +4,8 @@
 """
 Visualizes tree computed by RAxML-NG using toytree and toyplot.
 Renders html using jinja2 and CGI. Visualizes MSA using MView.
-Contains both non-primary entry points; -viz and -view
+Contains both non-primary entry points; -viz and -view.
+Allows tree modifications.
 """
 
 import copy
@@ -193,11 +194,13 @@ class tree_build:
                                       layout='c')
         ccanvas.style['background-color'] = 'white'
         axc.show = False
-        if self.args.out_fmt == 'png':
+        if not self.args.out_fmt:
+            self.args.out_fmt = ['pdf']
+        if 'png' in self.args.out_fmt:
             png.render(ccanvas, path.join(self.args.dir, 'circular.png'), scale=1.6)
-        elif self.args.out_fmt == 'pdf':
+        if 'pdf' in self.args.out_fmt or len(self.args.out_fmt) == 0:
             pdf.render(ccanvas, path.join(self.args.dir, 'circular.pdf'))
-        else:
+        if 'svg' in self.args.out_fmt:
             svg.render(ccanvas, path.join(self.args.dir, 'circular.svg'))
         self.log.info('rendered circular in %.2f sec' % (time() - start))
 
@@ -210,23 +213,36 @@ class tree_build:
         start = time()
         # get dim for canvas
         w, h = 1200, len(self.tips) * 14 + 80
-        rcanvas, axes = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
-                                         node_sizes=list(self.tree.get_node_values('size', 1, 1)),
-                                         node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
-                                             self.tree.get_node_values('color', 1, 1))],
-                                         tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
-                                                            for n in list(self.tree.get_node_values('score', 1, 1))
-                                                            if n != -1][::-1])
+        if self.args.print_supports:
+            rcanvas, axes = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
+                                             node_labels='support', node_labels_style={'font-size': '6px',
+                                                                                       'fill': '#FFFFFF',
+                                                                                       'baseline_shift': '-1px',
+                                                                                       'font-style': 'bold'},
+                                             node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                             node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                                                 self.tree.get_node_values('color', 1, 1))],
+                                             tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                                                for n in list(self.tree.get_node_values('score', 1, 1))
+                                                                if n != -1][::-1])
+        else:
+            rcanvas, axes = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
+                                             node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                             node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                                                 self.tree.get_node_values('color', 1, 1))],
+                                             tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                                                for n in list(self.tree.get_node_values('score', 1, 1))
+                                                                if n != -1][::-1])
         rcanvas.style['background-color'] = 'white'
         axes.y.show = False
         axes.x.show = True
         axes.x.domain.max = self.tree.treenode.height / 5  # 0 is right-most tip of tree. -> divide space!
 
-        if self.args.out_fmt == 'png':
+        if 'png' in self.args.out_fmt:
             png.render(rcanvas, path.join(self.args.dir, 'rectangular.png'), scale=1.6)
-        elif self.args.out_fmt == 'pdf':
+        if 'pdf' in self.args.out_fmt:
             pdf.render(rcanvas, path.join(self.args.dir, 'rectangular.pdf'))
-        else:
+        if 'svg' in self.args.out_fmt:
             svg.render(rcanvas, path.join(self.args.dir, 'rectangular.svg'))
         self.log.info('rendered rectangular in %.2f sec' % (time() - start))
 
@@ -237,13 +253,20 @@ class tree_build:
                 fh.write('MView (Perl) failed for some reason')
 
         # render rectangular tree with MSA
-        if self.args.msa_viz:
+        if type(self.args.msa_viz) == list:
             try:
                 self.log.warning('drawing tree w/ msa. You can interrupt and proceed via Cmd+C.')
                 start = time()
 
+                # if no format was specified, render .PNGs
+                if not self.args.msa_viz:
+                    self.args.msa_viz = ['png']
+
                 rcanvas_msa = self._with_matrix(kxlin_pal)
-                png.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.png'), scale=2)
+                if 'png' in self.args.msa_viz:
+                    png.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.png'), scale=2)
+                if 'pdf' in self.args.msa_viz:
+                    pdf.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.pdf'))
                 self.log.info('rendered w/ msa in %.2f sec' % (time() - start))
             except KeyboardInterrupt:
                 self.log.warning('cancel msa_viz')
@@ -270,6 +293,25 @@ class tree_build:
         self.log.debug('reading tree')
         # read in the tree
         self.tree = toytree.tree(open(self.tree_file, 'r').read(), tree_format=0)
+
+        # drop / replace nodes
+        if self.args.replace_nodes:
+            for idx in self.args.replace_nodes:
+                self.tree.idx_dict[idx].add_sister(name='%d_replaced' % idx, dist=1)
+                self.tree.idx_dict[idx].detach()
+            # saving the node names now saves some work
+            self.args.replace_nodes = ['%d_replaced' % idx for idx in self.args.replace_nodes]
+        else:
+            # save empty list
+            self.args.replace_nodes = []
+        if self.args.drop_nodes:
+            [self.tree.idx_dict[idx].detach() for idx in self.args.drop_nodes]
+
+        # outgroup rooting
+        if self.args.root:
+            self.tree = self.tree.root(names=[self.tree.idx_dict[self.args.root].name])
+
+        self.tree = toytree.tree(self.tree.write())
 
         # set dimensions of the canvas
         preview = toyplot.Canvas(width=800, height=400, style={'background-color': 'white'})
@@ -301,14 +343,20 @@ class tree_build:
         if self.args.finish:
             try:
                 log = open(self.args.log[:-5] + '1.log', 'r').read()
+                self.args.log = self.args.log[:-5] + '1.log'
             except FileNotFoundError:
                 try:
                     log = open(self.args.log[:-7] + '.log', 'r').read()
+                    self.args.log = self.args.log[:-7] + '.log'
                 except FileNotFoundError:
                     self.log.error('no log file found')
                     exit(1)
         else:
-            log = open(self.args.log, 'r').read()
+            try:
+                log = open(self.args.log, 'r').read()
+            except FileNotFoundError:
+                log = open(self.args.log[:-4] + '-p1.log', 'r').read()
+                self.args.log = self.args.log[:-4] + '-p1.log'
 
         # jinja
         render_info = dict()
@@ -342,7 +390,10 @@ class tree_build:
         self.df.set_index('id', inplace=True)
         # drop and order rows
         self.df = self.df[self.df.gene == gene]
-        self.df = self.df.loc[self.tips]
+        # add dummy data to data frame
+        for node_id in self.args.replace_nodes:
+            self.df.at[node_id, 'gene'] = gene
+        self.df = self.df.reindex(self.tips)
 
         # read in MSA
         records = {record.id: record.seq for record in SeqIO.parse(self.args.msa, 'fasta')}
@@ -350,6 +401,8 @@ class tree_build:
         # write re-named, re-ordered MSA
         with open(self.args.new_msa, 'w') as new_msa:
             for tip in self.tips:
+                if tip in self.args.replace_nodes:
+                    continue
                 # get seq and cut out artificial separator
                 seq = str(records[tip]).replace(self.args.sep, '')
                 # get metadata
@@ -375,13 +428,18 @@ class tree_build:
                 SeqIO.write(SeqRecord(Seq(seq), id=tip, description=des), new_msa, 'fasta')
             self.log.debug('wrote updated MSA: %s' % self.args.new_msa)
 
-        # save seqs if necessary
-        if self.args.msa_viz:
-            self.records = records
-
         # get lengths of genes
         self.g_lens = [(gene, len(seq)) for gene, seq in
                        zip(self.genes, records[next(iter(records))].split(self.args.sep))]
+
+        # save seqs if necessary
+        if type(self.args.msa_viz) == list:
+            self.records = records
+            # make empty dummy seqs
+            seq = '-' * [item[1] for item in self.g_lens if item[0] == gene][0]
+            for id in self.args.replace_nodes:
+                self.records[id] = Seq(seq)
+
         self.log.debug('gene lengths: %s' % self.g_lens)
         return render_info
 
@@ -447,13 +505,26 @@ class tree_build:
         axes = rcanvas.cartesian(bounds=(40, 0.26 * w, 40, h - 40))  # xstart xend ystart yend
 
         self.log.debug('drawing tree')
-        self.tree.draw(axes=axes, scalebar=True, tip_labels=True, tip_labels_align=True,
-                       edge_align_style={'stroke-width': .7, 'stroke': 'silver'},
-                       node_sizes=list(self.tree.get_node_values('size', 1, 1)),
-                       node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
-                           self.tree.get_node_values('color', 1, 1))],
-                       tip_labels_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
-                           self.tree.get_node_values('type', 1, 1)) if n != 0][::-1])
+        if self.args.print_supports:
+            self.tree.draw(axes=axes, scalebar=True, tip_labels=True, tip_labels_align=True,
+                           node_labels='support', node_labels_style={'font-size': '6px',
+                                                                     'fill': '#FFFFFF',
+                                                                     'baseline_shift': '-1px',
+                                                                     'font-style': 'bold'},
+                           edge_align_style={'stroke-width': .7, 'stroke': 'silver'},
+                           node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                           node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                               self.tree.get_node_values('color', 1, 1))],
+                           tip_labels_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                               self.tree.get_node_values('type', 1, 1)) if n != 0][::-1])
+        else:
+            self.tree.draw(axes=axes, scalebar=True, tip_labels=True, tip_labels_align=True,
+                           edge_align_style={'stroke-width': .7, 'stroke': 'silver'},
+                           node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                           node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                               self.tree.get_node_values('color', 1, 1))],
+                           tip_labels_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                               self.tree.get_node_values('type', 1, 1)) if n != 0][::-1])
         axes.y.show = False
         axes.x.show = True
 
@@ -538,6 +609,12 @@ class tree_build:
                 node.add_feature('color', kxlin[1] if node.size > self.args.threshold + min_size else pal2[8])
                 node.add_feature('score', -1)  # just so the field exists
                 node.add_feature('type', 0)  # just so the field exists
+
+            # some tree tweaks
+            if self.args.print_supports:
+                node.support = int(round(node.support * 100))
+            if self.args.min_plot_dist:
+                node.dist = max(node.dist, self.args.min_plot_dist)
         return
 
     def _edit2(self, _tree):
