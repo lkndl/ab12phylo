@@ -110,14 +110,14 @@ For the second invocation:
 * `-v` or `--verbose` shows all logged events in the console
 
 
-#### Results + Motif Search
+## Results + Motif Search
 Once ML tree inference, bootstrapping and BLAST has finished, the pipeline will display a `result.html` in your web browser. This page contains a form that allows **Motif search** across node attributes and calculates diversity metrics for the matching subset/subtree. Enter `' '` or `''` to match all samples, and use the generated whitelist file for your subset analysis run. Pass it via `-sampleset` if using sample IDs, or via `-abiset` if using file paths. File paths are recommended to reliably exclude outlier versions with identical base ID.
 
-If results are moved or sent, motif search will be possible by using `ab12phylo-view` or starting a CGI server in the directory via `python3 -m http.server --cgi <port>`. Find the `<port>` on the intro tab.
+If results are moved or sent, motif search will be possible by using `ab12phylo-view` or starting a CGI server in the directory via `python3 -m http.server --cgi <port>`. Find the port on the intro tab.
 
 
 ## BLAST
-If none of the smaller BLAST+ databases is sufficient for your search, you are better of with a [web BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi). Collate your data by running `-p1 --no_BLAST`, then upload the `<gene>/<gene>.fasta` for the gene you wish to use for species annotation. Pass the result via `--BLAST_xml`. You can pass more than one file; AB12PHYLO will use the last annotation for a sample and ignore everything but the first hit.
+If none of the smaller BLAST+ databases are sufficient for your search, you are better of with a [web BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi). Collate your data by running `-p1 --no_BLAST`, then upload the `<gene>/<gene>.fasta` for the gene you wish to use for species annotation. Pass the result via `--BLAST_xml`. You can pass more than one file; AB12PHYLO will use the last annotation for a sample and ignore everything but the first hit.
 
 
 #### BLAST API
