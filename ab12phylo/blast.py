@@ -145,7 +145,8 @@ class blast_build(threading.Thread):
         # update database
         if self.update:
             self.log.debug('updating BLAST+ db ...')
-            arg = path.join(self.blast_dir, 'update_blastdb.pl') + ' --decompress %s --passive --timeout 10' % self.db
+            arg = path.join(self.blast_dir, 'update_blastdb.pl') \
+                  + ' --decompress %s --passive --timeout %d' % (self.db, self.timeout)
 
             try:
                 p = subprocess.run(arg, shell=True, stdout=subprocess.PIPE, cwd=self.dbpath)
