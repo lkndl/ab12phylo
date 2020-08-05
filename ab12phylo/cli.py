@@ -42,6 +42,8 @@ class parser(argparse.ArgumentParser):
                            help='Run first part of ab12phylo, including BLAST but excluding RAxML-NG.')
         parts.add_argument('-p2', '--finish', action='store_true',
                            help='Run second part of ab12phylo, beginning with RAxML-NG.')
+        parts.add_argument('-px', '--add_xml', action='store_true',
+                           help='After -p1 run; only read BLAST results. Pass file via -xml.')
 
         # [I/O]
         ion = parser.add_argument_group(self, title='FILE I/O')
@@ -308,6 +310,8 @@ class parser(argparse.ArgumentParser):
             self.args.log = path.join(self.args.dir, 'ab12phylo-p1.log')
         elif self.args.finish:
             self.args.log = path.join(self.args.dir, 'ab12phylo-p2.log')
+        elif self.args.add_xml:
+            self.args.log = path.join(self.args.dir, 'ab12phylo-px.log')
         else:
             self.args.log = path.join(self.args.dir, 'ab12phylo.log')
         self.args.sep = 'SSSSSSSSSS'  # to visually separate genes in the concat MSA

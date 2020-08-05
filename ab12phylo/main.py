@@ -7,8 +7,8 @@ between them. The `--visualize` and `--view` entry points are in the :class:`phy
 """
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.2b.1'
-__date__ = '30 July 2020'
+__version__ = '0.2b.2'
+__date__ = '05 August 2020'
 __license__ = 'MIT'
 __status__ = 'Beta'
 
@@ -21,6 +21,17 @@ def _main():
     args = cli.parser(sys.argv[1:]).args
 
     if not args.finish:
+        if args.add_xml:
+            print('starting -px BLAST XML run', file=sys.stderr)
+            blaster = blast.blast_build(args, None)
+            blaster.start()
+            # reading an XML requires no waiting
+            blaster.join()
+            # visualize MSA for inspection
+            phylo.mview_msa(args)
+            print('finished -px BLAST XML run', file=sys.stderr)
+            exit(0)
+
         if args.prepare:
             print('starting -p1 prep run', file=sys.stderr)
 

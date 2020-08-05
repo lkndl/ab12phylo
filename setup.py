@@ -7,8 +7,8 @@ if sys.version_info[0] < 3:
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.2b.1'
-__date__ = '30 July 2020'
+__version__ = '0.2b.2'
+__date__ = '05 August 2020'
 __license__ = 'MIT'
 __status__ = 'Beta'
 
@@ -29,7 +29,8 @@ setup(name='ab12phylo',
       data_files=[('docs', ['docs/RAXML.md'])],
       entry_points={'console_scripts': ['ab12phylo = ab12phylo.main:_main',
                                         'ab12phylo-visualize = ab12phylo.phylo:_visualize',
-                                        'ab12phylo-view = ab12phylo.phylo:_view']},
+                                        'ab12phylo-view = ab12phylo.phylo:_view',
+                                        'ab12phylo-add-xml = ab12phylo.blast:_add_xml']},
       install_requires=['biopython', 'pyyaml', 'jinja2', 'lxml', 'xmltramp2',
                         'toyplot', 'toytree', 'numpy', 'pandas'],
       classifiers=['Development Status :: 4 - Beta',

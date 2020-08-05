@@ -11,6 +11,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 import threading
 import urllib.error
 from os import path
@@ -20,6 +21,48 @@ import pandas
 from numpy import nan
 from Bio import SearchIO
 from Bio.Blast import NCBIWWW
+
+from ab12phylo import cli, phylo
+
+
+def _add_xml(*args):
+    """Entry point for adding BLAST results."""
+    logger = logging.getLogger(__name__)
+    # if no argument -> default to cwd
+    args = sys.argv[1:]
+    if len(args) == 0:
+        args = [os.getcwd()]
+    args = ['--add_xml'] + args
+    # parse to get defaults
+    namespace = cli.parser(args, visualize=True).args
+
+    # find and read log
+    try:
+        log = open(namespace.log[:-5] + '1.log', 'r').read()
+    except FileNotFoundError:
+        try:
+            log = open(namespace.log[:-7] + '.log', 'r').read()
+        except FileNotFoundError:
+            logger.error('no log file found')
+            print('no log file found', file=sys.stderr)
+            exit(1)
+
+    # extract genes
+    start = log.find('--GENES--') + 10
+    end = log[start:start + 800].find('\n')
+    namespace.genes = log[start:start + end].split('::')
+    logger.debug('read genes from log: %s' % ':'.join(namespace.genes))
+    print('read genes from log: %s' % ':'.join(namespace.genes))
+
+    blaster = blast_build(namespace, None)
+    print('start reading ...')
+    blaster.start()
+    # reading an XML requires no waiting
+    blaster.join()
+    # visualize MSA for inspection
+    print('write HTML of MSA ...')
+    phylo.mview_msa(namespace)
+    print('BYE!')
 
 
 class blast_build(threading.Thread):
@@ -63,8 +106,11 @@ class blast_build(threading.Thread):
         os.makedirs(path.join(_args.dir, 'BLAST'), exist_ok=True)
 
         # data in memory
-        self.seqdata = reader.seqdata
-        self.metadata = reader.metadata
+        try:
+            self.seqdata = reader.seqdata
+            self.metadata = reader.metadata
+        except AttributeError as ex:
+            self.log.info('passed empty reader')
 
     def run(self):
         if self.no_BLAST is True:
@@ -291,10 +337,13 @@ class blast_build(threading.Thread):
                         df.at[entry.id, 'BLAST_species'] = res[0]
                         df.at[entry.id, 'pid'] = res[1]
                     except ValueError:
-                        fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
-                                 % (df.at[entry.id, 'file'], entry.id,
-                                    df.at[entry.id, 'box'], self.gene))
-                        self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
+                        if entry.id in df.index:
+                            fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
+                                     % (df.at[entry.id, 'file'], entry.id,
+                                        df.at[entry.id, 'box'], self.gene))
+                            self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
+                        else:
+                            self.log.error('no entry %s in metadata TSV' % entry.id)
 
         # write to TSV
         df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)

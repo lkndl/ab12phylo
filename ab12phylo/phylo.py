@@ -205,7 +205,20 @@ class tree_build:
         self.log.info('rendered circular in %.2f sec' % (time() - start))
 
         # prep rectangular tree: save species and pid to name
-        tree_no_msa = self._edit2(copy.deepcopy(self.tree))
+        tree_no_msa = copy.deepcopy(self.tree)
+
+        # save species and pid to name
+        for node in tree_no_msa.treenode.traverse():
+            if node.is_leaf():
+                try:
+                    if node.name in node.species:
+                        node.name = node.species
+                    else:
+                        node.name += ' ' + node.species
+                        node.name += ' %.2f' % node.pid
+                except AttributeError:
+                    continue
+
         # write new-ish newick file
         tree_no_msa.write(self.args.annotated_tree, tree_format=0)
 
@@ -616,22 +629,6 @@ class tree_build:
             if self.args.min_plot_dist:
                 node.dist = max(node.dist, self.args.min_plot_dist)
         return
-
-    def _edit2(self, _tree):
-        """
-        Appends species information to node.name for visualization without msa.
-
-        :return: an edited copy of the :param: _tree
-        """
-        # rename all leaves
-        for node in _tree.treenode.traverse():
-            if node.is_leaf():
-                try:
-                    node.name += ' ' + node.species
-                    node.name += ' %.2f' % node.pid
-                except AttributeError:
-                    continue
-        return _tree
 
     def _write_html(self, materials, topo, circ, rect, tree):
         """

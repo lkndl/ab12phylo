@@ -303,6 +303,9 @@ class reader:
                 try:
                     ix = strain.index('strain')
                     strain = ' '.join(strain[ix + 1:ix + 3])
+                    # cope with longer composite species names
+                    if ix > 0:
+                        species += ' ' + ' '.join(strain[0:ix])
                 except ValueError:
                     strain = species
 
