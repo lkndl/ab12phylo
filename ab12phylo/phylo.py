@@ -685,6 +685,7 @@ class tree_build:
             # print 100 as exact number
             df.pid = df.pid.replace(100.00, '100')
         # print only file names, not full path
+        df.file = df.file.fillna('')
         df.file = df.file.apply(lambda _path: _path.split('/')[-1])
         materials['table'] = df.to_html(na_rep='', justify='justify')
 
