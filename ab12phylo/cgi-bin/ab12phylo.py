@@ -87,51 +87,59 @@ def _diversity_stats(gene_now, records, limits, poly):
                 drop.add(j)
             else:
                 conserved += 1
-        else:  # more than one item
+        else:  # more than one character in the whole column
             if max(col) > 4 and len(col[col > 4]) > limits[1] * n:
-                # there is at least one unknown char in the column, maybe N
+                # there are too many unknown chars in the column
                 unknown += 1
                 drop.add(j)
             elif max(col) == 4 and len(col[col >= 4]) > limits[0] * n:
-                # found a gap at the site
+                # there are too many gaps at the site
                 gaps += 1
                 drop.add(j)
             else:
-                # no gap, no unknown, more than one
-                if len(set(col[col < 4])) > 2:
+                # ignore gaps or unknown sites
+                num_diff_chars = len(set(col[col < 4]))
+                if num_diff_chars > 2:
                     polyallelic += 1
                     if not poly:
                         drop.add(j)
-                else:
+                elif num_diff_chars == 2:
                     biallelic += 1
-    # print('allsites:%d\tconserved:%d\tbiallelic:%d\tpolyallelic:%d\tunknown:%d\tgaps:%d\tpoly:%s\ndrop:%d'
-    #       % (coded_seqs.shape[1], conserved, biallelic, polyallelic, unknown, gaps, poly, len(drop)))
+                else:
+                    conserved += 1
+    # print('GENE:%s\tallsites:%d\tconserved:%d\tbiallelic:%d\tpolyallelic:%d\tunknown:%d\tgaps:%d\tpoly:%s\ndrop:%d\n'
+    #       % (gene_now, coded_seqs.shape[1], conserved, biallelic, polyallelic, unknown, gaps, poly, len(drop)))
 
     seg_sites = biallelic
-    n_sites = coded_seqs.shape[1] - unknown
+    n_sites = coded_seqs.shape[1] - unknown - gaps
     if poly:
         seg_sites += polyallelic
     else:
         n_sites -= polyallelic
 
     if seg_sites == 0:
-        return '<tr><td>%s</td><td>0</td><td>--</td><td>--</td><td>--</td><td>--</td>' \
-               '<td>--</td><td>%d</td><td>%d</td></tr>' % (gene_now, gaps, unknown)
+        return '<tr><td>%s</td><td>%d</td><td>0</td><td>--</td><td>--</td><td>--</td><td>--</td>' \
+               '<td>--</td><td>%d</td><td>%d</td></tr>' % (gene_now, n_sites, gaps, unknown)
 
     # crop to allowed sites
     coded_seqs = coded_seqs[:, list(set(range(coded_seqs.shape[1])) - drop)]
 
     pi = 0
+    # count pairwise differences
     for combi in itertools.combinations(range(n), 2):
         pi += np.sum(coded_seqs[combi[0]] != coded_seqs[combi[1]])
+
+    # binomial coefficient, pi = k^ in formula (10) from Tajima1989
     pi = pi * 2 / n / (n - 1)
     pi_per_site = pi / n_sites
 
-    theta_w = seg_sites / _h(n)
+    a1 = _h(n)
+    theta_w = seg_sites / a1
 
-    # Tajima's D
+    # Tajima's D.
+    # d = pi - seg_sites/a1 = pi - theta_W
+    # D = d / sqrt(Var(d))
     try:
-        a1 = _h(n)
         a2 = _qh(n)
         e1 = 1 / a1 * ((n + 1) / (3 * n - 3) - 1 / a1)
         b2 = (2 * (n * n + n + 3)) / (9 * n * (n - 1))
@@ -145,9 +153,9 @@ def _diversity_stats(gene_now, records, limits, poly):
     coded_seqs[coded_seqs >= 4] = 4
     haplo = len(np.unique(coded_seqs, axis=0))
 
-    return '<tr><td>%s</td><td>%d</td><td>%.5f</td><td>%.5f</td>' \
+    return '<tr><td>%s</td><td>%d</td><td>%d</td><td>%.5f</td><td>%.5f</td>' \
            '<td>%.5f</td><td>%.5f</td><td>%d</td><td>%d</td><td>%d</td></tr>' \
-           % (gene_now, seg_sites, pi, pi_per_site, theta_w, td, haplo, gaps, unknown)
+           % (gene_now, n_sites, seg_sites, pi, pi_per_site, theta_w, td, haplo, gaps, unknown)
 
 
 cgitb.enable()
@@ -238,8 +246,8 @@ if len(leaves) > 1:
     table = '<hr/><h4>Neutrality + Diversity Statistics</h4><p>Exclusion threshold for gap sites ' \
             'was <code>%.2f</code>, and <code>%.2f</code> for unknown sites.</p>' \
             '<table border="1" class="dataframe"><thead><tr style="text-align: justify;"><th></th>' \
-            '<th># Segregating Sites</th><th>Nucl. diversity π</th><th>π per site</th><th>Watterson\'s θ</th>' \
-            '<th>Tajima\'s D</th><th>Haplotypes</th><th>gaps</th><th>unknown</th></tr></thead>' \
+            '<th>valid sites</th><th>S</th><th>k</th><th>π</th><th>Watterson\'s θ</th>' \
+            '<th>Tajima\'s D</th><th>Genotypes</th><th>gaps</th><th>unknown</th></tr></thead>' \
             '<tbody>%s</tbody></table>' % (thresholds[0], thresholds[1], rows)
 else:
     table = ''

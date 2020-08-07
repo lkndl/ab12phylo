@@ -7,8 +7,8 @@ between them. The `--visualize` and `--view` entry points are in the :class:`phy
 """
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.2b.2'
-__date__ = '05 August 2020'
+__version__ = '0.2b.3'
+__date__ = '07 August 2020'
 __license__ = 'MIT'
 __status__ = 'Beta'
 
