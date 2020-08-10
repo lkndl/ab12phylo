@@ -84,7 +84,7 @@ ab12phylo -rf <ref.fasta> \
     -i \
     -p1
 
-ab12phylo -p2
+ab12phylo -p2 \
     -bst 1000 \
     -st [32,16]  \
     -s 4 \
@@ -149,7 +149,7 @@ For visualization, you can pick either Felsenstein Bootstrap Proportions `FBP` o
 
 
 #### MSA visualization
-AB12PHYLO can plot an additional rectangular tree with an MSA visualization next to it by passing `-msa_viz`. This is single-threaded and takes some extra time for larger MSAs.
+AB12PHYLO can plot an additional rectangular tree with an MSA visualization next to it by passing `-msa_viz`. This is single-threaded and takes some extra time for larger MSAs. If you run `-p1`, you can visually inspect the MView HTML of the alignment for outliers already without having to wait for the entire pipeline.
 
 
 #### Tree modifications
@@ -164,11 +164,11 @@ Also see the `VISUALIZATION` section of `--help`.
 
 
 #### Genes and References
-If data for several genes is supplied, AB12PHYLO will restrict the analysis to samples that are present for all genes. If this causes a lot of samples to be dropped, it might be worth leaving out a gene entirely by setting `-g` = `--genes` manually. If you somehow have `No samples shared across all genes`, there might be some trace files that seemingly belong to another gene.
+If data for several genes is supplied, AB12PHYLO will restrict the analysis to samples that are present for all genes. If this causes a lot of samples to be dropped, it might be worth leaving out a gene entirely by setting `-g` = `--genes` manually. If you somehow have `No samples shared across all genes`, there might be some trace files that seemingly belongs to another gene.
 
 Passing references is closely inter-linked: If a directory of reference files is supplied via `-rd` = `--ref_dir`, the package will try to match the `.FASTA` files inside to genes *by their filename*. For example, `ITS1F.fasta` will be matched to trace data from the *ITS1F* gene. Alternatively, an ordered list of reference files can be passed via `-rf` = `--ref`, and file names will be ignored. 
 
-If you're feeling this neat and precise and set both the genes and individual references, be careful: The pipeline deliberately matches references and genes *by order* in this case. So this will make a mess:
+If you're feeling this neat and precise and set both the genes and individual references, be careful: The pipeline will then deliberately match references and genes *by order*. Therefore, this will make a mess:
 
 ```bash
 -g ITS1F OPA10 -rf ../opa10.fasta ITS1F.phy
@@ -176,9 +176,9 @@ If you're feeling this neat and precise and set both the genes and individual re
 
 
 #### RegEx
-If you provide wellsplates mappings, AB12PHYLO will parse plate number, gene name and the sequencer's isolate coordinates from the `.ab1` filename with a RegEx and fetch the user-defined ID from the corresponding `.csv` look-up table. To use your own, please consult `--help` and try out your RegEx [here](https://regex101.com/r/Yulwlf/3) or [there](https://regex101.com/r/Yulwlf/5). From a bash shell, enclose the terms with double quotes `"`. The wellsplate number is also parsed from the `.csv` filename with a RegEx.
+If you provide wellsplates mappings, AB12PHYLO will parse plate number, gene name and the sequencer's isolate coordinates from the `.ab1` filename with a RegEx and fetch the user-defined ID from the corresponding `.csv` look-up table. To use your own, please consult `--help` and try out your RegEx [here](https://regex101.com/r/Yulwlf/3) or [there](https://regex101.com/r/Yulwlf/5). From a bash shell, enclose the terms with double quotes `"`. The wellsplate number or ID is also parsed from the `.csv` filename with a RegEx.
 
-Provide a RegEx to `--regex_rev` and AB12PHYLO will look out for reverse reads, and add their reverse complement to the data set.
+Provide a RegEx to `--regex_rev` and AB12PHYLO will look out for reverse reads, and add only their reverse complement to the data set.
 
 
 #### MSA clients and T-Coffee
