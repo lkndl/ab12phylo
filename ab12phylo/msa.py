@@ -9,6 +9,7 @@ import os
 import sys
 import shutil
 import logging
+import random
 import subprocess
 
 from os import path
@@ -154,11 +155,16 @@ class msa_build:
             shutil.move(raw_msa + '.txt', path.join(self.dir, gene, gene + '_msa.fasta'))
 
     def concat_msa(self):
-        """Reads all MSAs to memory, then iterates over samples, writes concatenated MSA."""
+        """Reads all trimmed MSAs to memory, then iterates over samples, writes concatenated MSA."""
         self.log.debug('concatenating per-gene MSAs')
         # read in all MSAs using SeqIO
         all_records = {gene: {record.id: record.upper() for record in SeqIO.parse(
             path.join(self.dir, gene, gene + '_msa.fasta'), 'fasta')} for gene in self.genes}
+
+        # get the length of the trimmed concat MSA
+        msa_len = 0
+        for gene in all_records.keys():
+            msa_len += len(random.choice(list(all_records[gene].values())))
 
         missing_genes = {gene: list() for gene in self.genes}
 
@@ -190,6 +196,7 @@ class msa_build:
                 self.log.info('finished writing concat MSA with %d entries' % shared)
         else:
             self.log.info('copied MSA to result root')
+        self.log.info('concat MSA shape: %dx%d' % (msa_len, shared))
 
         # any remaining samples were missing from first gene
         [missing_genes[self.genes[0]].extend(all_records[gene].keys()) for gene in self.genes[1:]]

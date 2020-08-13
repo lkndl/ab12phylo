@@ -61,5 +61,6 @@ poly_allelic: True
 verbose: False
 #msa_viz: png  # [pdf, png]
 out_fmt: [pdf]  # [pdf, png, svg]
+print_supports: True
 headless: False
 

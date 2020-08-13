@@ -681,7 +681,7 @@ class tree_build:
         df.box = df.box.replace(0, '-')
         # display only two digits
         pd.options.display.float_format = '{:,.2f}'.format
-        if not self.args.no_BLAST:
+        if 'pid' in df:
             # print 100 as exact number
             df.pid = df.pid.replace(100.00, '100')
         # print only file names, not full path
