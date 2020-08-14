@@ -126,8 +126,11 @@ class raxml_build:
         all_bs_trees = path.join(self._dir, 'all_bs_trees.nwk')
         with open(all_bs_trees, 'w') as fh:
             for prefix in self._prefixes:
-                with open(path.join(self._dir, prefix + '.raxml.bootstraps'), 'r') as bootstraps:
-                    fh.write(bootstraps.read() + '\n')
+                try:
+                    with open(path.join(self._dir, prefix + '.raxml.bootstraps'), 'r') as bootstraps:
+                        fh.write(bootstraps.read() + '\n')
+                except FileNotFoundError:
+                    self.log.warning('results from %s missing' % prefix)
         self.log.debug('all bootstrap trees in %s' % all_bs_trees)
 
         run_cmd = '%s --support --tree %s --bs-trees %s --prefix %s --threads %d --bs-metric fbp,tbe --redo' \
@@ -268,5 +271,4 @@ class raxml_thread(threading.Thread):
         try:
             subprocess.check_output(self.run_cmd, shell=True)
         except subprocess.CalledProcessError as e:
-            self.log.exception('RAxML thread failed, returned %s\n' % str(e.returncode)
-                               + e.output.decode('utf-8') if e.output is not None else '')
+            self.log.error('RAxML thread %s failed' % self.prefix)
