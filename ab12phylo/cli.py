@@ -127,7 +127,7 @@ class parser(argparse.ArgumentParser):
         msa = parser.add_argument_group(self, title='MSA')
         msa.add_argument('-algo', '--msa_algo', choices=['clustalo', 'mafft', 'muscle', 't_coffee'],
                          help='Select an algorithm to build the Multiple Sequence Alignment. Default is MAFFT.')
-        msa.add_argument('-gbl', '--gblocks', choices=['skip', 'relaxed', 'strict'],
+        msa.add_argument('-gbl', '--gblocks', choices=['skip', 'relaxed', 'medium', 'strict'],
                          help='Activate/set MSA trimming with Gblocks.')
 
         # [RAxML-NG]

@@ -109,11 +109,10 @@ class msa_build:
     def trim_msa(self, gene, seq_count, gblocks_mode):
         """
         Trims an MSA using Gblocks, using a pre-installed or deployed version.
-        :code:`gblocks_mode` is from :code:`[skip, relaxed, strict]`.
 
         :param gene: this helps find the right files to trim
-        :param seq_count: for computing a relaxed setting
-        :param gblocks_mode: can be ['skip', 'relaxed', 'strict']
+        :param seq_count: for computing settings
+        :param gblocks_mode: can be ['skip', 'relaxed', 'medium', 'strict']
         :return:
         """
         log_file = path.join(self.dir, gene, 'gblocks.log')
@@ -142,6 +141,10 @@ class msa_build:
                 # keep no, half or all gap positions
                 gaps = ['n', 'h', 'a'][1]
                 self.log.info('running relaxed Gblocks')
+            elif gblocks_mode == 'medium':
+                cons = seq_count // 2 + 1
+                flank = min(seq_count // 4 * 3 + 1, seq_count)
+                gaps = ['n', 'h', 'a'][1]
             else:
                 cons = int(seq_count * 0.9)
                 flank = cons

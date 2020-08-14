@@ -38,7 +38,7 @@ timeout: 20  # seconds allowed for BLAST+ database update
 ## [MSA]
 msa_algo: mafft  # [mafft, clustalo, muscle, tcoffee]
 user: leo.kaindl@tum.de
-gblocks: relaxed  # [skip, relaxed, strict] MSA trimming
+gblocks: medium  # [skip, relaxed, medium, strict] MSA trimming
 
 ## [RAxML-NG]
 start_trees: [10,10]  # [random,parsimony-based]

@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.2b.4&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.2b.5&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -97,7 +97,7 @@ ab12phylo -p2 \
 * only trace files listed in the [`<whitelist>`](#results--motif-search) will be read
 * plate number, gene name and well will be parsed from the `.ab1` filename using these three [RegEx](#regex).
 * `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
-* `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed` or `strict`
+* `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed`, `medium` or `strict`
 * `-local` skips online BLAST for sequences not in the local BLAST+ db and [read why](#blast-api)
 * `-i` or `--info` shows some more run details in the console
 * `-p1` run only part one, up until BLAST; also generates an MView HTML of the MSA to find funny sequences
