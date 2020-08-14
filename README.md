@@ -79,7 +79,7 @@ ab12phylo -rf <ref.fasta> \
     -abiset <whitelist> \
     -regex_3 <"rx1" "rx2" "rx3"> \
     -algo <mafft-clustalo-muscle-tcoffee> \
-    -gbl relaxed \
+    -gbl balanced \
     -local \
     -i \
     -p1
@@ -97,7 +97,7 @@ ab12phylo -p2 \
 * only trace files listed in the [`<whitelist>`](#results--motif-search) will be read
 * plate number, gene name and well will be parsed from the `.ab1` filename using these three [RegEx](#regex).
 * `-algo` will generate the MSA: `mafft`, `clustalo`, `muscle` or `t_coffee`
-* `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed`, `medium` or `strict`
+* `-gbl` sets `Gblocks` MSA trimming mode: `skip`, `relaxed`, `balanced` or `strict`
 * `-local` skips online BLAST for sequences not in the local BLAST+ db and [read why](#blast-api)
 * `-i` or `--info` shows some more run details in the console
 * `-p1` run only part one, up until BLAST; also generates an MView HTML of the MSA to find funny sequences

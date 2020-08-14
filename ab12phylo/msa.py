@@ -112,7 +112,7 @@ class msa_build:
 
         :param gene: this helps find the right files to trim
         :param seq_count: for computing settings
-        :param gblocks_mode: can be ['skip', 'relaxed', 'medium', 'strict']
+        :param gblocks_mode: can be ['skip', 'relaxed', 'balanced', 'strict']
         :return:
         """
         log_file = path.join(self.dir, gene, 'gblocks.log')
@@ -141,7 +141,7 @@ class msa_build:
                 # keep no, half or all gap positions
                 gaps = ['n', 'h', 'a'][1]
                 self.log.info('running relaxed Gblocks')
-            elif gblocks_mode == 'medium':
+            elif gblocks_mode == 'balanced':
                 cons = seq_count // 2 + 1
                 flank = min(seq_count // 4 * 3 + 1, seq_count)
                 gaps = ['n', 'h', 'a'][1]
