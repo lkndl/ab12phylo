@@ -182,27 +182,51 @@ class tree_build:
         self._edit1()
 
         self.log.debug('drawing circular tree')
-        start = time()
-        ccanvas, axc = self.tree.draw(width=800, height=800, scalebar=True,
-                                      node_sizes=list(self.tree.get_node_values('size', 1, 1)),
-                                      node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
-                                          self.tree.get_node_values('color', 1, 1))],
-                                      tip_labels=True, tip_labels_align=False,
-                                      tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
-                                                         for n in list(self.tree.get_node_values('score', 1, 1))
-                                                         if n != -1][::-1],
-                                      layout='c')
-        ccanvas.style['background-color'] = 'white'
-        axc.show = False
-        if not self.args.out_fmt:
-            self.args.out_fmt = ['pdf']
-        if 'png' in self.args.out_fmt:
-            png.render(ccanvas, path.join(self.args.dir, 'circular.png'), scale=1.6)
-        if 'pdf' in self.args.out_fmt or len(self.args.out_fmt) == 0:
-            pdf.render(ccanvas, path.join(self.args.dir, 'circular.pdf'))
-        if 'svg' in self.args.out_fmt:
-            svg.render(ccanvas, path.join(self.args.dir, 'circular.svg'))
-        self.log.info('rendered circular in %.2f sec' % (time() - start))
+        try:
+            start = time()
+
+            node_sizes = list(self.tree.get_node_values('size', 1, 1))
+            node_colors = [color.rgb(n[0], n[1], n[2]) for n in list(
+                self.tree.get_node_values('color', 1, 1))]
+            tip_labels_colors = [color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                 for n in list(self.tree.get_node_values('score', 1, 1))
+                                 if n != -1][::-1]
+            self.log.debug('prepped lists ok.')
+            self.log.debug('%d:%d:%d' % (len(node_sizes), len(node_colors), len(tip_labels_colors)))
+
+            try:
+                self.log.debug('toyplot %s' % toyplot.__version__)
+                self.log.debug('toytree %s' % toytree.__version__)
+            except Exception as ex:
+                self.log.exception(ex)
+
+            ccanvas, axc = self.tree.draw(width=800, height=800, scalebar=True,
+                                          node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                          node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                                              self.tree.get_node_values('color', 1, 1))],
+                                          tip_labels=True, tip_labels_align=False,
+                                          tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                                             for n in list(self.tree.get_node_values('score', 1, 1))
+                                                             if n != -1][::-1],
+                                          layout='c')
+            self.log.debug('drawing ok.')
+
+            ccanvas.style['background-color'] = 'white'
+            axc.show = False
+            if not self.args.out_fmt:
+                self.args.out_fmt = ['pdf']
+
+            self.log.debug('output format: %s' % ':'.join(self.args.out_fmt))
+            if 'png' in self.args.out_fmt:
+                png.render(ccanvas, path.join(self.args.dir, 'circular.png'), scale=1.6)
+            if 'pdf' in self.args.out_fmt or len(self.args.out_fmt) == 0:
+                pdf.render(ccanvas, path.join(self.args.dir, 'circular.pdf'))
+            if 'svg' in self.args.out_fmt:
+                svg.render(ccanvas, path.join(self.args.dir, 'circular.svg'))
+            self.log.info('rendered circular in %.2f sec' % (time() - start))
+
+        except Exception as ex:
+            self.log.exception(ex)
 
         # prep rectangular tree: save species and pid to name
         tree_no_msa = copy.deepcopy(self.tree)

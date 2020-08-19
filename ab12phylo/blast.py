@@ -275,6 +275,7 @@ class blast_build(threading.Thread):
             records = '\n'.join([self.seqdata[self.gene][seq_id].format('fasta')
                                  for seq_id in missing_seqs[run * 10: run * 10 + 10]])
             try:
+                # raise urllib.error.URLError('testing')
                 handle = NCBIWWW.qblast(program='blastn', database=self.remote_db,
                                         sequence=records, format_type='XML', hitlist_size=5)
                 # save as .xml
