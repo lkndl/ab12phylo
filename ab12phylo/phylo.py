@@ -185,6 +185,13 @@ class tree_build:
         try:
             start = time()
 
+            try:
+                self.log.debug('toyplot %s' % toyplot.__version__)
+                self.log.debug('toytree %s' % toytree.__version__)
+                self.log.debug(sys.version_info)
+            except Exception as ex:
+                self.log.exception(ex)
+
             node_sizes = list(self.tree.get_node_values('size', 1, 1))
             node_colors = [color.rgb(n[0], n[1], n[2]) for n in list(
                 self.tree.get_node_values('color', 1, 1))]
@@ -193,12 +200,6 @@ class tree_build:
                                  if n != -1][::-1]
             self.log.debug('prepped lists ok.')
             self.log.debug('%d:%d:%d' % (len(node_sizes), len(node_colors), len(tip_labels_colors)))
-
-            try:
-                self.log.debug('toyplot %s' % toyplot.__version__)
-                self.log.debug('toytree %s' % toytree.__version__)
-            except Exception as ex:
-                self.log.exception(ex)
 
             ccanvas, axc = self.tree.draw(width=800, height=800, scalebar=True,
                                           node_sizes=list(self.tree.get_node_values('size', 1, 1)),
