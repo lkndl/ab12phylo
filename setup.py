@@ -7,7 +7,7 @@ if sys.version_info[0] < 3:
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.2b.7'
+__version__ = '0.2b.8'
 __date__ = '20 August 2020'
 __license__ = 'MIT'
 __status__ = 'Beta'
@@ -31,7 +31,7 @@ setup(name='ab12phylo',
                                         'ab12phylo-view = ab12phylo.phylo:_view',
                                         'ab12phylo-add-xml = ab12phylo.blast:_add_xml']},
       install_requires=['biopython', 'pyyaml', 'jinja2', 'lxml', 'xmltramp2',
-                        'toyplot', 'toytree', 'numpy', 'pandas'],
+                        'toyplot', 'toytree<2', 'numpy', 'pandas'],
       classifiers=['Development Status :: 4 - Beta',
                    'Programming Language :: Python :: 3',
                    'License :: OSI Approved :: MIT License',

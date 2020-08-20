@@ -188,28 +188,26 @@ class tree_build:
         self.log.debug('drawing circular tree')
         start = time()
         try:
-            ccanvas, axc, mark = self.tree.draw(width=800, height=800, scalebar=True,
-                                                node_sizes=list(self.tree.get_node_values('size', 1, 1)),
-                                                node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
-                                                    self.tree.get_node_values('color', 1, 1))],
-                                                tip_labels=True, tip_labels_align=False,
-                                                tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
-                                                                   for n in list(self.tree.get_node_values(
-                                                        'score', 1, 1)) if n != -1][::-1],
-                                                layout='c')
-            self.log.debug('drawing ok.')
-
-            ccanvas.style['background-color'] = 'white'
-            axc.show = False
+            ctup = self.tree.draw(width=800, height=800, scalebar=True,
+                                  node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                  node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                                      self.tree.get_node_values('color', 1, 1))],
+                                  tip_labels=True, tip_labels_align=False,
+                                  tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                                     for n in list(self.tree.get_node_values('score', 1, 1))
+                                                     if n != -1][::-1],
+                                  layout='c')
+            ctup[0].style['background-color'] = 'white'
+            ctup[1].show = False
             if not self.args.out_fmt:
                 self.args.out_fmt = ['pdf']
 
             if 'png' in self.args.out_fmt:
-                png.render(ccanvas, path.join(self.args.dir, 'circular.png'), scale=1.6)
+                png.render(ctup[0], path.join(self.args.dir, 'circular.png'), scale=1.6)
             if 'pdf' in self.args.out_fmt or len(self.args.out_fmt) == 0:
-                pdf.render(ccanvas, path.join(self.args.dir, 'circular.pdf'))
+                pdf.render(ctup[0], path.join(self.args.dir, 'circular.pdf'))
             if 'svg' in self.args.out_fmt:
-                svg.render(ccanvas, path.join(self.args.dir, 'circular.svg'))
+                svg.render(ctup[0], path.join(self.args.dir, 'circular.svg'))
             self.log.info('rendered circular in %.2f sec' % (time() - start))
 
         except ValueError as ex:
@@ -239,38 +237,35 @@ class tree_build:
             # get dim for canvas
             w, h = 1200, len(self.tips) * 14 + 80
             if self.args.print_supports:
-                rcanvas, axes, mark = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
-                                                       node_labels='support',
-                                                       node_labels_style={'font-size': '6px', 'fill': '#FFFFFF',
-                                                                          'baseline-shift': '-1px',
-                                                                          'font-weight': 'bold'},
-                                                       node_sizes=list(self.tree.get_node_values('size', 1, 1)),
-                                                       node_colors=[color.rgb(n[0], n[1], n[2]) for n in
-                                                                    list(self.tree.get_node_values('color', 1, 1))],
-                                                       tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1],
-                                                                                    rocket[n][2]) for n in
-                                                                          list(self.tree.get_node_values('score', 1, 1))
-                                                                          if n != -1][::-1])
+                rtup = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True, node_labels='support',
+                                        node_labels_style={'font-size': '6px', 'fill': '#FFFFFF',
+                                                           'baseline-shift': '-1px',
+                                                           'font-weight': 'bold'},
+                                        node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                        node_colors=[color.rgb(n[0], n[1], n[2]) for n in
+                                                     list(self.tree.get_node_values('color', 1, 1))],
+                                        tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                                           for n in list(self.tree.get_node_values('score', 1, 1))
+                                                           if n != -1][::-1])
             else:
-                rcanvas, axes, mark = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
-                                                       node_sizes=list(self.tree.get_node_values('size', 1, 1)),
-                                                       node_colors=[color.rgb(n[0], n[1], n[2]) for n in
-                                                                    list(self.tree.get_node_values('color', 1, 1))],
-                                                       tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1],
-                                                                                    rocket[n][2]) for n in
-                                                                          list(self.tree.get_node_values('score', 1, 1))
-                                                                          if n != -1][::-1])
-            rcanvas.style['background-color'] = 'white'
-            axes.y.show = False
-            axes.x.show = True
-            axes.x.domain.max = self.tree.treenode.height / 5  # 0 is right-most tip of tree. -> divide space!
+                rtup = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
+                                        node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                        node_colors=[color.rgb(n[0], n[1], n[2]) for n in
+                                                     list(self.tree.get_node_values('color', 1, 1))],
+                                        tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                                           for n in list(self.tree.get_node_values('score', 1, 1))
+                                                           if n != -1][::-1])
+            rtup[0].style['background-color'] = 'white'
+            rtup[1].y.show = False
+            rtup[1].x.show = True
+            rtup[1].x.domain.max = self.tree.treenode.height / 5  # 0 is right-most tip of tree. -> divide space!
 
             if 'png' in self.args.out_fmt:
-                png.render(rcanvas, path.join(self.args.dir, 'rectangular.png'), scale=1.6)
+                png.render(rtup[0], path.join(self.args.dir, 'rectangular.png'), scale=1.6)
             if 'pdf' in self.args.out_fmt:
-                pdf.render(rcanvas, path.join(self.args.dir, 'rectangular.pdf'))
+                pdf.render(rtup[0], path.join(self.args.dir, 'rectangular.pdf'))
             if 'svg' in self.args.out_fmt:
-                svg.render(rcanvas, path.join(self.args.dir, 'rectangular.svg'))
+                svg.render(rtup[0], path.join(self.args.dir, 'rectangular.svg'))
             self.log.info('rendered rectangular in %.2f sec' % (time() - start))
 
         except ValueError as ex:
@@ -310,7 +305,7 @@ class tree_build:
         else:
             render_dict['msa_viz'] = ''
 
-        self._write_html(render_dict, preview, ccanvas, rcanvas, tree_no_msa)
+        self._write_html(render_dict, preview, ctup[0], rtup[0], tree_no_msa)
         if not self.args.headless:
             tree_view(self.args.dir)
 
@@ -560,7 +555,7 @@ class tree_build:
 
         self.log.info('drawing matrix')
         msa = rcanvas.matrix((coded_seqs, color.CategoricalMap(palette=pal)),
-                             lshow=False, bshow=True, step=100, bounds=(0.25 * w - 40, w, 0, h),
+                             lshow=False, bshow=True, step=100, bounds=(0.26 * w - 40, w, 0, h),
                              tlocator=locator.Explicit(ticks, [i[0] + ']' for i in self.g_lens],
                                                        format='{:>12}'.format))
         msa.body.gaps.rows[...] = 7
