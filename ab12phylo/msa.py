@@ -112,7 +112,7 @@ class msa_build:
 
         :param gene: this helps find the right files to trim
         :param seq_count: for computing settings
-        :param gblocks_mode: can be ['skip', 'relaxed', 'balanced', 'strict']
+        :param gblocks_mode: can be ['skip', 'relaxed', 'balanced', 'semi_strict', 'strict']
         :return:
         """
         log_file = path.join(self.dir, gene, 'gblocks.log')
@@ -132,6 +132,8 @@ class msa_build:
                 local = False
 
             # set Gblocks options
+
+            b4 = 5
             if gblocks_mode == 'relaxed':
                 # set the minimal permissible minimum number of identical
                 # sequences per position to define a conserved position
@@ -141,10 +143,20 @@ class msa_build:
                 # keep no, half or all gap positions
                 gaps = ['n', 'h', 'a'][1]
                 self.log.info('running relaxed Gblocks')
+
             elif gblocks_mode == 'balanced':
                 cons = seq_count // 2 + 1
                 flank = min(seq_count // 4 * 3 + 1, seq_count)
                 gaps = ['n', 'h', 'a'][1]
+                self.log.info('running balanced Gblocks')
+
+            elif gblocks_mode == 'default':
+                cons = seq_count // 2 + 1
+                flank = min(int(seq_count * 0.85) + 1, seq_count)
+                gaps = ['n', 'h', 'a'][0]
+                b4 = 10
+                self.log.info('running Gblocks at default settings')
+
             else:
                 cons = int(seq_count * 0.9)
                 flank = cons
@@ -152,8 +164,8 @@ class msa_build:
                 self.log.info('running strict Gblocks')
 
             # create base call
-            arg = '%s %s -t=d -b2=%d -b1=%d -b4=5 -b5=%s -e=.txt -d=n -s=y -p=n; exit 0' \
-                  % (binary, raw_msa, flank, cons, gaps)  # don't swap order!
+            arg = '%s %s -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=.txt -d=n -s=y -p=n; exit 0' \
+                  % (binary, raw_msa, flank, cons, b4, gaps)  # don't swap order!
             self._run(arg, log_file, 'pre-installed Gblocks' if local else 'out-of-the-box Gblocks')
             shutil.move(raw_msa + '.txt', path.join(self.dir, gene, gene + '_msa.fasta'))
 
