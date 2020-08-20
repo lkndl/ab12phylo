@@ -12,6 +12,7 @@ import itertools
 import numpy as np
 import pickle
 import re
+import pandas as pd
 import toytree
 
 from os import path, makedirs
@@ -196,12 +197,12 @@ try:
         mrca = tree.get_mrca_idx_from_tip_labels(names=leaves)
         leaves = tree.get_tip_labels(mrca)
         leaves = _exclude(ex_motifs, leaves)
-        leaves = [leaf.split(' ')[0] for leaf in leaves]
+        leaves = [leaf.split(' ')[0] if 'strain' not in leaf else leaf for leaf in leaves]
         files = _to_files(leaves)
         txt = '\n'.join(reversed(files)) if as_files else ', '.join(reversed(leaves))
         mrca = '%d match%s, subtree MRCA idx: %s' % (len(leaves), 'es' if len(leaves) > 1 else '', mrca)
     elif call == 'match':
-        leaves = [leaf.split(' ')[0] for leaf in leaves]
+        leaves = [leaf.split(' ')[0] if 'strain' not in leaf else leaf for leaf in leaves]
         files = _to_files(leaves)
         txt = '\n'.join(files) if as_files else ', '.join(leaves)
         mrca = '%d match%s' % (len(leaves), 'es' if len(leaves) > 1 else '')
@@ -221,10 +222,37 @@ with open(_path, 'w') as txt_fh:
 
 # diversity stats
 if len(leaves) > 1:
+
+    # check if a reference is among the selected leaves:
+    picked_refs = set()
+    picked_ids = set()
+    for leaf in leaves:
+        if 'strain' in leaf:
+            picked_refs.add(leaf[leaf.index('strain'):])
+        else:
+            picked_ids.add(leaf)
+
+    # if a reference is selected
+    if picked_refs:
+        # read in tabular data
+        df = pd.read_csv(form['metadata'].value, sep='\t', dtype={'id': str})
+        df.set_index('id', inplace=True)
+        df = df.reference_species[pd.notna(df.reference_species)]  # pandas.core.series.Series
+
+        ref_ids = set()
+        for k, v in df.items():
+            strain = v[v.index('strain'):]
+            if strain in picked_refs:
+                picked_refs.remove(strain)
+                ref_ids.add(k)
+
+        # merge picked_ids and ref_ids
+        picked_ids |= ref_ids
+
     # per-gene metrics and Tajima's D in sliding-window
     pop_seqs = {record.id.split(' ')[0]: record.seq
                 for record in SeqIO.parse(form['msa_path'].value, 'fasta')
-                if record.id.split(' ')[0] in leaves}
+                if record.id.split(' ')[0] in picked_ids}
 
     # get gene lengths from form
     g_lens = [entry.split(':') for entry in form['g_lens'].value.split('_')]
