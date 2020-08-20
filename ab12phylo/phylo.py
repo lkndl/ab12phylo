@@ -175,6 +175,10 @@ class tree_build:
         self.args.threshold *= 10
         self.tree_file = _args.final_tree + '_%s.nwk' % _args.metric
 
+        self.log.debug('toyplot %s' % toyplot.__version__)
+        self.log.debug('toytree %s' % toytree.__version__)
+        self.log.debug(sys.version_info)
+
         preview = self._preview_topology()
 
         render_dict = self._annotate_msa()
@@ -182,34 +186,17 @@ class tree_build:
         self._edit1()
 
         self.log.debug('drawing circular tree')
+        start = time()
         try:
-            start = time()
-
-            try:
-                self.log.debug('toyplot %s' % toyplot.__version__)
-                self.log.debug('toytree %s' % toytree.__version__)
-                self.log.debug(sys.version_info)
-            except Exception as ex:
-                self.log.exception(ex)
-
-            node_sizes = list(self.tree.get_node_values('size', 1, 1))
-            node_colors = [color.rgb(n[0], n[1], n[2]) for n in list(
-                self.tree.get_node_values('color', 1, 1))]
-            tip_labels_colors = [color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
-                                 for n in list(self.tree.get_node_values('score', 1, 1))
-                                 if n != -1][::-1]
-            self.log.debug('prepped lists ok.')
-            self.log.debug('%d:%d:%d' % (len(node_sizes), len(node_colors), len(tip_labels_colors)))
-
-            ccanvas, axc = self.tree.draw(width=800, height=800, scalebar=True,
-                                          node_sizes=list(self.tree.get_node_values('size', 1, 1)),
-                                          node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
-                                              self.tree.get_node_values('color', 1, 1))],
-                                          tip_labels=True, tip_labels_align=False,
-                                          tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
-                                                             for n in list(self.tree.get_node_values('score', 1, 1))
-                                                             if n != -1][::-1],
-                                          layout='c')
+            ccanvas, axc, mark = self.tree.draw(width=800, height=800, scalebar=True,
+                                                node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                                node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
+                                                    self.tree.get_node_values('color', 1, 1))],
+                                                tip_labels=True, tip_labels_align=False,
+                                                tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
+                                                                   for n in list(self.tree.get_node_values(
+                                                        'score', 1, 1)) if n != -1][::-1],
+                                                layout='c')
             self.log.debug('drawing ok.')
 
             ccanvas.style['background-color'] = 'white'
@@ -217,7 +204,6 @@ class tree_build:
             if not self.args.out_fmt:
                 self.args.out_fmt = ['pdf']
 
-            self.log.debug('output format: %s' % ':'.join(self.args.out_fmt))
             if 'png' in self.args.out_fmt:
                 png.render(ccanvas, path.join(self.args.dir, 'circular.png'), scale=1.6)
             if 'pdf' in self.args.out_fmt or len(self.args.out_fmt) == 0:
@@ -226,7 +212,7 @@ class tree_build:
                 svg.render(ccanvas, path.join(self.args.dir, 'circular.svg'))
             self.log.info('rendered circular in %.2f sec' % (time() - start))
 
-        except Exception as ex:
+        except ValueError as ex:
             self.log.exception(ex)
 
         # prep rectangular tree: save species and pid to name
@@ -249,40 +235,46 @@ class tree_build:
 
         self.log.debug('drawing tree w/o msa')
         start = time()
-        # get dim for canvas
-        w, h = 1200, len(self.tips) * 14 + 80
-        if self.args.print_supports:
-            rcanvas, axes = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
-                                             node_labels='support', node_labels_style={'font-size': '6px',
-                                                                                       'fill': '#FFFFFF',
-                                                                                       'baseline_shift': '-1px',
-                                                                                       'font-style': 'bold'},
-                                             node_sizes=list(self.tree.get_node_values('size', 1, 1)),
-                                             node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
-                                                 self.tree.get_node_values('color', 1, 1))],
-                                             tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
-                                                                for n in list(self.tree.get_node_values('score', 1, 1))
-                                                                if n != -1][::-1])
-        else:
-            rcanvas, axes = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
-                                             node_sizes=list(self.tree.get_node_values('size', 1, 1)),
-                                             node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
-                                                 self.tree.get_node_values('color', 1, 1))],
-                                             tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1], rocket[n][2])
-                                                                for n in list(self.tree.get_node_values('score', 1, 1))
-                                                                if n != -1][::-1])
-        rcanvas.style['background-color'] = 'white'
-        axes.y.show = False
-        axes.x.show = True
-        axes.x.domain.max = self.tree.treenode.height / 5  # 0 is right-most tip of tree. -> divide space!
+        try:
+            # get dim for canvas
+            w, h = 1200, len(self.tips) * 14 + 80
+            if self.args.print_supports:
+                rcanvas, axes, mark = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
+                                                       node_labels='support',
+                                                       node_labels_style={'font-size': '6px', 'fill': '#FFFFFF',
+                                                                          'baseline_shift': '-1px',
+                                                                          'font-style': 'bold'},
+                                                       node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                                       node_colors=[color.rgb(n[0], n[1], n[2]) for n in
+                                                                    list(self.tree.get_node_values('color', 1, 1))],
+                                                       tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1],
+                                                                                    rocket[n][2]) for n in
+                                                                          list(self.tree.get_node_values('score', 1, 1))
+                                                                          if n != -1][::-1])
+            else:
+                rcanvas, axes, mark = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
+                                                       node_sizes=list(self.tree.get_node_values('size', 1, 1)),
+                                                       node_colors=[color.rgb(n[0], n[1], n[2]) for n in
+                                                                    list(self.tree.get_node_values('color', 1, 1))],
+                                                       tip_labels_colors=[color.rgb(rocket[n][0], rocket[n][1],
+                                                                                    rocket[n][2]) for n in
+                                                                          list(self.tree.get_node_values('score', 1, 1))
+                                                                          if n != -1][::-1])
+            rcanvas.style['background-color'] = 'white'
+            axes.y.show = False
+            axes.x.show = True
+            axes.x.domain.max = self.tree.treenode.height / 5  # 0 is right-most tip of tree. -> divide space!
 
-        if 'png' in self.args.out_fmt:
-            png.render(rcanvas, path.join(self.args.dir, 'rectangular.png'), scale=1.6)
-        if 'pdf' in self.args.out_fmt:
-            pdf.render(rcanvas, path.join(self.args.dir, 'rectangular.pdf'))
-        if 'svg' in self.args.out_fmt:
-            svg.render(rcanvas, path.join(self.args.dir, 'rectangular.svg'))
-        self.log.info('rendered rectangular in %.2f sec' % (time() - start))
+            if 'png' in self.args.out_fmt:
+                png.render(rcanvas, path.join(self.args.dir, 'rectangular.png'), scale=1.6)
+            if 'pdf' in self.args.out_fmt:
+                pdf.render(rcanvas, path.join(self.args.dir, 'rectangular.pdf'))
+            if 'svg' in self.args.out_fmt:
+                svg.render(rcanvas, path.join(self.args.dir, 'rectangular.svg'))
+            self.log.info('rendered rectangular in %.2f sec' % (time() - start))
+
+        except ValueError as ex:
+            self.log.exception(ex)
 
         try:
             self.log.info(mview_msa(self.args))
@@ -325,7 +317,7 @@ class tree_build:
     def _preview_topology(self):
         """
         Reads in the tree file, and saves a .png with rectangular and circular topology previews.
-        
+
         :return: toyplot.Canvas object
         """
         self.log.debug('reading tree')
