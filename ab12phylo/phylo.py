@@ -242,8 +242,8 @@ class tree_build:
                 rcanvas, axes, mark = tree_no_msa.draw(width=w, height=h, scalebar=True, tip_labels=True,
                                                        node_labels='support',
                                                        node_labels_style={'font-size': '6px', 'fill': '#FFFFFF',
-                                                                          'baseline_shift': '-1px',
-                                                                          'font-style': 'bold'},
+                                                                          'baseline-shift': '-1px',
+                                                                          'font-weight': 'bold'},
                                                        node_sizes=list(self.tree.get_node_values('size', 1, 1)),
                                                        node_colors=[color.rgb(n[0], n[1], n[2]) for n in
                                                                     list(self.tree.get_node_values('color', 1, 1))],
@@ -539,8 +539,8 @@ class tree_build:
             self.tree.draw(axes=axes, scalebar=True, tip_labels=True, tip_labels_align=True,
                            node_labels='support', node_labels_style={'font-size': '6px',
                                                                      'fill': '#FFFFFF',
-                                                                     'baseline_shift': '-1px',
-                                                                     'font-style': 'bold'},
+                                                                     'baseline-shift': '-1px',
+                                                                     'font-weight': 'bold'},
                            edge_align_style={'stroke-width': .7, 'stroke': 'silver'},
                            node_sizes=list(self.tree.get_node_values('size', 1, 1)),
                            node_colors=[color.rgb(n[0], n[1], n[2]) for n in list(
