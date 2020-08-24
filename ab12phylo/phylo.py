@@ -663,8 +663,8 @@ class tree_build:
         self.log.debug('read files in %.2f sec' % (time() - start))
 
         materials['metric'] = self.args.metric
-        materials['gap'] = self.args.gap_threshold
-        materials['unknown'] = self.args.unknown_threshold
+        materials['gap'] = self.args.gap_share
+        materials['unknown'] = self.args.unknown_share
         materials['poly'] = self.args.poly_allelic
         materials['g_lens'] = '_'.join([entry[0] + ':' + str(entry[1]) for entry in self.g_lens])
         materials['msa_path'] = path.basename(self.args.msa)  # path.abspath(self.args.new_msa)

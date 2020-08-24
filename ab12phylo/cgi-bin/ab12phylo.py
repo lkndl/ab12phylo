@@ -63,9 +63,9 @@ def _qh(a):
 
 
 def _diversity_stats(gene_now, records, limits, poly):
-    # translate dictionary of Seqs to numpy int array
+    # translate dictionary of sequences to numpy int array
     seqs = np.array([seq for seq in records.values()])
-    n = len(records)
+    n_sequences = len(records)
     bases = ['A', 'C', 'G', 'T', '-']
     weird_chars = np.setdiff1d(np.unique(seqs), bases)
     codes = dict(zip(bases + list(weird_chars), range(len(bases) + len(weird_chars))))
@@ -78,28 +78,33 @@ def _diversity_stats(gene_now, records, limits, poly):
     for j in range(coded_seqs.shape[1]):
         col = coded_seqs[:, j]
         if len(set(col)) == 1:
-            # singleton
+            # only one char at site
             it = col[0]
             if it > 4:
+                # all-unknown-site. can happen as we selected a subset of sequences
                 unknown += 1
                 drop.add(j)
             elif it == 4:
+                # all-gap-site
                 gaps += 1
                 drop.add(j)
             else:
                 conserved += 1
         else:  # more than one character in the whole column
-            if max(col) > 4 and len(col[col > 4]) > limits[1] * n:
+            if max(col) > 4 and len(col[col > 4]) > limits[1] * n_sequences:
                 # there are too many unknown chars in the column
                 unknown += 1
                 drop.add(j)
-            elif max(col) == 4 and len(col[col >= 4]) > limits[0] * n:
+            elif max(col) == 4 and len(col[col >= 4]) > limits[0] * n_sequences:
                 # there are too many gaps at the site
                 gaps += 1
                 drop.add(j)
             else:
-                # ignore gaps or unknown sites
-                num_diff_chars = len(set(col[col < 4]))
+                # if gaps or unknown characters are at the site, replace them with the most common nucleotide
+                col[col >= 4] = np.bincount(col[col < 4]).argmax()
+
+                # ordinary site treatment
+                num_diff_chars = len(set(col))
                 if num_diff_chars > 2:
                     polyallelic += 1
                     if not poly:
@@ -125,38 +130,36 @@ def _diversity_stats(gene_now, records, limits, poly):
     # crop to allowed sites
     coded_seqs = coded_seqs[:, list(set(range(coded_seqs.shape[1])) - drop)]
 
-    pi = 0
+    k = 0
     # count pairwise differences
-    for combi in itertools.combinations(range(n), 2):
-        pi += np.sum(coded_seqs[combi[0]] != coded_seqs[combi[1]])
+    for combi in itertools.combinations(range(n_sequences), 2):
+        k += np.sum(coded_seqs[combi[0]] != coded_seqs[combi[1]])
 
-    # binomial coefficient, pi = k^ in formula (10) from Tajima1989
-    pi = pi * 2 / n / (n - 1)
-    pi_per_site = pi / n_sites
+    # binomial coefficient, k = k^ in formula (10) from Tajima1989
+    k = k * 2 / n_sequences / (n_sequences - 1)
+    pi = k / n_sites
 
-    a1 = _h(n)
-    theta_w = seg_sites / a1
+    a1 = _h(n_sequences)
+    theta_w = seg_sites / a1 / n_sites  # per site from Yang2014
 
-    # Tajima's D.
-    # d = pi - seg_sites/a1 = pi - theta_W
+    # Tajima's D Formula:
+    # d = k - seg_sites/a1 = k - theta_W
     # D = d / sqrt(Var(d))
     try:
-        a2 = _qh(n)
-        e1 = 1 / a1 * ((n + 1) / (3 * n - 3) - 1 / a1)
-        b2 = (2 * (n * n + n + 3)) / (9 * n * (n - 1))
-        c2 = b2 - ((n + 2) / (n * a1)) + (a2 / (a1 * a1))
+        a2 = _qh(n_sequences)
+        e1 = 1 / a1 * ((n_sequences + 1) / (3 * n_sequences - 3) - 1 / a1)
+        b2 = (2 * (n_sequences * n_sequences + n_sequences + 3)) / (9 * n_sequences * (n_sequences - 1))
+        c2 = b2 - ((n_sequences + 2) / (n_sequences * a1)) + (a2 / (a1 * a1))
         e2 = c2 / (a1 * a1 + a2)
-        td = (pi - theta_w) / np.sqrt(e1 * seg_sites + e2 * seg_sites * (seg_sites - 1))
+        tajima = (k - theta_w) / np.sqrt(e1 * seg_sites + e2 * seg_sites * (seg_sites - 1))
     except (ZeroDivisionError, RuntimeWarning) as z:
-        td = float('inf')
+        tajima = float('inf')
 
-    # set all unknown values to gap
-    coded_seqs[coded_seqs >= 4] = 4
-    haplo = len(np.unique(coded_seqs, axis=0))
+    n_genotypes = len(np.unique(coded_seqs, axis=0))
 
     return '<tr><td>%s</td><td>%d</td><td>%d</td><td>%.5f</td><td>%.5f</td>' \
            '<td>%.5f</td><td>%.5f</td><td>%d</td><td>%d</td><td>%d</td></tr>' \
-           % (gene_now, n_sites, seg_sites, pi, pi_per_site, theta_w, td, haplo, gaps, unknown)
+           % (gene_now, n_sites, seg_sites, k, pi, theta_w, tajima, n_genotypes, gaps, unknown)
 
 
 cgitb.enable()

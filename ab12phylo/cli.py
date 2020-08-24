@@ -160,7 +160,7 @@ class parser(argparse.ArgumentParser):
         viz.add_argument('-md', '--min_dist', type=float,
                          help='Minimal phylogenetic distance between any pair of samples for RAxML-NG.')
         viz.add_argument('-mpd', '--min_plot_dist', type=float,
-                         help='Minimal artificial distance of a node in the visualization to .')
+                         help='Minimal artificial distance of a node in the visualization to its parent.')
         viz.add_argument('-drop', '--drop_nodes', nargs='+', type=int,
                          help='Drop the node(s) with this idx and its descendants from the tree. '
                               'Use the motif subtree search to find the node or MRCA idx of the target.')
@@ -169,6 +169,15 @@ class parser(argparse.ArgumentParser):
         viz.add_argument('-root', '--root', type=int, help='Root the tree at the node with this index.')
         viz.add_argument('-supp', '--print_supports', action='store_true',
                          help='Print the support values in percent of the optimal value in the rectangular tree.')
+
+        # [popgen]
+        gen = parser.add_argument_group(self, title='POPULATION GENETICS')
+        gen.add_argument('-gap', '--gap_share',  type=self._valid_threshold,
+                         help='Maximum share of gaps at an MSA site that will be ignored.')
+        gen.add_argument('-unk', '--unknown_share', type=self._valid_threshold,
+                         help='Maximum acceptable proportion of unknown characters at an MSA site.')
+        viz.add_argument('-poly', '--poly_allelic', action='store_true',
+                         help='Accept segregating sites with more than one mutant nucleotide.')
 
         # [misc]
         level = self.add_mutually_exclusive_group()
@@ -406,6 +415,17 @@ class parser(argparse.ArgumentParser):
                 raise ValueError
         except ValueError:
             raise self.error('Number of bootstrap trees must be an int > 1')
+
+    def _valid_threshold(self, t):
+        """Checks if popgen thresholds are floats in [0:0.5]"""
+        try:
+            thresh = float(t)
+            if thresh < 0 or thresh > 1:
+                raise ValueError
+            else:
+                return thresh
+        except ValueError:
+            raise self.error('invalid numerical float threshold: %s' % t)
 
     def _init_log(self, filename):
         """Initializes logging."""

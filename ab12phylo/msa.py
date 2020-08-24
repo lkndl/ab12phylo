@@ -166,6 +166,7 @@ class msa_build:
             # create base call
             arg = '%s %s -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=.txt -d=n -s=y -p=n; exit 0' \
                   % (binary, raw_msa, flank, cons, b4, gaps)  # don't swap order!
+            # MARK the -d=n sets the mode to nucleotides ... adapt?
             self._run(arg, log_file, 'pre-installed Gblocks' if local else 'out-of-the-box Gblocks')
             shutil.move(raw_msa + '.txt', path.join(self.dir, gene, gene + '_msa.fasta'))
 
