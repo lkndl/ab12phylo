@@ -160,7 +160,7 @@ class msa_build:
             else:
                 cons = int(seq_count * 0.9)
                 flank = cons
-                gaps = 'n'
+                gaps = ['n', 'h', 'a'][0]
                 self.log.info('running strict Gblocks')
 
             # create base call
@@ -211,8 +211,11 @@ class msa_build:
             else:
                 self.log.info('finished writing concat MSA with %d entries' % shared)
         else:
+            if msa_len == 0:
+                self.log.error('No conserved sites found. Please try a more relaxed trimming mode!')
+                exit(1)
             self.log.info('copied MSA to result root')
-        self.log.info('concat MSA shape: %dx%d' % (msa_len, shared))
+        self.log.info('MSA shape: %dx%d' % (msa_len, shared))
 
         # any remaining samples were missing from first gene
         [missing_genes[self.genes[0]].extend(all_records[gene].keys()) for gene in self.genes[1:]]
