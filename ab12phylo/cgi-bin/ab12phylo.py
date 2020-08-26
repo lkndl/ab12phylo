@@ -101,7 +101,12 @@ def _diversity_stats(gene_now, records, limits, poly):
                 drop.add(j)
             else:
                 # if gaps or unknown characters are at the site, replace them with the most common nucleotide
-                col[col >= 4] = np.bincount(col[col < 4]).argmax()
+                try:
+                    col[col >= 4] = np.bincount(col[col < 4]).argmax()
+                except ValueError:
+                    # there are no nucleotides
+                    drop.add(j)
+                    continue
 
                 # ordinary site treatment
                 num_diff_chars = len(set(col))
