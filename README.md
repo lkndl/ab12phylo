@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.2b.10c&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.2b.11&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -111,7 +111,11 @@ For the second invocation:
 
 
 ## Results + Motif Search
-Once ML tree inference, bootstrapping and BLAST has finished, the pipeline will display a `result.html` in your web browser. This page contains a form that allows **Motif search** across node attributes and calculates diversity metrics for the matching subset/subtree. Enter `' '` or `''` to match all samples, and use the generated whitelist file for your subset analysis run. Pass it via `-sampleset` if using sample IDs, or via `-abiset` if using file paths. File paths are recommended to reliably exclude outlier versions with identical base ID.
+Once ML tree inference, bootstrapping and BLAST has finished, the pipeline will display a `result.html` in your web browser. This page contains a form that allows **Motif search** across node attributes and calculates diversity metrics for the matching subset/subtree. Entering a space `' '` should match all samples, and entering multiple motifs separated by commas `,` will select all leaves that match at least one motif. 
+
+To select a subtree, enter a motif that matches several leaves or at least two separate specific leaf motifs, with one of them as far left as possible. Entering a single, specific motif for a subtree search can be used to find the index of a node for tree modifications like rooting.
+
+Once you hit `MATCH` or `SUBTREE`, the CGI script in the package will highlight the selection in the tree, as well as compute and display diversity statistics for this 'population'. It will also write and link a file with all selected sample IDs or the paths of the original `.ab1` files in the `/query` subdirectory, which can be used as a whitelist file for a subsequent subset analysis run. Pass it via `-sampleset` if using sample IDs, or via `-abiset` if using file paths. File paths are recommended to reliably exclude outlier versions with identical base ID.
 
 If results are moved or sent, motif search will be possible by using `ab12phylo-view` or starting a CGI server in the directory via `python3 -m http.server --cgi <port>`. Find the port on the intro tab.
 
