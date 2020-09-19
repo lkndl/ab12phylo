@@ -309,27 +309,26 @@ if len(msa_path) > 0:
     msa_path[0].set('src', 'http://localhost:%d/rectangular_msa.png' % port)
 
 # re-set metadata.tsv link
-ET.xpath('//a[@id="tsv_link"]')[0].set('a', '../metadata.tsv')
+ET.xpath('//a[@id="tsv_link"]')[0].set('href', '../../metadata.tsv')
+ET.xpath('//iframe[@id="mview_link"]')[0].set('src', '../../msa_mview.html')
 # paste into input fields
 ET.xpath('//input[@id="motifs"]')[0].set('value', motifs)
 ET.xpath('//input[@id="exclude"]')[0].set('value', ex_motifs)
 
-# convert to raw text
-html = html.tostring(ET, encoding='unicode')
-
 # create a markup for selected nodes
-markup = ';font-weight: bold; font-style: italic; text-decoration: underline 0.15rem">%s'
-no_markup = '">%s'
-no_markup2 = '">%s '
-no_markup3 = '">%s<'
+markup = ';font-weight: bold; font-style: italic; text-decoration: underline 0.15rem'
 
-# remove old mark-up
-for leaf in [tip.split(' ')[0] for tip in tree.get_tip_labels()]:
-    html = html.replace(markup % leaf, no_markup % leaf)
+for g in ET.findall('//svg[@class="toyplot-canvas-Canvas"]/g/g/g[@class="'
+                    'toyplot-mark-Text"]/g/g[@class="toyplot-Datum"]/text'):
+    st = g.get('style').replace(markup, '')
+    # remove old markup
+    g.set('style', st)
+    # account for differently named refs in leaves list
+    tip_id = g.text
+    tip_id = tip_id.split(' ')[0] if 'strain' not in tip_id else tip_id
+    if tip_id in leaves:
+        # insert new markup
+        g.set('style', st + markup)
 
-# insert new mark-up
-for leaf in leaves:
-    html = html.replace(no_markup2 % leaf, markup % leaf + ' ')
-    html = html.replace(no_markup3 % leaf, markup % leaf + '<')
-
-print(html)
+# convert to raw text
+print(html.tostring(ET, encoding='unicode'))

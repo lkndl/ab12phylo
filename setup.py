@@ -7,8 +7,8 @@ if sys.version_info[0] < 3:
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.2b.11'
-__date__ = '09 September 2020'
+__version__ = '0.2b.12'
+__date__ = '19 September 2020'
 __license__ = 'MIT'
 __status__ = 'Beta'
 
@@ -36,5 +36,5 @@ setup(name='ab12phylo',
                    'Programming Language :: Python :: 3',
                    'License :: OSI Approved :: MIT License',
                    'Operating System :: OS Independent'],
-      keywords=['bioinformatics', 'phylogenetics'],
-      python_requires='>=3.8')
+      keywords=['bioinformatics', 'phylogenetics', 'population genetics'],
+      python_requires='>=3.6')

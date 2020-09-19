@@ -118,12 +118,14 @@ def tree_view(_dir):
 
     # start CGI server
     try:
+        py3 = sys.executable   # shutil.which('python3')
+        log.debug('python3 executable at %s' % py3)
         log.info('starting CGI server on port: %d for 10min' % port)
-        subprocess.run('python3 -m http.server --cgi %d' % port, shell=True,
+        subprocess.run('%s -m http.server --cgi %d' % (py3, port), shell=True,
                        stdout=subprocess.PIPE, cwd=_dir, timeout=600)
     except subprocess.TimeoutExpired:
         txt = 'CGI server shut down after timeout. If necessary, re-start in %s via ' \
-              '"python3 -m http.server --cgi %d" or re-run ab12phylo-view' % (_dir, port)
+              '"%s -m http.server --cgi %d" or re-run ab12phylo-view' % (_dir, sys.executable, port)
         log.info(txt)
         print(txt, file=sys.stderr)
     except KeyboardInterrupt:
@@ -659,7 +661,8 @@ class tree_build:
         materials['missing'] = open(self.args.missing_samples, 'r').read()
         materials['msa'] = open(self.args.new_msa, 'r').read()
         materials['newick'] = open(self.args.annotated_tree, 'r').read()
-        materials['mview'] = open(self.args.mview_msa, 'r').read()
+        # fully insert MView HTML
+        # materials['mview'] = open(self.args.mview_msa, 'r').read()
         self.log.debug('read files in %.2f sec' % (time() - start))
 
         materials['metric'] = self.args.metric
@@ -668,6 +671,7 @@ class tree_build:
         materials['poly'] = self.args.poly_allelic
         materials['g_lens'] = '_'.join([entry[0] + ':' + str(entry[1]) for entry in self.g_lens])
         materials['msa_path'] = path.basename(self.args.msa)  # path.abspath(self.args.new_msa)
+        materials['mview'] = path.basename(self.args.mview_msa)
         materials['threshold'] = int(self.args.threshold * 10)
         materials['min_dist'] = self.args.min_dist
         materials['metadata'] = path.relpath(self.args.tsv, self.args.dir)
@@ -708,21 +712,22 @@ class tree_build:
         materials['bad_seqs'] = df2.to_html(na_rep='', index=False, justify='justify')
         self.log.debug('rendered tables in %.2f sec' % (time() - start))
 
-        # dump tree and function
+        # dump tree
         with open(path.join(self.args.dir, 'tree.pickle'), 'wb') as out_file:
             pickle.dump(tree, out_file)
         materials['pickle'] = 'tree.pickle'  # path.abspath(path.join(self.args.dir, 'tree.pickle'))
 
         # copy cgi-bin directory to output directory
+        _dst = path.join(self.args.dir, 'cgi-bin')
+        shutil.rmtree(path=_dst)
         shutil.copytree(src=path.join(path.dirname(__file__), 'cgi-bin'),
-                        dst=path.join(self.args.dir, 'cgi-bin'), dirs_exist_ok=True)
+                        dst=path.join(self.args.dir, 'cgi-bin'))
+
         # copy logo and icon
         _img = path.join(self.args.dir, '.img')
         os.makedirs(_img, exist_ok=True)
-        shutil.copy(src=path.join(self.args.dir, 'cgi-bin', 'favicon.png'),
-                    dst=path.join(_img, 'favicon.png'))
-        shutil.copy(src=path.join(self.args.dir, 'cgi-bin', 'favicon.ico'),
-                    dst=path.join(_img, 'favicon.ico'))
+        shutil.copy(src=path.join(_dst, 'favicon.png'), dst=path.join(_img, 'favicon.png'))
+        shutil.copy(src=path.join(_dst, 'favicon.ico'), dst=path.join(_img, 'favicon.ico'))
 
         # make CGI script executable
         cgi_file = path.join(self.args.dir, 'cgi-bin', 'ab12phylo.py')

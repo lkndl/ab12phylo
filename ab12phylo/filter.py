@@ -1,4 +1,3 @@
-from Bio.Alphabet import IUPAC
 from Bio.Seq import MutableSeq
 
 
@@ -93,4 +92,4 @@ def mark_bad_bases(seqrecord, min_phred):
             seq += 'N'
         else:
             seq += seqrecord.seq[pos]
-    seqrecord.seq = MutableSeq(seq, IUPAC.ambiguous_dna)
+    seqrecord.seq = MutableSeq(seq)

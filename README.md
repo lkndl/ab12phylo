@@ -1,8 +1,8 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.2b.11&color=blue&style=flat)
-![Python version](https://img.shields.io/static/v1?label=python&message=3.8&color=orange&style=flat&logo=python)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.2b.12&color=blue&style=flat)
+![Python version](https://img.shields.io/static/v1?label=python&message=3.6&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
 At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.com/amkozlov/raxml-ng) (Kozlov et al. 2019) and a BLAST search in a reference database. 
@@ -18,10 +18,10 @@ First, clone the AB12PHYLO repository:
 ```bash
 git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
 ```
-All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, which can make installation a bit more comfortable. To create a new or activate an existing python3.8 [conda](https://docs.conda.io/) environment:
+All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, which can make installation a bit more comfortable. To create a new or activate an existing python3 [conda](https://docs.conda.io/) environment:
 ```bash
-conda create -n <your_python3.8_conda_env> python=3.8
-conda activate <your_python3.8_conda_env>
+conda create -n <your_python3_conda_env> python=3
+conda activate <your_python3_conda_env>
 ```
 Then install the external tools in one go:
 
@@ -29,7 +29,7 @@ Then install the external tools in one go:
 conda install -c bioconda "blast>=2.9.0" raxml-ng gblocks mafft clustalo muscle
 ```
 
-This will require you to `conda activate <your_python3.8_conda_env>` anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will suffice and should be easy.
+This will require you to `conda activate <your_python3_conda_env>` anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will suffice and should be easy.
  
 Install AB12PHYLO and all its [dependencies](#dependencies) via `pip` or `pip3` to your regular python3:
  
