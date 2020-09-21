@@ -13,18 +13,19 @@ import logging
 import math
 import os
 import pickle
+import random
 import shutil
 import socket
 import stat
 import subprocess
 import sys
 import webbrowser
+import xml.etree.ElementTree as ET
 from os import path
 from time import time
 
 import numpy as np
 import pandas as pd
-import random
 import toyplot
 import toytree
 from Bio import SeqIO
@@ -212,6 +213,9 @@ class tree_build:
                 svg.render(ctup[0], path.join(self.args.dir, 'circular.svg'))
             self.log.info('rendered circular in %.2f sec' % (time() - start))
 
+        except ET.ParseError as ex:
+            self.log.error('XML ParseError. Invalid character in a sample ID? Please check metadata.tsv')
+            sys.exit(1)
         except ValueError as ex:
             self.log.exception(ex)
 
@@ -233,7 +237,7 @@ class tree_build:
         # write new-ish newick file
         tree_no_msa.write(self.args.annotated_tree, tree_format=0)
 
-        self.log.debug('drawing tree w/o msa')
+        self.log.debug('drawing tree without msa')
         start = time()
         try:
             # get dim for canvas
@@ -282,7 +286,7 @@ class tree_build:
         # render rectangular tree with MSA
         if type(self.args.msa_viz) == list:
             try:
-                self.log.warning('drawing tree w/ msa. You can interrupt and proceed via Cmd+C.')
+                self.log.warning('drawing tree with msa. You can interrupt and proceed via Cmd+C.')
                 start = time()
 
                 # if no format was specified, render .PNGs
@@ -294,7 +298,7 @@ class tree_build:
                     png.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.png'), scale=2)
                 if 'pdf' in self.args.msa_viz:
                     pdf.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.pdf'))
-                self.log.info('rendered w/ msa in %.2f sec' % (time() - start))
+                self.log.info('rendered with msa in %.2f sec' % (time() - start))
             except KeyboardInterrupt:
                 self.log.warning('cancel msa_viz')
 
@@ -719,7 +723,11 @@ class tree_build:
 
         # copy cgi-bin directory to output directory
         _dst = path.join(self.args.dir, 'cgi-bin')
-        shutil.rmtree(path=_dst)
+        try:
+            # delete old directory
+            shutil.rmtree(path=_dst)
+        except FileNotFoundError:
+            pass
         shutil.copytree(src=path.join(path.dirname(__file__), 'cgi-bin'),
                         dst=path.join(self.args.dir, 'cgi-bin'))
 

@@ -309,6 +309,10 @@ class reader:
                 except ValueError:
                     strain = species
 
+                # catch some illegal characters
+                for char in ['<', '>', '\'', '"', '&']:
+                    strain = strain.replace(char, '')
+
                 # retrieve or generate random key
                 if strain in lookup:
                     _id = lookup[strain]
