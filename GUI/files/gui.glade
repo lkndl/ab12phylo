@@ -46,6 +46,7 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">All files within your selected folder(s) of the types checked in the box to the right will be considered as trace files.</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
                         <property name="margin_start">10</property>
@@ -149,6 +150,7 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">This will try to read any selected file line-per-line and consider each line a path for a trace file.</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
                         <property name="margin_start">10</property>
@@ -400,8 +402,7 @@
                         <property name="can_focus">False</property>
                         <property name="hexpand">True</property>
                         <child>
-                          <object class="GtkToolbar" id="path_toolbar">
-                            <property name="name">path_toolbar</property>
+                          <object class="GtkToolbar">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="halign">end</property>
