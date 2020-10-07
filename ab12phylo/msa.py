@@ -88,9 +88,9 @@ class msa_build:
             self.algo = 'tcoffee'
 
         # create base call
-        arg = 'python3 %s --email %s --outfile %s/msa --sequence %s ' \
+        arg = 'python3 %s --email %s --outfile %s --sequence %s ' \
               % (path.join(self.tools_path, 'MSA_clients', self.algo + '.py'),
-                 self.email, path.join(self.dir, gene), fasta)
+                 self.email, path.join(self.dir, gene, 'msa'), fasta)
 
         # adapt for specific algorithm
         if self.algo == 'mafft':

@@ -407,7 +407,7 @@ class tree_build:
         end = log[start:start + 20].find('\n')
         render_info['seed'] = int(log[start:start + end])
 
-        if '--SKIPPING BLAST--' in log:
+        if '--SKIPPING BLAST--' in log or 'BLAST+ not installed' in log:
             self.args.no_BLAST = True
 
         # fetch tips labels
@@ -513,7 +513,7 @@ class tree_build:
                     lines.iloc[j, 0] = lines.iloc[j, 1]
 
         # annotate missing species
-        if self.args.no_BLAST:
+        if self.args.no_BLAST or 'pid' not in self.df:
             dt = lines.fillna('')
         else:
             lines = lines.fillna('no BLAST hit')
@@ -596,7 +596,7 @@ class tree_build:
     def _edit1(self):
         """
         type -> reference, normal seq or no BLAST hit
-        BLAST -> colors change from green to red in 2% steps
+        BLAST -> colors change from black to red to glowy yellow in 2% steps
         support -> larger dot means better support.
         :return:
         """
@@ -746,6 +746,6 @@ class tree_build:
         self.log.debug('rendering output HTML')
         materials['log'] = open(self.args.log, 'r').read()
         template = Template(open(path.join(path.dirname(__file__), 'template.jinja'), 'r').read())
-        html = template.render(materials)
-        open(path.join(self.args.dir, 'result.html'), 'w').write(html)
+        rendered_html = template.render(materials)
+        open(path.join(self.args.dir, 'result.html'), 'w').write(rendered_html)
         return
