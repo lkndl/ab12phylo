@@ -173,9 +173,10 @@ class msa_build:
                 arg += ' & exit /b 0'
             else:
                 arg += '; exit 0'
+                raw_msa += '.txt'
             # MARK the -d=n sets the mode to nucleotides ... adapt?
             self._run(arg, log_file, 'pre-installed Gblocks' if local else 'out-of-the-box Gblocks')
-            shutil.move(raw_msa + '.txt', path.join(self.dir, gene, gene + '_msa.fasta'))
+            shutil.move(raw_msa, path.join(self.dir, gene, gene + '_msa.fasta'))
 
     def concat_msa(self):
         """Reads all trimmed MSAs to memory, then iterates over samples, writes concatenated MSA."""
