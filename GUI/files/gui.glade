@@ -30,6 +30,8 @@
   </object>
   <object class="GtkNotebook" id="notebook">
     <property name="name">notebook</property>
+    <property name="width_request">640</property>
+    <property name="height_request">480</property>
     <property name="visible">True</property>
     <property name="can_focus">True</property>
     <property name="tab_pos">left</property>
@@ -68,6 +70,7 @@
                         <property name="halign">start</property>
                         <property name="valign">start</property>
                         <property name="margin_start">10</property>
+                        <property name="vexpand">False</property>
                         <property name="label" translatable="yes">add from folder</property>
                       </object>
                       <packing>
@@ -83,6 +86,7 @@
                         <property name="receives_default">True</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
+                        <property name="vexpand">False</property>
                         <property name="always_show_image">True</property>
                         <child>
                           <object class="GtkImage">
@@ -101,6 +105,7 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="vexpand">True</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -111,6 +116,7 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="vexpand">True</property>
                       </object>
                       <packing>
                         <property name="left_attach">2</property>
@@ -124,6 +130,7 @@
                         <property name="halign">start</property>
                         <property name="valign">start</property>
                         <property name="margin_start">10</property>
+                        <property name="vexpand">False</property>
                         <property name="label" translatable="yes">select manually</property>
                       </object>
                       <packing>
@@ -139,6 +146,7 @@
                         <property name="receives_default">True</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
+                        <property name="vexpand">False</property>
                         <property name="always_show_image">True</property>
                         <child>
                           <object class="GtkImage">
@@ -172,6 +180,7 @@
                         <property name="halign">start</property>
                         <property name="valign">start</property>
                         <property name="margin_start">10</property>
+                        <property name="vexpand">False</property>
                         <property name="label" translatable="yes">add from whitelist</property>
                       </object>
                       <packing>
@@ -187,6 +196,7 @@
                         <property name="receives_default">True</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
+                        <property name="vexpand">False</property>
                         <property name="always_show_image">True</property>
                         <child>
                           <object class="GtkImage">
@@ -227,7 +237,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">7</property>
+                        <property name="top_attach">8</property>
                         <property name="width">4</property>
                       </packing>
                     </child>
@@ -238,7 +248,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">6</property>
+                        <property name="top_attach">7</property>
                         <property name="width">4</property>
                       </packing>
                     </child>
@@ -249,11 +259,12 @@
                         <property name="halign">start</property>
                         <property name="valign">start</property>
                         <property name="margin_start">10</property>
+                        <property name="vexpand">False</property>
                         <property name="label" translatable="yes">add from folder</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">8</property>
+                        <property name="top_attach">9</property>
                       </packing>
                     </child>
                     <child>
@@ -264,7 +275,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
-                        <property name="top_attach">8</property>
+                        <property name="top_attach">9</property>
                       </packing>
                     </child>
                     <child>
@@ -275,6 +286,7 @@
                         <property name="receives_default">True</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
+                        <property name="vexpand">False</property>
                         <property name="always_show_image">True</property>
                         <child>
                           <object class="GtkImage">
@@ -286,7 +298,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">2</property>
-                        <property name="top_attach">8</property>
+                        <property name="top_attach">9</property>
                       </packing>
                     </child>
                     <child>
@@ -296,6 +308,7 @@
                         <property name="halign">start</property>
                         <property name="valign">start</property>
                         <property name="margin_start">10</property>
+                        <property name="vexpand">False</property>
                         <property name="label" translatable="yes">select manually</property>
                       </object>
                       <packing>
@@ -311,6 +324,7 @@
                         <property name="receives_default">True</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
+                        <property name="vexpand">False</property>
                         <property name="always_show_image">True</property>
                         <child>
                           <object class="GtkImage">
@@ -338,7 +352,7 @@
                             <property name="width_request">44</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="vexpand">False</property>
+                            <property name="vexpand">True</property>
                             <property name="search_column">0</property>
                             <child internal-child="selection">
                               <object class="GtkTreeSelection"/>
@@ -356,24 +370,13 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="vexpand">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">9</property>
-                        <property name="width">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
                         <property name="vexpand">True</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">11</property>
                         <property name="width">3</property>
+                        <property name="height">2</property>
                       </packing>
                     </child>
                     <child>
@@ -385,22 +388,6 @@
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">10</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="trace_number">
-                        <property name="name">trace_number</property>
-                        <property name="can_focus">False</property>
-                        <property name="no_show_all">True</property>
-                        <property name="halign">end</property>
-                        <property name="valign">end</property>
-                        <property name="vexpand">True</property>
-                        <property name="label" translatable="yes">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">5</property>
-                        <property name="width">3</property>
                       </packing>
                     </child>
                     <child>
@@ -501,7 +488,7 @@
                       <packing>
                         <property name="left_attach">3</property>
                         <property name="top_attach">1</property>
-                        <property name="height">5</property>
+                        <property name="height">6</property>
                       </packing>
                     </child>
                     <child>
@@ -509,6 +496,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="hexpand">True</property>
+                        <property name="vexpand">False</property>
                         <child>
                           <object class="GtkScrolledWindow">
                             <property name="visible">True</property>
@@ -591,8 +579,36 @@
                       </object>
                       <packing>
                         <property name="left_attach">3</property>
-                        <property name="top_attach">8</property>
+                        <property name="top_attach">9</property>
                         <property name="height">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="trace_number">
+                        <property name="name">trace_number</property>
+                        <property name="can_focus">False</property>
+                        <property name="no_show_all">True</property>
+                        <property name="halign">end</property>
+                        <property name="valign">end</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">number</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">6</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">5</property>
+                        <property name="width">3</property>
                       </packing>
                     </child>
                   </object>
@@ -739,7 +755,6 @@
           <object class="GtkScrolledWindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="vexpand">True</property>
             <property name="hscrollbar_policy">never</property>
             <child>
               <object class="GtkViewport">
@@ -756,150 +771,10 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">All files within your selected folder(s) of the types checked in the box to the right will be considered as trace files.</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="margin_start">10</property>
-                        <property name="label" translatable="yes">add from folder</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="add_trace_folder1">
-                        <property name="name">add_trace_folder</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="always_show_image">True</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">list-add-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="margin_start">10</property>
-                        <property name="label" translatable="yes">select manually</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="add_trace_manual1">
-                        <property name="name">add_trace_manual</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="always_show_image">True</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">list-add-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">This will try to read any selected file line-per-line and consider each line a path for a trace file.</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="margin_start">10</property>
-                        <property name="label" translatable="yes">add from whitelist</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="add_trace_whitelist1">
-                        <property name="name">add_trace_whitelist</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="always_show_image">True</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">list-add-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
                         <property name="halign">start</property>
                         <property name="vexpand">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Trace / Sequence Files &lt;/b&gt;</property>
+                        <property name="label" translatable="yes">&lt;b&gt;Parse Sequence Filename &lt;/b&gt;
+Wellsplate, gene and well coordinates are extracted from the filename using &lt;a href="https://regex101.com/r/Yulwlf/8" title="Examples from development stage"&gt;Regular Expressions&lt;/a&gt;.</property>
                         <property name="use_markup">True</property>
                       </object>
                       <packing>
@@ -909,152 +784,32 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="wellsplate_regex_label">
+                        <property name="name">wellsplate_regex_label</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">start</property>
                         <property name="vexpand">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Wellsplates&lt;/b&gt; (optional)</property>
+                        <property name="label" translatable="yes">&lt;b&gt;Parse Wellsplate ID&lt;/b&gt;
+The pattern has to match the plate ID extracted from the sequence filenames.</property>
                         <property name="use_markup">True</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">7</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSeparator">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">6</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="margin_start">10</property>
-                        <property name="label" translatable="yes">add from folder</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">8</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">8</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="add_csv_folder1">
-                        <property name="name">add_csv_folder</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="always_show_image">True</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">list-add-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">8</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="margin_left">10</property>
-                        <property name="margin_start">10</property>
-                        <property name="label" translatable="yes">select manually</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">10</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="add_csv_manual1">
-                        <property name="name">add_csv_manual</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="always_show_image">True</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">list-add-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">10</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkScrolledWindow">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="hscrollbar_policy">never</property>
-                        <property name="vscrollbar_policy">never</property>
-                        <property name="shadow_type">in</property>
-                        <child>
-                          <object class="GtkTreeView" id="view_filetypes1">
-                            <property name="name">view_filetypes</property>
-                            <property name="width_request">44</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="vexpand">False</property>
-                            <property name="search_column">0</property>
-                            <child internal-child="selection">
-                              <object class="GtkTreeSelection"/>
-                            </child>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">1</property>
-                        <property name="height">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
                         <property name="top_attach">9</property>
-                        <property name="width">3</property>
+                        <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSeparator" id="regex_sep">
+                        <property name="name">regex_sep</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">8</property>
+                        <property name="width">4</property>
                       </packing>
                     </child>
                     <child>
@@ -1065,46 +820,8 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">11</property>
+                        <property name="top_attach">12</property>
                         <property name="width">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">10</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="trace_number1">
-                        <property name="name">trace_number</property>
-                        <property name="can_focus">False</property>
-                        <property name="no_show_all">True</property>
-                        <property name="halign">end</property>
-                        <property name="valign">end</property>
-                        <property name="vexpand">True</property>
-                        <property name="label" translatable="yes">number</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">5</property>
-                        <property name="width">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">4</property>
                       </packing>
                     </child>
                     <child>
@@ -1112,6 +829,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="hexpand">True</property>
+                        <property name="vexpand">False</property>
                         <child>
                           <object class="GtkToolbar">
                             <property name="visible">True</property>
@@ -1172,8 +890,8 @@
                             <property name="vexpand">True</property>
                             <property name="shadow_type">in</property>
                             <child>
-                              <object class="GtkTreeView" id="view_trace_path1">
-                                <property name="name">view_trace_path</property>
+                              <object class="GtkTreeView" id="view_trace_regex">
+                                <property name="name">view_trace_regex</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="hexpand">True</property>
@@ -1194,11 +912,12 @@
                       <packing>
                         <property name="left_attach">3</property>
                         <property name="top_attach">1</property>
-                        <property name="height">5</property>
+                        <property name="height">7</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox">
+                      <object class="GtkBox" id="wellsplate_regex_box">
+                        <property name="name">wellsplate_regex_box</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="hexpand">True</property>
@@ -1210,8 +929,8 @@
                             <property name="vexpand">True</property>
                             <property name="shadow_type">in</property>
                             <child>
-                              <object class="GtkTreeView" id="view_csv_path1">
-                                <property name="name">view_csv_path</property>
+                              <object class="GtkTreeView" id="view_csv_regex">
+                                <property name="name">view_csv_regex</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="hexpand">True</property>
@@ -1284,8 +1003,315 @@
                       </object>
                       <packing>
                         <property name="left_attach">3</property>
-                        <property name="top_attach">8</property>
-                        <property name="height">4</property>
+                        <property name="top_attach">10</property>
+                        <property name="height">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="single_regex">
+                        <property name="name">single_regex</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="valign">start</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">[-_\s]pl([\d])[-_\s][\d]{1,2}[-_\s](.+)[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkRadioButton" id="single_regex_toggle">
+                        <property name="label" translatable="yes">single RegEx</property>
+                        <property name="name">single_regex_toggle</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="margin_start">10</property>
+                        <property name="vexpand">False</property>
+                        <property name="active">True</property>
+                        <property name="draw_indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkRadioButton" id="triple_regex_toggle">
+                        <property name="label" translatable="yes">separate expressions</property>
+                        <property name="name">triple_regex_toggle</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="margin_start">10</property>
+                        <property name="vexpand">False</property>
+                        <property name="active">True</property>
+                        <property name="draw_indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">2</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="gene_regex">
+                        <property name="name">gene_regex</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="valign">start</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s](.+)[-_\s][A-Z][\d]{1,2}[-_\s]</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="well_regex">
+                        <property name="name">well_regex</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="valign">start</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s].+[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">3</property>
+                        <property name="height">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">gene:</property>
+                        <property name="justify">right</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">well:</property>
+                        <property name="justify">right</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="vexpand">False</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="vexpand">False</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">6</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">7</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">use an empty capturing group if there are no wellsplates</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">plate:</property>
+                        <property name="justify">right</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="plate_regex">
+                        <property name="name">plate_regex</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="valign">start</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">[-_\s]pl([\d])</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="wellsplate_regex">
+                        <property name="name">wellsplate_regex</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="valign">start</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">(\d)+[^\d_]*.csv</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">10</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="vexpand">False</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">10</property>
+                        <property name="width">2</property>
+                        <property name="height">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButtonBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="spacing">10</property>
+                        <property name="layout_style">start</property>
+                        <child>
+                          <object class="GtkButton" id="regex_try_online">
+                            <property name="label" translatable="yes">Try online</property>
+                            <property name="name">regex_try_online</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="no_show_all">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="regex_apply">
+                            <property name="label" translatable="yes">Apply</property>
+                            <property name="name">regex_apply</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">6</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButtonBox" id="wellsplate_buttons">
+                        <property name="name">wellsplate_buttons</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="spacing">10</property>
+                        <property name="layout_style">start</property>
+                        <child>
+                          <object class="GtkButton" id="invisible">
+                            <property name="label" translatable="yes">Try online</property>
+                            <property name="name">invisible</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="no_show_all">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="wellsplate_apply">
+                            <property name="label" translatable="yes">Apply</property>
+                            <property name="name">wellsplate_apply</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">11</property>
                       </packing>
                     </child>
                   </object>
@@ -1294,7 +1320,7 @@
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
@@ -1307,7 +1333,7 @@
             <property name="spacing">10</property>
             <property name="layout_style">start</property>
             <child>
-              <object class="GtkButton">
+              <object class="GtkButton" id="regex_back">
                 <property name="name">regex_back</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -1354,7 +1380,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="files_next1">
+              <object class="GtkButton" id="regex_next">
                 <property name="name">regex_next</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
