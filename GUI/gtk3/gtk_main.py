@@ -1,6 +1,6 @@
 import sys
 
-import gi
+import gi, re
 from pathlib import Path
 from argparse import Namespace
 import logging
@@ -19,56 +19,9 @@ gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Mai
 gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
 
 
-# http://cdn.php-gtk.eu/cdn/farfuture/riUt0TzlozMVQuwGBNNJsaPujRQ4uIYXc8SWdgbgiYY/mtime:1368022411/sites/php-gtk.eu/files/gtk-php-get-child-widget-by-name.php__0.txt
-# note get_name() vs gtk.Buildable.get_name(): https://stackoverflow.com/questions/3489520/python-gtk-widget-name
-def _get_descendant(widget, child_name, level, doPrint=False):
-    if widget is not None:
-        if doPrint:
-            try:
-                print("-" * level + gtk.Buildable.get_name(widget) + " :: " + widget.get_name())
-            except TypeError:
-                print("-" * level + "<no_name>" + " :: " + widget.get_name())
-    else:
-        if doPrint:
-            print("-" * level + "None")
-        return None
-    # If it is what we are looking for
-    if gtk.Buildable.get_name(widget) == child_name:  # not widget.get_name() !
-        return widget
-    # If this widget has one child only search its child
-    if hasattr(widget, 'get_child') and callable(getattr(widget, 'get_child')) and child_name != "":
-        child = widget.get_child()
-        if child is not None:
-            return _get_descendant(child, child_name, level + 1, doPrint)
-    # It might have many children, so search them
-    elif hasattr(widget, 'get_children') and callable(getattr(widget, 'get_children')) and child_name != "":
-        children = widget.get_children()
-        # For each child
-        found = None
-        for child in children:
-            if child is not None:
-                found = _get_descendant(child, child_name, level + 1, doPrint)  # //search the child
-                if found:
-                    return found
-
-
-def _add_new_entries(store, entries_to_add):
-    dups, news = list(), list()
-    for entry in entries_to_add:
-        if entry in store:
-            dups.append(entry)
-        else:
-            store.append(entry)
-            news.append(entry)
-    return store, news, dups
-
-
 class gui(gtk.Window):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
-    ELEMENTS = ['add_trace_folder', 'add_trace_manual', 'add_trace_whitelist', 'add_csv_folder', 'add_csv_manual',
-                'view_filetypes', 'view_trace_path', 'view_csv_path', 'trace_number', 'files_next',
-                'remove_path', 'delete_all', 'remove_csv', 'delete_all_csv']
     FILETYPES = ['.ab1', '.seq', '.fasta']
 
     def __init__(self, data):
@@ -76,24 +29,95 @@ class gui(gtk.Window):
         # super(gui, self).__init__()
         gtk.Window.__init__(self, title='AB12PHYLO')
         self.set_icon_from_file(str(gui.ICON))
-        self.set_default_size(640, 480)
+        self.set_default_size(900, 600)
         self.set_size_request(640, 480)
         self.log.debug('GTK Window initialized')
 
-        # self.data = data
+        self.data = data
 
-        # fetch the notebook from the .glade XML
-        self.notebook = gtk.Builder().new_from_file(str(gui.TEMPLATE)).get_object('notebook')
-        self.add(self.notebook)
-        self.log.debug('Fetched notebook')
-
-        # connect to the window's delete event to close on x click
-        self.connect('destroy', gtk.main_quit)
-        self.interface = Namespace(**{widget: _get_descendant(self, widget, 10, False) for widget in gui.ELEMENTS})
+        # fetch all named objects from the .glade XML
+        widgets = dict()
+        for widget in gtk.Builder().new_from_file(str(gui.TEMPLATE)).get_objects():
+            if widget.find_property('name') and not widget.get_name().startswith('Gtk'):
+                widgets[widget.get_name()] = widget
+        self.interface = Namespace(**widgets)
         self.log.debug('Fetched control elements')
 
+        # fetch the notebook
+        self.notebook = self.interface.notebook
+        self.add(self.notebook)
+        # connect to the window's delete event to close on x click
+        self.connect('destroy', gtk.main_quit)
+        # set up indicator of changes, tabs are not disabled initially
+        self._change_indicator = [False] * self.notebook.get_n_pages()
+        self._reading_plates = True
+        self.regex_model, self.wellsplate_model = gtk.ListStore(str, str, str, str), gtk.ListStore(str, str)
+
+        # general window setup
         ##########################
-        # page FILES
+
+        self._init_FILES()
+        self._init_REGEX()
+
+    ##########################
+    # MARK functions general
+
+    def _set_page_changed(self, changed):
+        """
+        Set page to changed and disable further stages; set page to unchanged and enable next page
+        :param changed: toggle
+        :return:
+        """
+        page = self.notebook.get_current_page()
+        if changed:
+            # disable later pages
+            [page.set_sensitive(False) for page in
+             self.notebook.get_children()[page + 1: self.notebook.get_n_pages()]]
+            # set later pages to 'changed'
+            self._change_indicator[page:] = [True] * (self.notebook.get_n_pages() - page)
+        else:
+            # enable the next page
+            self.notebook.get_children()[page + 1].set_sensitive(True)
+            # set earlier pages to 'unchanged'
+            self._change_indicator[:page + 1] = [False] * (page + 1)
+
+    def _get_page_changed(self):
+        return self._change_indicator[self.notebook.get_current_page()]
+
+    def _proceed(self, widget):
+        # first integrate changes to the dataset
+        if self._get_page_changed():
+            self._prep_next(self.notebook.get_current_page())
+        # then proceed
+        self.notebook.next_page()
+        self.log.debug('proceeded to page %d' % self.notebook.get_current_page())
+
+    def _step_back(self, widget):
+        self.notebook.prev_page()
+        self._set_page_changed(False)
+        self.log.debug('stepped back to page %d' % self.notebook.get_current_page())
+
+    def _prep_next(self, page):
+        """
+        TODO page-specific handlers
+        :param self:
+        :param page:
+        :return:
+        """
+        if page == 0:
+            self._reset_REGEX()
+
+        # make changes in dataset
+        # self.data.prep_next(page)
+        # transfer changes from dataset to GUI?
+
+        self._set_page_changed(False)
+        return
+
+    ##########################
+    # DONE page FILES
+
+    def _init_FILES(self):
         # trace file types
         # create a TreeView model
         self.trace_model = gtk.ListStore(str, bool)
@@ -101,14 +125,14 @@ class gui(gtk.Window):
 
         # check ABI traces by default
         self.trace_model[0][1] = True
-        data.filetypes.add('.ab1')
+        self.data.filetypes.add('.ab1')
 
         self.interface.view_filetypes.set_model(self.trace_model)
         self.interface.view_filetypes.set_headers_visible(False)
         self.interface.view_filetypes.append_column(
             gtk.TreeViewColumn(title='Filetype', cell_renderer=gtk.CellRendererText(), text=0))
         crt = gtk.CellRendererToggle()
-        crt.connect('toggled', self._change_filetypes, data.filetypes)
+        crt.connect('toggled', self._change_filetypes, self.data.filetypes, self.trace_model)
         self.interface.view_filetypes.append_column(
             gtk.TreeViewColumn(title='Selected', cell_renderer=crt, active=1))
 
@@ -124,13 +148,13 @@ class gui(gtk.Window):
 
         # connect buttons
         self.interface.add_trace_folder.connect('clicked', self._add_folder,
-                                                data.filetypes, data.trace_paths, self.trace_model)
+                                                self.data.filetypes, self.data.trace_paths, self.trace_model)
         self.interface.add_trace_manual.connect('clicked', self._add_manually,
-                                                data.trace_paths, self.trace_model)
+                                                self.data.trace_paths, self.trace_model)
         self.interface.add_trace_whitelist.connect('clicked', self._add_manually,
-                                                   data.trace_paths, self.trace_model, True)
-        self.interface.remove_path.connect('clicked', self._remove_path, trace_selection, data.trace_paths)
-        self.interface.delete_all.connect('clicked', self._clear_path, data.trace_paths, self.trace_model)
+                                                   self.data.trace_paths, self.trace_model, True)
+        self.interface.remove_traces.connect('clicked', self._remove_path, trace_selection, self.data.trace_paths)
+        self.interface.delete_all_traces.connect('clicked', self._clear_path, self.data.trace_paths, self.trace_model)
 
         # wellsplate paths
         # create a TreeView model
@@ -144,26 +168,22 @@ class gui(gtk.Window):
 
         # connect buttons
         self.interface.add_csv_folder.connect('clicked', self._add_folder,
-                                              {'.csv'}, data.csv_paths, self.csv_model)
-        self.interface.add_csv_manual.connect('clicked', self._add_manually, data.csv_paths, self.csv_model)
+                                              {'.csv'}, self.data.csv_paths, self.csv_model)
+        self.interface.add_csv_manual.connect('clicked', self._add_manually, self.data.csv_paths, self.csv_model)
         self.interface.remove_csv.connect('clicked', self._remove_path,
-                                          csv_selection, data.csv_paths)
-        self.interface.delete_all_csv.connect('clicked', self._clear_path, data.csv_paths, self.csv_model)
+                                          csv_selection, self.data.csv_paths)
+        self.interface.delete_all_csv.connect('clicked', self._clear_path, self.data.csv_paths, self.csv_model)
 
-        self.interface.files_next.connect('clicked', self._switch_to_page, 1)
+        self.interface.files_next.connect('clicked', self._proceed)
 
-        # DONE page Files
-        ##########################
-        # TODO page RegEx
-
-    def _change_filetypes(self, widget, path, filetypes):
+    def _change_filetypes(self, widget, path, filetypes, model):
         # toggle the button
-        self.trace_model[path][1] = not self.trace_model[path][1]
+        model[path][1] = not model[path][1]
         # adapt the filetypes to read for the next folder
-        if self.trace_model[path][1]:
-            filetypes.add(self.trace_model[path][0])
+        if model[path][1]:
+            filetypes.add(model[path][0])
         else:
-            filetypes.remove(self.trace_model[path][0])
+            filetypes.remove(model[path][0])
         self.log.debug('selected ' + ' and '.join(filetypes))
 
     def _add_folder(self, widget, types, store, model):
@@ -182,7 +202,7 @@ class gui(gtk.Window):
                     # flatten the LoL
                     new_paths = [str(item) for sublist in new_paths for item in sublist]
                     # save new entries in the dataset
-                    store, new_paths, duplicates = _add_new_entries(store, new_paths)
+                    store, new_paths, duplicates = self._add_new_entries(store, new_paths)
                     # append to the ListStore
                     [model.append([path]) for path in new_paths]
                 except UnicodeDecodeError as ex:
@@ -229,7 +249,7 @@ class gui(gtk.Window):
                         not_found.append(string_path)
 
             # save new entries in the dataset
-            store, new_paths, duplicates = _add_new_entries(store, new_paths)
+            store, new_paths, duplicates = self._add_new_entries(store, new_paths)
             # append to the ListStore
             [model.append([path]) for path in new_paths]
             self._refresh_trace_number()
@@ -247,21 +267,29 @@ class gui(gtk.Window):
         if duplicates:
             self._show_message_dialog('Some files already selected', duplicates)
 
-    def _remove_path(self, widget, select, store):
-        model, iter = select.get_selected_rows()
+    def _remove_path(self, widget, selection, store):
+        model, iter = selection.get_selected_rows()
         [store.pop(item[0]) for item in reversed(iter)]
         model.clear()
         # re-append to the ListStore
         [model.append([path]) for path in store]
+        self._set_page_changed(True)
         self._refresh_trace_number()
+        self.log.info('removed %d rows' % len(iter))
 
     def _clear_path(self, widget, store, model):
-        store = list()
+        store.clear()
         model.clear()
+        self._set_page_changed(True)
         self._refresh_trace_number()
         self.log.info('cleared paths')
 
     def _refresh_trace_number(self):
+        """
+        Adjusts the display of the number of selected trace files
+        and toggles reading wellsplates or not.
+        :return:
+        """
         num_traces = len(self.trace_model)
         if num_traces > 0:
             self.interface.trace_number.set_label('%d files' % num_traces)
@@ -269,6 +297,20 @@ class gui(gtk.Window):
         else:
             self.interface.trace_number.set_label('0 files')
             self.interface.trace_number.set_visible(False)
+
+        # toggle _reading_plates
+        self._reading_plates = len(self.csv_model) > 0
+        self._set_page_changed(not self._reading_plates or self._get_page_changed())
+        [self.interface.__getattribute__(name).set_sensitive(self._reading_plates) for name in ['plate_regex_label',
+                                                                                                'plate_regex',
+                                                                                                'wellsplate_regex_description',
+                                                                                                'wellsplate_regex',
+                                                                                                'wellsplate_buttons',
+                                                                                                'wellsplate_regex_box']]
+        # toggle radiobutton line back off
+        if not self.interface.triple_regex_toggle.get_active():
+            [self.interface.__getattribute__(name).set_sensitive(False) for name in
+             ['plate_regex', 'plate_regex_label']]
 
     def _show_message_dialog(self, message, list_to_print=None):
         dialog = gtk.MessageDialog(transient_for=self, flags=0,
@@ -284,13 +326,157 @@ class gui(gtk.Window):
         dialog.destroy()
         self.log.debug('showed a message')
 
-    def _switch_to_page(self, widget, to):
-        self.notebook.set_current_page(to)
-        self.log.info('moved to page %d' % to)
+    def _add_new_entries(self, store, entries_to_add):
+        """
+        Adds new entries to a list and returns the modified list
+        as well as lists of both newly added entries and observed duplicates
+        :param store: the trace_paths list of a dataset object
+        :param entries_to_add: obvs
+        :return:
+        """
+        dups, news = list(), list()
+        for entry in entries_to_add:
+            if entry in store:
+                dups.append(entry)
+            else:
+                store.append(entry)
+                news.append(entry)
+        if len(news) > 0:
+            self._set_page_changed(True)
+        return store, news, dups
 
-    # DONE page Files
     ##########################
     # TODO page RegEx
+
+    def _init_REGEX(self):
+        # connect buttons
+        self.interface.single_regex_toggle.connect('toggled', self._regex_toggle)
+        self.interface.triple_regex_toggle.connect('toggled', self._regex_toggle)
+        self.interface.triple_regex_toggle.join_group(self.interface.single_regex_toggle)
+        self.interface.single_regex_toggle.set_active(True)
+
+        self.interface.regex_apply.connect('clicked', self._parse)
+        self.interface.single_regex.connect('activate', self._parse)
+        self.interface.well_regex.connect('activate', self._parse_single, self.interface.well_regex, 0)
+        self.interface.gene_regex.connect('activate', self._parse_single, self.interface.gene_regex, -2)
+        self.interface.plate_regex.connect('activate', self._parse_single, self.interface.plate_regex, 1)
+
+        self.interface.wellsplate_regex.connect('activate', self._parse_single, self.interface.wellsplate_regex, 0)
+        self.interface.wellsplate_apply.connect('clicked', self._parse_single, self.interface.wellsplate_regex, 0)
+
+        # TODO on-the-fly RegEx help page
+        # TODO save parser results in data
+
+        # connect buttons
+        self.interface.regex_next.connect('clicked', self._proceed)
+        self.interface.regex_back.connect('clicked', self._step_back)
+        self._reset_REGEX()
+        self._refresh_trace_number()
+
+    def _reset_REGEX(self):
+        # path extraction: well/id, (plate), gene, file
+        # create TreeView models and fill filename column
+        if self._reading_plates:
+            self.regex_model = gtk.ListStore(str, str, str, str)
+            self.wellsplate_model = gtk.ListStore(str, str)
+            # fill with initial data
+            [self.regex_model.append([''] * 3 + [Path(path).name]) for path in self.data.trace_paths]
+            [self.wellsplate_model.append([''] + [Path(path).name]) for path in self.data.csv_paths]
+        else:
+            self.regex_model = gtk.ListStore(str, str, str)
+            [self.regex_model.append([''] * 2 + [Path(path).name]) for path in self.data.trace_paths]
+        # self.interface.view_trace_regex.set_headers_visible(False)
+        self.interface.view_trace_regex.set_model(self.regex_model)
+        self.interface.view_csv_regex.set_model(self.wellsplate_model)
+        # remove old columns:
+        for treeview in [self.interface.view_trace_regex, self.interface.view_csv_regex]:
+            [treeview.remove_colum(col) for col in treeview.get_columns()]
+
+        # columns depend on _reading_plates
+        self.interface.view_trace_regex.get_columns().clear()
+        if self._reading_plates:
+            for title, column in zip(['well', 'plate', 'gene', 'file'], list(range(4))):
+                self.interface.view_trace_regex.append_column(
+                    gtk.TreeViewColumn(title=title, cell_renderer=gtk.CellRendererText(), markup=column))
+            # wellsplates:
+            for title, column in zip(['plate ID', 'file'], list(range(2))):
+                self.interface.view_csv_regex.append_column(
+                    gtk.TreeViewColumn(title='title', cell_renderer=gtk.CellRendererText(), markup=column))
+        else:
+            for title, column in zip(['sample', 'gene', 'file'], list(range(3))):
+                self.interface.view_trace_regex.append_column(
+                    gtk.TreeViewColumn(title=title, cell_renderer=gtk.CellRendererText(), markup=column))
+
+        for treeview in [self.interface.view_trace_regex, self.interface.view_csv_regex]:
+            treeview.columns_autosize()
+        for col_index in range(self.interface.view_trace_regex.get_n_columns()):
+            self.interface.view_trace_regex.get_column(col_index).set_sort_column_id(col_index)
+
+    def _regex_toggle(self, widget):
+        # (In)activates the Entry fields and causes a parse event
+        if widget.get_active():
+            three = ['plate_regex',
+                     'gene_regex',
+                     'well_regex',
+                     'plate_regex_label',
+                     'gene_regex_label',
+                     'well_regex_label']
+            if widget == self.interface.single_regex_toggle:
+                self.interface.single_regex.set_sensitive(True)
+                [self.interface.__getattribute__(widget).set_sensitive(False) for widget in three]
+            else:
+                self.interface.single_regex.set_sensitive(False)
+                [self.interface.__getattribute__(widget).set_sensitive(True) for widget in three]
+            # adjust the sensitivity of the plate regex line
+            if not self._reading_plates:
+                self.interface.plate_regex.set_sensitive(False)
+                self.interface.plate_regex_label.set_sensitive(False)
+            self.log.debug('toggled radiobutton %s' % widget.get_name())
+            # parse again
+            self._parse(widget)
+
+    def _parse(self, widget):
+        if self.interface.single_regex_toggle.get_active():
+            self.log.debug('parsing with single regex')
+            # if parsing with only a single regex
+            regex = re.compile(self.interface.single_regex.get_text())
+
+            for row_index in range(len(self.regex_model)):
+                file = self.regex_model[row_index][-1]
+                try:
+                    m = regex.search(file)
+                    plate, gene, well = m.groups() if self._reading_plates else (None, *m.groups())
+                    self.regex_model[row_index] = [well, plate, gene, file] if self._reading_plates else [well, gene,
+                                                                                                          file]
+                except ValueError as ve:
+                    self.regex_model[row_index][-2] = '<span foreground="blue">groups?</span>'
+                except AttributeError as ae:
+                    self.regex_model[row_index][-2] = '<span foreground="red">no match</span>'
+        else:
+            self._parse_single(None, self.interface.well_regex, 0)
+            self._parse_single(None, self.interface.gene_regex, -2)
+            if self._reading_plates:
+                self._parse_single(None, self.interface.plate_regex, 1)
+        self.interface.view_trace_regex.columns_autosize()
+        self.log.debug('parsing done')
+
+    def _parse_single(self, widget, entry, col_index):
+        self.log.debug('parsing from %s' % entry.get_name())
+        regex = re.compile(entry.get_text())
+
+        if widget in [self.interface.wellsplate_regex, self.interface.wellsplate_apply]:
+            model = self.wellsplate_model
+        else:
+            model = self.regex_model
+
+        for row_index in range(len(model)):
+            file = model[row_index][-1]
+            try:
+                model[row_index][col_index] = regex.search(file).groups()[0]
+            except ValueError as ve:
+                model[row_index][col_index] = '<span foreground="blue">groups?</span>'
+            except AttributeError as ae:
+                model[row_index][col_index] = '<span foreground="red">no match</span>'
 
 
 class dataset:
@@ -298,43 +484,39 @@ class dataset:
         self.filetypes = set()
         self.trace_paths = []
         self.csv_paths = []
+        self.path_container = []
 
 
-class driver:
+def _init_log(**kwargs):
+    """Initializes logging."""
+    log = logging.getLogger()
+    log.setLevel(logging.DEBUG)
 
-    def __init__(self):
-        self._init_log()  # filename='nope')
-        log = logging.getLogger(__name__)
-        log.debug('AB12PHYLO GUI version')
+    if 'filename' in kwargs:
+        # init verbose logging to file
+        fh = logging.FileHandler(filename=kwargs['filename'], mode='w')
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(logging.Formatter('%(asctime)s: %(levelname)s\t%(name)s\t%(message)s',
+                                          datefmt='%Y-%m-%d %H:%M:%S'))
+        log.addHandler(fh)
 
-        data = dataset()
-        win = gui(data)
-        win.show_all()
-        gtk.main()
-
-    def _init_log(self, **kwargs):
-        """Initializes logging."""
-        log = logging.getLogger()
-        log.setLevel(logging.DEBUG)
-
-        if 'filename' in kwargs:
-            # init verbose logging to file
-            fh = logging.FileHandler(filename=kwargs['filename'], mode='w')
-            fh.setLevel(logging.DEBUG)
-            fh.setFormatter(logging.Formatter('%(asctime)s: %(levelname)s\t%(name)s\t%(message)s',
-                                              datefmt='%Y-%m-%d %H:%M:%S'))
-            log.addHandler(fh)
-
-        # init shortened console logging
-        sh = logging.StreamHandler(sys.stdout)
-        if __verbose__:
-            sh.setLevel(logging.DEBUG)
-        elif __info__:
-            sh.setLevel(logging.INFO)
-        else:
-            sh.setLevel(logging.WARNING)
-        sh.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
-        log.addHandler(sh)
+    # init shortened console logging
+    sh = logging.StreamHandler(sys.stdout)
+    if __verbose__:
+        sh.setLevel(logging.DEBUG)
+    elif __info__:
+        sh.setLevel(logging.INFO)
+    else:
+        sh.setLevel(logging.WARNING)
+    sh.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+    log.addHandler(sh)
 
 
-driver()
+_init_log()  # filename='nope')
+log = logging.getLogger(__name__)
+log.debug('AB12PHYLO GUI version')
+
+data = dataset()
+win = gui(data)
+win.show_all()
+gtk.main()

@@ -36,7 +36,8 @@
     <property name="can_focus">True</property>
     <property name="tab_pos">left</property>
     <child>
-      <object class="GtkBox">
+      <object class="GtkBox" id="files_page">
+        <property name="name">files_page</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="margin_start">10</property>
@@ -417,8 +418,8 @@
                             <property name="show_arrow">False</property>
                             <property name="icon_size">2</property>
                             <child>
-                              <object class="GtkToolButton" id="remove_path">
-                                <property name="name">remove_path</property>
+                              <object class="GtkToolButton" id="remove_traces">
+                                <property name="name">remove_traces</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">Removes selected files only.</property>
@@ -434,8 +435,8 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkToolButton" id="delete_all">
-                                <property name="name">delete_all</property>
+                              <object class="GtkToolButton" id="delete_all_traces">
+                                <property name="name">delete_all_traces</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">Will remove all files.</property>
@@ -536,7 +537,7 @@
                             <property name="icon_size">2</property>
                             <child>
                               <object class="GtkToolButton" id="remove_csv">
-                                <property name="name">remove_path</property>
+                                <property name="name">remove_csv</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">Removes selected files only.</property>
@@ -553,7 +554,7 @@
                             </child>
                             <child>
                               <object class="GtkToolButton" id="delete_all_csv">
-                                <property name="name">delete_all</property>
+                                <property name="name">delete_all_csv</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">Will remove all files.</property>
@@ -742,7 +743,8 @@
       </packing>
     </child>
     <child>
-      <object class="GtkBox">
+      <object class="GtkBox" id="regex_page">
+        <property name="name">regex_page</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="margin_start">10</property>
@@ -774,53 +776,12 @@
                         <property name="halign">start</property>
                         <property name="vexpand">False</property>
                         <property name="label" translatable="yes">&lt;b&gt;Parse Sequence Filename &lt;/b&gt;
-Wellsplate, gene and well coordinates are extracted from the filename using &lt;a href="https://regex101.com/r/Yulwlf/8" title="Examples from development stage"&gt;Regular Expressions&lt;/a&gt;.</property>
+</property>
                         <property name="use_markup">True</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">0</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="wellsplate_regex_label">
-                        <property name="name">wellsplate_regex_label</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="vexpand">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Parse Wellsplate ID&lt;/b&gt;
-The pattern has to match the plate ID extracted from the sequence filenames.</property>
-                        <property name="use_markup">True</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">9</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSeparator" id="regex_sep">
-                        <property name="name">regex_sep</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">8</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">True</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">12</property>
+                        <property name="top_attach">4</property>
                         <property name="width">3</property>
                       </packing>
                     </child>
@@ -910,9 +871,300 @@ The pattern has to match the plate ID extracted from the sequence filenames.</pr
                         </child>
                       </object>
                       <packing>
-                        <property name="left_attach">3</property>
-                        <property name="top_attach">1</property>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">5</property>
                         <property name="height">7</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="single_regex">
+                        <property name="name">single_regex</property>
+                        <property name="width_request">200</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_text" translatable="yes">A single regular expression containing capturing groups that match the plate, the gene and the well coordinates / user ID of the sample in that order. If wellsplates are not used, the first capturing group must not exist. </property>
+                        <property name="valign">start</property>
+                        <property name="hexpand">False</property>
+                        <property name="vexpand">False</property>
+                        <property name="max_width_chars">24</property>
+                        <property name="text" translatable="yes">[-_\s]pl([\d])[-_\s][\d]{1,2}[-_\s](.+)[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkRadioButton" id="triple_regex_toggle">
+                        <property name="label" translatable="yes">separate expressions</property>
+                        <property name="name">triple_regex_toggle</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="margin_start">10</property>
+                        <property name="vexpand">False</property>
+                        <property name="draw_indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">6</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="gene_regex">
+                        <property name="name">gene_regex</property>
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_text" translatable="yes">press Enter to apply</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s](.+)[-_\s][A-Z][\d]{1,2}[-_\s]</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">8</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="gene_regex_label">
+                        <property name="name">gene_regex_label</property>
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">gene:</property>
+                        <property name="justify">right</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">8</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="plate_regex_label">
+                        <property name="name">plate_regex_label</property>
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">plate:</property>
+                        <property name="justify">right</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">9</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">11</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="well_regex_label">
+                        <property name="name">well_regex_label</property>
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">well / sample:</property>
+                        <property name="justify">right</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">7</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButtonBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="spacing">10</property>
+                        <property name="layout_style">start</property>
+                        <child>
+                          <object class="GtkButton" id="regex_try_online">
+                            <property name="label" translatable="yes">Try online</property>
+                            <property name="name">regex_try_online</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="no_show_all">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="regex_apply">
+                            <property name="label" translatable="yes">Apply</property>
+                            <property name="name">regex_apply</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">10</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="plate_regex">
+                        <property name="name">plate_regex</property>
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_text" translatable="yes">Field is disabled if no wellsplates are used. Press Enter to apply.</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">[-_\s]pl([\d])</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">9</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="well_regex">
+                        <property name="name">well_regex</property>
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_text" translatable="yes">press Enter to apply</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s].+[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">7</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">10</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="wellsplate_regex_description">
+                        <property name="name">wellsplate_regex_description</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">&lt;b&gt;Parse Wellsplate ID&lt;/b&gt;
+Wellsplate, gene and well coordinates are extracted from the filename using &lt;a href="https://regex101.com/r/Yulwlf/8" title="Examples from development stage"&gt;Regular Expressions&lt;/a&gt;. The plate ID extracted here has to match the one extracted from the sequence filenames below.</property>
+                        <property name="use_markup">True</property>
+                        <property name="wrap">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">0</property>
+                        <property name="width">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="wellsplate_regex">
+                        <property name="name">wellsplate_regex</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">(\d)+[^\d_]*.csv</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="vexpand">False</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">1</property>
+                        <property name="height">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButtonBox" id="wellsplate_buttons">
+                        <property name="name">wellsplate_buttons</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="spacing">10</property>
+                        <property name="layout_style">start</property>
+                        <child>
+                          <object class="GtkButton" id="wellsplate_try_online">
+                            <property name="label" translatable="yes">Try online</property>
+                            <property name="name">wellsplate_try_online</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="no_show_all">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="wellsplate_apply">
+                            <property name="label" translatable="yes">Apply</property>
+                            <property name="name">wellsplate_apply</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">2</property>
                       </packing>
                     </child>
                     <child>
@@ -1002,24 +1254,20 @@ The pattern has to match the plate ID extracted from the sequence filenames.</pr
                         </child>
                       </object>
                       <packing>
-                        <property name="left_attach">3</property>
-                        <property name="top_attach">10</property>
-                        <property name="height">3</property>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">1</property>
+                        <property name="height">2</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="single_regex">
-                        <property name="name">single_regex</property>
+                      <object class="GtkSeparator">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="valign">start</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">False</property>
-                        <property name="text" translatable="yes">[-_\s]pl([\d])[-_\s][\d]{1,2}[-_\s](.+)[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
+                        <property name="can_focus">False</property>
                       </object>
                       <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">1</property>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">3</property>
+                        <property name="width">3</property>
                       </packing>
                     </child>
                     <child>
@@ -1033,285 +1281,11 @@ The pattern has to match the plate ID extracted from the sequence filenames.</pr
                         <property name="valign">start</property>
                         <property name="margin_start">10</property>
                         <property name="vexpand">False</property>
-                        <property name="active">True</property>
                         <property name="draw_indicator">True</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkRadioButton" id="triple_regex_toggle">
-                        <property name="label" translatable="yes">separate expressions</property>
-                        <property name="name">triple_regex_toggle</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">False</property>
-                        <property name="halign">start</property>
-                        <property name="valign">start</property>
-                        <property name="margin_start">10</property>
-                        <property name="vexpand">False</property>
-                        <property name="active">True</property>
-                        <property name="draw_indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">2</property>
-                        <property name="width">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="gene_regex">
-                        <property name="name">gene_regex</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="valign">start</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">False</property>
-                        <property name="text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s](.+)[-_\s][A-Z][\d]{1,2}[-_\s]</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="well_regex">
-                        <property name="name">well_regex</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="valign">start</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">False</property>
-                        <property name="text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s].+[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
                         <property name="top_attach">5</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">3</property>
-                        <property name="height">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">end</property>
-                        <property name="valign">start</property>
-                        <property name="vexpand">False</property>
-                        <property name="label" translatable="yes">gene:</property>
-                        <property name="justify">right</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">end</property>
-                        <property name="valign">start</property>
-                        <property name="vexpand">False</property>
-                        <property name="label" translatable="yes">well:</property>
-                        <property name="justify">right</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">5</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">6</property>
-                        <property name="width">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">True</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">7</property>
-                        <property name="width">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">use an empty capturing group if there are no wellsplates</property>
-                        <property name="halign">end</property>
-                        <property name="valign">start</property>
-                        <property name="vexpand">False</property>
-                        <property name="label" translatable="yes">plate:</property>
-                        <property name="justify">right</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="plate_regex">
-                        <property name="name">plate_regex</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="valign">start</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">False</property>
-                        <property name="text" translatable="yes">[-_\s]pl([\d])</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="wellsplate_regex">
-                        <property name="name">wellsplate_regex</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="valign">start</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">False</property>
-                        <property name="text" translatable="yes">(\d)+[^\d_]*.csv</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">10</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="vexpand">False</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">10</property>
-                        <property name="width">2</property>
-                        <property name="height">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButtonBox">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">end</property>
-                        <property name="valign">start</property>
-                        <property name="vexpand">False</property>
-                        <property name="spacing">10</property>
-                        <property name="layout_style">start</property>
-                        <child>
-                          <object class="GtkButton" id="regex_try_online">
-                            <property name="label" translatable="yes">Try online</property>
-                            <property name="name">regex_try_online</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="no_show_all">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="regex_apply">
-                            <property name="label" translatable="yes">Apply</property>
-                            <property name="name">regex_apply</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">6</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButtonBox" id="wellsplate_buttons">
-                        <property name="name">wellsplate_buttons</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">end</property>
-                        <property name="valign">start</property>
-                        <property name="vexpand">False</property>
-                        <property name="spacing">10</property>
-                        <property name="layout_style">start</property>
-                        <child>
-                          <object class="GtkButton" id="invisible">
-                            <property name="label" translatable="yes">Try online</property>
-                            <property name="name">invisible</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="no_show_all">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="wellsplate_apply">
-                            <property name="label" translatable="yes">Apply</property>
-                            <property name="name">wellsplate_apply</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="top_attach">11</property>
                       </packing>
                     </child>
                   </object>
@@ -1451,7 +1425,8 @@ The pattern has to match the plate ID extracted from the sequence filenames.</pr
       </packing>
     </child>
     <child>
-      <object class="GtkImage">
+      <object class="GtkImage" id="quality_page">
+        <property name="name">quality_page</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="stock">gtk-missing-image</property>
