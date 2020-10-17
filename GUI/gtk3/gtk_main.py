@@ -4,6 +4,10 @@ import gi, re
 from pathlib import Path
 from argparse import Namespace
 import logging
+import webbrowser
+import requests
+import json
+from time import sleep
 
 # from GUI.gtk3.dataset import ab12phylo_dataset
 
@@ -27,9 +31,9 @@ class gui(gtk.Window):
               '<span foreground="red">no match</span>',
               '<span foreground="green">use groups!</span>']
     MARKUP = ['<span foreground="blue">reverse</span>',
-              '<span foreground="red">error1</span>',
-              'forward',
-              '<span foreground="pink">error2</span>']
+              '<span foreground="red">no match</span>',
+              '',
+              '<span foreground="green">use groups!</span>']
 
     def __init__(self, data):
         self.log = logging.getLogger(__name__)
@@ -177,8 +181,7 @@ class gui(gtk.Window):
         self.interface.add_csv_folder.connect('clicked', self._add_folder,
                                               {'.csv'}, self.data.csv_paths, self.csv_model)
         self.interface.add_csv_manual.connect('clicked', self._add_manually, self.data.csv_paths, self.csv_model)
-        self.interface.remove_csv.connect('clicked', self._remove_path,
-                                          csv_selection, self.data.csv_paths)
+        self.interface.remove_csv.connect('clicked', self._remove_path, csv_selection, self.data.csv_paths)
         self.interface.delete_all_csv.connect('clicked', self._clear_path, self.data.csv_paths, self.csv_model)
 
         self.interface.files_next.connect('clicked', self._proceed)
@@ -362,8 +365,8 @@ class gui(gtk.Window):
         self.interface.triple_regex_toggle.join_group(self.interface.single_regex_toggle)
         self.interface.single_regex_toggle.set_active(True)
 
-        self.interface.regex_apply.connect('clicked', self._parse)
-        self.interface.single_regex.connect('activate', self._parse)
+        self.interface.regex_apply.connect('clicked', self._parse_triple)
+        self.interface.single_regex.connect('activate', self._parse_triple)
         self.interface.well_regex.connect('activate', self._parse_single, self.interface.well_regex, 0)
         self.interface.gene_regex.connect('activate', self._parse_single, self.interface.gene_regex, 2)
         self.interface.plate_regex.connect('activate', self._parse_single, self.interface.plate_regex, 1)
@@ -374,12 +377,16 @@ class gui(gtk.Window):
         self.interface.rev_regex_check.connect('toggled', self._rev_adjust)
         self.interface.rev_regex.connect('activate', self._parse_single, self.interface.rev_regex, 3)
 
-        self.interface.regex_try_online.connect('clicked', self._stop)
+        self.interface.regex_try_online.connect('clicked', self._try_online)
 
-        # TODO on-the-fly RegEx help page
         # TODO save parser results in data -> seqdata?
-        # TODO rev regex
-        # TODO sorting trace_paths
+
+        # allow deletion
+        for widget, sel in zip([self.interface.remove_path_regex, self.interface.remove_csv_regex],
+                               [self.interface.view_trace_regex.get_selection,
+                                self.interface.view_csv_regex.get_selection]):
+            sel().set_mode(gtk.SelectionMode.MULTIPLE)
+            widget.connect('clicked', self._delete_rows, sel())
 
         # connect buttons
         self.interface.regex_next.connect('clicked', self._proceed)
@@ -387,8 +394,10 @@ class gui(gtk.Window):
         self._reset_REGEX()
         self._refresh_trace_number()
 
-    def _stop(self, widget):
-        print('debug')
+    def _delete_rows(self, widget, selection):
+        model, iterator = selection.get_selected_rows()
+        [model.remove(model.get_iter(row)) for row in reversed(sorted(iterator))]
+        self._set_page_changed(True)
 
     def _reset_REGEX(self):
         # create TreeView model
@@ -414,20 +423,54 @@ class gui(gtk.Window):
             # wellsplates:
             for title, column in zip(['plate ID', 'file'], list(range(2))):
                 self.interface.view_csv_regex.append_column(
-                    gtk.TreeViewColumn(title='title', cell_renderer=gtk.CellRendererText(), markup=column))
+                    gtk.TreeViewColumn(title=title, cell_renderer=gtk.CellRendererText(), markup=column))
         else:
             for title, column in zip(['sample', 'gene', 'file'], [0, 2, 4]):
                 self.interface.view_trace_regex.append_column(
                     gtk.TreeViewColumn(title=title, cell_renderer=gtk.CellRendererText(), markup=column))
 
-        for treeview in [self.interface.view_trace_regex, self.interface.view_csv_regex]:
-            treeview.columns_autosize()
-        for col_index in range(self.interface.view_trace_regex.get_n_columns()):
-            self.interface.view_trace_regex.get_column(col_index).set_sort_column_id(col_index)
-
+        self._reset_sort_size()
         self.interface.rev_regex_check.set_active(False)
 
+    def _try_online(self, widget):
+        self.log.debug('generating online help')
+        url = 'https://regex101.com/api/regex/'
+        headers = {'content-type': 'application/json'}
+
+        payload = dict(flavor='python', flags='gm', delimiter='"')
+        payload['regex'] = self.interface.single_regex.get_text()
+        content = tuple(i.get_text() for i in [self.interface.wellsplate_regex,
+                                               self.interface.single_regex,
+                                               self.interface.well_regex,
+                                               self.interface.gene_regex,
+                                               self.interface.plate_regex,
+                                               self.interface.rev_regex]) \
+                  + ('\n'.join([row[-1] for row in self.interface.view_csv_regex]),
+                     '\n'.join([row[-1] for row in self.interface.view_trace_regex]))
+
+        payload['testString'] = 'wellsplate ID:\n%s\n\nsingle RegEx:\n%s\n\n' \
+                                'separate expressions:\n%s\n%s\n%s\n\n' \
+                                'reverse read:\n%s\n\n' \
+                                'plate filenames:\n%s\n\n' \
+                                'trace filenames:\n%s' % content
+
+        payload = json.dumps(payload, indent=2)
+        try:
+            response = requests.request("POST", url, data=payload, headers=headers)
+            result = json.loads(response.text)
+
+            webbrowser.open('https://regex101.com/r/' + result['permalinkFragment'])
+
+            # wait for the page to load
+            sleep(4)
+            # delete the entry
+            payload = json.dumps(dict(deleteCode=result['deleteCode']), indent=2)
+            response = requests.request("DELETE", url, data=payload, headers=headers)
+        except Exception:
+            self._show_message_dialog('online help failed')
+
     def _rev_adjust(self, widget):
+        n_cols = self.interface.view_trace_regex.get_n_columns()
         if widget.get_active():
             self._search_rev = True
             # enable entry field
@@ -435,39 +478,28 @@ class gui(gtk.Window):
             # create new column
             # px = gtk.CellRendererPixbuf()
             # col = gtk.TreeViewColumn(title=' ', cell_renderer=px)
-            # col.set_cell_data_func(px, self._get_icon)
+            # col.set_cell_data_func(px,
+            #                        lambda column, cell, model, _iter, user_data:
+            #                        cell.set_property('icon-name', model[_iter][3]))
+            # self.interface.view_trace_regex.insert_column(col, self.interface.view_trace_regex.get_n_columns() - 1)
             self.interface.view_trace_regex.insert_column(
-                gtk.TreeViewColumn(title='orientation', cell_renderer=gtk.CellRendererText(), markup=3),
-                self.interface.view_trace_regex.get_n_columns() - 1)
+                gtk.TreeViewColumn(title='reverse', cell_renderer=gtk.CellRendererText(), markup=3), n_cols - 1)
             # cause parsing
             self._parse_single(None, self.interface.rev_regex, 3)
         else:
             self._search_rev = False
             self.interface.rev_regex.set_sensitive(False)
-            try:
-                self.interface.view_trace_regex.remove_column(self.interface.view_trace_regex.get_column(
-                    self.interface.view_trace_regex.get_n_columns() - 2))
-            except TypeError:
-                pass
+            for col in self.interface.view_trace_regex.get_columns():
+                if col.get_title() == 'reverse':
+                    self.interface.view_trace_regex.remove_column(col)
 
-    # def _get_icon(self, column, cell, model, _iter, user_data):
-    #     if model[_iter][3] not in ['v', 'a', 'i']:
-    #         cell.set_property('icon-name', 'go-next-rtl')
-    #     elif model[_iter][3] == 'a':
-    #         cell.set_property('icon-name', 'go-next')
-    #     else:
-    #         cell.set_property('icon-name', 'edit-cut')
+        self._reset_sort_size()
 
-    def _get_icon(self, column, cell, model, _iter, user_data):
-        item = model[_iter][3]
-        if item == 'v':
-            cell.set_property('icon-name', 'gtk-dialog-warning')
-        elif item == 'a':
-            cell.set_property('icon-name', 'go-next-symbolic')
-        elif item == 'i':
-            cell.set_property('icon-name', 'gtk-dialog-question')
-        else:
-            cell.set_property('icon-name', 'go-previous-symbolic')
+    def _reset_sort_size(self):
+        for tree_view in [self.interface.view_trace_regex, self.interface.view_csv_regex]:
+            tree_view.columns_autosize()
+            for col_index in range(tree_view.get_n_columns()):
+                tree_view.get_column(col_index).set_sort_column_id(col_index)
 
     def _regex_toggle(self, widget):
         # (In)activates the Entry fields and causes a parse event
@@ -490,9 +522,9 @@ class gui(gtk.Window):
                 self.interface.plate_regex_label.set_sensitive(False)
             self.log.debug('toggled radiobutton %s' % widget.get_name())
             # parse again
-            self._parse(widget)
+            self._parse_triple(widget)
 
-    def _parse(self, widget):
+    def _parse_triple(self, widget):
         if self.interface.single_regex_toggle.get_active():
             self.log.debug('parsing with single regex')
             # if parsing with only a single regex
@@ -517,7 +549,7 @@ class gui(gtk.Window):
                 self._parse_single(None, self.interface.plate_regex, 1)
         if self._search_rev:
             self._parse_single(None, self.interface.rev_regex, 3)
-        self.interface.view_trace_regex.columns_autosize()
+        self._reset_sort_size()
         self.log.debug('parsing done')
 
     def _parse_single(self, widget, entry, col_index):
@@ -550,14 +582,20 @@ class gui(gtk.Window):
                     a = regex.search(file).groups()[0]
                     model[row_index][col_index] = gui.MARKUP[0]
                 except ValueError as ve:
-                    # maybe wrong number of groups
                     model[row_index][col_index] = gui.MARKUP[1]
                 except AttributeError as ae:
-                    # no match
                     model[row_index][col_index] = gui.MARKUP[2]
                 except IndexError as ie:
-                    # no groups used
                     model[row_index][col_index] = gui.MARKUP[3]
+                # try:
+                #     a = regex.search(file).groups()[0]
+                #     model[row_index][col_index] = 'go-previous-symbolic'
+                # except ValueError:
+                #     model[row_index][col_index] = 'gtk-dialog-warning'
+                # except  AttributeError:
+                #     model[row_index][col_index] = ''  # 'go-next-symbolic'
+                # except IndexError:
+                #     model[row_index][col_index] = 'gtk-dialog-warning'
 
 
 class dataset:
@@ -566,6 +604,11 @@ class dataset:
         self.trace_paths = []
         self.csv_paths = []
         self.path_container = []
+        self.regex_data = dict()
+        self.metadata = dict()
+        self.seqdata = dict()
+        # self.metadata[gene][record.id] = attributes
+        # self.seqdata[gene][record.id] = record
 
 
 def _init_log(**kwargs):

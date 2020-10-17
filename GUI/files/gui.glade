@@ -802,8 +802,8 @@
                             <property name="show_arrow">False</property>
                             <property name="icon_size">2</property>
                             <child>
-                              <object class="GtkToolButton" id="remove_path1">
-                                <property name="name">remove_path</property>
+                              <object class="GtkToolButton" id="remove_path_regex">
+                                <property name="name">remove_path_regex</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">Removes selected files only.</property>
@@ -812,23 +812,6 @@
                                 <property name="label" translatable="yes">remove entry</property>
                                 <property name="use_underline">True</property>
                                 <property name="icon_name">list-remove-symbolic</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">True</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkToolButton" id="delete_all1">
-                                <property name="name">delete_all</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">Will remove all files.</property>
-                                <property name="halign">end</property>
-                                <property name="valign">end</property>
-                                <property name="label" translatable="yes">delete all</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-delete-symbolic</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1211,8 +1194,8 @@ Wellsplate, gene and well coordinates are extracted from the filename using &lt;
                             <property name="show_arrow">False</property>
                             <property name="icon_size">2</property>
                             <child>
-                              <object class="GtkToolButton" id="remove_csv1">
-                                <property name="name">remove_path</property>
+                              <object class="GtkToolButton" id="remove_csv_regex">
+                                <property name="name">remove_csv_regex</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">Removes selected files only.</property>
@@ -1221,23 +1204,6 @@ Wellsplate, gene and well coordinates are extracted from the filename using &lt;
                                 <property name="label" translatable="yes">remove entry</property>
                                 <property name="use_underline">True</property>
                                 <property name="icon_name">list-remove-symbolic</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">True</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkToolButton" id="delete_all_csv1">
-                                <property name="name">delete_all</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">Will remove all files.</property>
-                                <property name="halign">end</property>
-                                <property name="valign">end</property>
-                                <property name="label" translatable="yes">delete all</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-delete-symbolic</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
