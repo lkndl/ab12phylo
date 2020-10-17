@@ -418,8 +418,8 @@
                             <property name="show_arrow">False</property>
                             <property name="icon_size">2</property>
                             <child>
-                              <object class="GtkToolButton" id="remove_traces">
-                                <property name="name">remove_traces</property>
+                              <object class="GtkToolButton" id="remove_trace">
+                                <property name="name">remove_trace</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">Removes selected files only.</property>
@@ -435,8 +435,8 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkToolButton" id="delete_all_traces">
-                                <property name="name">delete_all_traces</property>
+                              <object class="GtkToolButton" id="delete_all_trace">
+                                <property name="name">delete_all_trace</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">Will remove all files.</property>
@@ -860,8 +860,8 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="single_regex">
-                        <property name="name">single_regex</property>
+                      <object class="GtkEntry" id="single_rx">
+                        <property name="name">single_rx</property>
                         <property name="width_request">200</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -878,9 +878,9 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkRadioButton" id="triple_regex_toggle">
+                      <object class="GtkRadioButton" id="triple_rt">
                         <property name="label" translatable="yes">separate expressions</property>
-                        <property name="name">triple_regex_toggle</property>
+                        <property name="name">triple_rt</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
@@ -897,8 +897,8 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="gene_regex">
-                        <property name="name">gene_regex</property>
+                      <object class="GtkEntry" id="gene_rx">
+                        <property name="name">gene_rx</property>
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
@@ -1020,8 +1020,8 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="plate_regex">
-                        <property name="name">plate_regex</property>
+                      <object class="GtkEntry" id="plate_rx">
+                        <property name="name">plate_rx</property>
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
@@ -1036,8 +1036,8 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="well_regex">
-                        <property name="name">well_regex</property>
+                      <object class="GtkEntry" id="well_rx">
+                        <property name="name">well_rx</property>
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
@@ -1081,8 +1081,8 @@ Wellsplate, gene and well coordinates are extracted from the filename using &lt;
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="wellsplate_regex">
-                        <property name="name">wellsplate_regex</property>
+                      <object class="GtkEntry" id="wp_rx">
+                        <property name="name">wp_rx</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="valign">start</property>
@@ -1117,9 +1117,9 @@ Wellsplate, gene and well coordinates are extracted from the filename using &lt;
                         <property name="spacing">10</property>
                         <property name="layout_style">start</property>
                         <child>
-                          <object class="GtkButton" id="wellsplate_try_online">
+                          <object class="GtkButton" id="wp_try_online">
                             <property name="label" translatable="yes">Try online</property>
-                            <property name="name">wellsplate_try_online</property>
+                            <property name="name">wp_try_online</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="no_show_all">True</property>
@@ -1131,9 +1131,9 @@ Wellsplate, gene and well coordinates are extracted from the filename using &lt;
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton" id="wellsplate_apply">
+                          <object class="GtkButton" id="wp_apply">
                             <property name="label" translatable="yes">Apply</property>
-                            <property name="name">wellsplate_apply</property>
+                            <property name="name">wp_apply</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -1237,9 +1237,9 @@ Wellsplate, gene and well coordinates are extracted from the filename using &lt;
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkRadioButton" id="single_regex_toggle">
+                      <object class="GtkRadioButton" id="single_rt">
                         <property name="label" translatable="yes">single RegEx</property>
-                        <property name="name">single_regex_toggle</property>
+                        <property name="name">single_rt</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
@@ -1255,8 +1255,8 @@ Wellsplate, gene and well coordinates are extracted from the filename using &lt;
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="rev_regex">
-                        <property name="name">rev_regex</property>
+                      <object class="GtkEntry" id="reverse_rx">
+                        <property name="name">reverse_rx</property>
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
@@ -1271,9 +1271,9 @@ Wellsplate, gene and well coordinates are extracted from the filename using &lt;
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="rev_regex_check">
+                      <object class="GtkCheckButton" id="reverse_rx_chk">
                         <property name="label" translatable="yes">reverse reads in dataset</property>
-                        <property name="name">rev_regex_check</property>
+                        <property name="name">reverse_rx_chk</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
