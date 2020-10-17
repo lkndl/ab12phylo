@@ -882,7 +882,7 @@
                         <property name="width_request">200</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">A single regular expression containing capturing groups that match the plate, the gene and the well coordinates / user ID of the sample in that order. If wellsplates are not used, the first capturing group must not exist. </property>
+                        <property name="tooltip_text" translatable="yes">A single regular expression containing capturing groups that match the plate, the gene and the well coordinates / user-defined ID of the sample in that order. If wellsplates are not used, the first capturing group must not exist. </property>
                         <property name="valign">start</property>
                         <property name="hexpand">False</property>
                         <property name="vexpand">False</property>
@@ -971,7 +971,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">11</property>
+                        <property name="top_attach">12</property>
                         <property name="width">3</property>
                       </packing>
                     </child>
@@ -1033,7 +1033,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
-                        <property name="top_attach">10</property>
+                        <property name="top_attach">11</property>
                       </packing>
                     </child>
                     <child>
@@ -1076,7 +1076,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">10</property>
+                        <property name="top_attach">11</property>
                       </packing>
                     </child>
                     <child>
@@ -1087,7 +1087,7 @@
                         <property name="halign">start</property>
                         <property name="vexpand">False</property>
                         <property name="label" translatable="yes">&lt;b&gt;Parse Wellsplate ID&lt;/b&gt;
-Wellsplate, gene and well coordinates are extracted from the filename using &lt;a href="https://regex101.com/r/Yulwlf/8" title="Examples from development stage"&gt;Regular Expressions&lt;/a&gt;. The plate ID extracted here has to match the one extracted from the sequence filenames below.</property>
+Wellsplate, gene and well coordinates are extracted from the filename using &lt;a href="https://regex101.com/r/Yulwlf/8" title="Examples from development stage"&gt;Regular Expressions&lt;/a&gt; with capturing groups. The plate ID extracted here has to match the one extracted from the sequence filenames below.</property>
                         <property name="use_markup">True</property>
                         <property name="wrap">True</property>
                       </object>
@@ -1286,6 +1286,39 @@ Wellsplate, gene and well coordinates are extracted from the filename using &lt;
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="rev_regex">
+                        <property name="name">rev_regex</property>
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_text" translatable="yes">Field is disabled if no wellsplates are used. Press Enter to apply.</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="text" translatable="yes">(rev)</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">10</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="rev_regex_check">
+                        <property name="label" translatable="yes">reverse reads in dataset</property>
+                        <property name="name">rev_regex_check</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="vexpand">False</property>
+                        <property name="draw_indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">10</property>
                       </packing>
                     </child>
                   </object>

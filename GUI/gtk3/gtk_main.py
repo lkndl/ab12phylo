@@ -23,6 +23,13 @@ class gui(gtk.Window):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
     FILETYPES = ['.ab1', '.seq', '.fasta']
+    ERRORS = ['<span foreground="blue">groups?</span>',
+              '<span foreground="red">no match</span>',
+              '<span foreground="green">use groups!</span>']
+    MARKUP = ['<span foreground="blue">reverse</span>',
+              '<span foreground="red">error1</span>',
+              'forward',
+              '<span foreground="pink">error2</span>']
 
     def __init__(self, data):
         self.log = logging.getLogger(__name__)
@@ -50,8 +57,8 @@ class gui(gtk.Window):
         self.connect('destroy', gtk.main_quit)
         # set up indicator of changes, tabs are not disabled initially
         self._change_indicator = [False] * self.notebook.get_n_pages()
-        self._reading_plates = True
-        self.regex_model, self.wellsplate_model = gtk.ListStore(str, str, str, str), gtk.ListStore(str, str)
+        self._reading_plates, self._search_rev = True, False
+        self.regex_model, self.wellsplate_model = gtk.ListStore(str, str, str, str, str), gtk.ListStore(str, str)
 
         # general window setup
         ##########################
@@ -358,14 +365,21 @@ class gui(gtk.Window):
         self.interface.regex_apply.connect('clicked', self._parse)
         self.interface.single_regex.connect('activate', self._parse)
         self.interface.well_regex.connect('activate', self._parse_single, self.interface.well_regex, 0)
-        self.interface.gene_regex.connect('activate', self._parse_single, self.interface.gene_regex, -2)
+        self.interface.gene_regex.connect('activate', self._parse_single, self.interface.gene_regex, 2)
         self.interface.plate_regex.connect('activate', self._parse_single, self.interface.plate_regex, 1)
 
         self.interface.wellsplate_regex.connect('activate', self._parse_single, self.interface.wellsplate_regex, 0)
         self.interface.wellsplate_apply.connect('clicked', self._parse_single, self.interface.wellsplate_regex, 0)
 
+        self.interface.rev_regex_check.connect('toggled', self._rev_adjust)
+        self.interface.rev_regex.connect('activate', self._parse_single, self.interface.rev_regex, 3)
+
+        self.interface.regex_try_online.connect('clicked', self._stop)
+
         # TODO on-the-fly RegEx help page
-        # TODO save parser results in data
+        # TODO save parser results in data -> seqdata?
+        # TODO rev regex
+        # TODO sorting trace_paths
 
         # connect buttons
         self.interface.regex_next.connect('clicked', self._proceed)
@@ -373,29 +387,28 @@ class gui(gtk.Window):
         self._reset_REGEX()
         self._refresh_trace_number()
 
+    def _stop(self, widget):
+        print('debug')
+
     def _reset_REGEX(self):
-        # path extraction: well/id, (plate), gene, file
-        # create TreeView models and fill filename column
+        # create TreeView model
+        # path extraction: well/id, (plate), gene, (reversed), file
+        self.regex_model = gtk.ListStore(str, str, str, str, str)
+        # fill last column with initial filename data
+        [self.regex_model.append([''] * 4 + [Path(path).name]) for path in self.data.trace_paths]
         if self._reading_plates:
-            self.regex_model = gtk.ListStore(str, str, str, str)
             self.wellsplate_model = gtk.ListStore(str, str)
-            # fill with initial data
-            [self.regex_model.append([''] * 3 + [Path(path).name]) for path in self.data.trace_paths]
             [self.wellsplate_model.append([''] + [Path(path).name]) for path in self.data.csv_paths]
-        else:
-            self.regex_model = gtk.ListStore(str, str, str)
-            [self.regex_model.append([''] * 2 + [Path(path).name]) for path in self.data.trace_paths]
         # self.interface.view_trace_regex.set_headers_visible(False)
         self.interface.view_trace_regex.set_model(self.regex_model)
         self.interface.view_csv_regex.set_model(self.wellsplate_model)
         # remove old columns:
         for treeview in [self.interface.view_trace_regex, self.interface.view_csv_regex]:
-            [treeview.remove_colum(col) for col in treeview.get_columns()]
+            [treeview.remove_column(col) for col in treeview.get_columns()]
 
         # columns depend on _reading_plates
-        self.interface.view_trace_regex.get_columns().clear()
         if self._reading_plates:
-            for title, column in zip(['well', 'plate', 'gene', 'file'], list(range(4))):
+            for title, column in zip(['well', 'plate', 'gene', 'file'], [0, 1, 2, 4]):
                 self.interface.view_trace_regex.append_column(
                     gtk.TreeViewColumn(title=title, cell_renderer=gtk.CellRendererText(), markup=column))
             # wellsplates:
@@ -403,7 +416,7 @@ class gui(gtk.Window):
                 self.interface.view_csv_regex.append_column(
                     gtk.TreeViewColumn(title='title', cell_renderer=gtk.CellRendererText(), markup=column))
         else:
-            for title, column in zip(['sample', 'gene', 'file'], list(range(3))):
+            for title, column in zip(['sample', 'gene', 'file'], [0, 2, 4]):
                 self.interface.view_trace_regex.append_column(
                     gtk.TreeViewColumn(title=title, cell_renderer=gtk.CellRendererText(), markup=column))
 
@@ -411,6 +424,50 @@ class gui(gtk.Window):
             treeview.columns_autosize()
         for col_index in range(self.interface.view_trace_regex.get_n_columns()):
             self.interface.view_trace_regex.get_column(col_index).set_sort_column_id(col_index)
+
+        self.interface.rev_regex_check.set_active(False)
+
+    def _rev_adjust(self, widget):
+        if widget.get_active():
+            self._search_rev = True
+            # enable entry field
+            self.interface.rev_regex.set_sensitive(True)
+            # create new column
+            # px = gtk.CellRendererPixbuf()
+            # col = gtk.TreeViewColumn(title=' ', cell_renderer=px)
+            # col.set_cell_data_func(px, self._get_icon)
+            self.interface.view_trace_regex.insert_column(
+                gtk.TreeViewColumn(title='orientation', cell_renderer=gtk.CellRendererText(), markup=3),
+                self.interface.view_trace_regex.get_n_columns() - 1)
+            # cause parsing
+            self._parse_single(None, self.interface.rev_regex, 3)
+        else:
+            self._search_rev = False
+            self.interface.rev_regex.set_sensitive(False)
+            try:
+                self.interface.view_trace_regex.remove_column(self.interface.view_trace_regex.get_column(
+                    self.interface.view_trace_regex.get_n_columns() - 2))
+            except TypeError:
+                pass
+
+    # def _get_icon(self, column, cell, model, _iter, user_data):
+    #     if model[_iter][3] not in ['v', 'a', 'i']:
+    #         cell.set_property('icon-name', 'go-next-rtl')
+    #     elif model[_iter][3] == 'a':
+    #         cell.set_property('icon-name', 'go-next')
+    #     else:
+    #         cell.set_property('icon-name', 'edit-cut')
+
+    def _get_icon(self, column, cell, model, _iter, user_data):
+        item = model[_iter][3]
+        if item == 'v':
+            cell.set_property('icon-name', 'gtk-dialog-warning')
+        elif item == 'a':
+            cell.set_property('icon-name', 'go-next-symbolic')
+        elif item == 'i':
+            cell.set_property('icon-name', 'gtk-dialog-question')
+        else:
+            cell.set_property('icon-name', 'go-previous-symbolic')
 
     def _regex_toggle(self, widget):
         # (In)activates the Entry fields and causes a parse event
@@ -446,17 +503,20 @@ class gui(gtk.Window):
                 try:
                     m = regex.search(file)
                     plate, gene, well = m.groups() if self._reading_plates else (None, *m.groups())
-                    self.regex_model[row_index] = [well, plate, gene, file] if self._reading_plates else [well, gene,
-                                                                                                          file]
+                    self.regex_model[row_index] = [well, plate, gene, self.regex_model[row_index][3], file]
                 except ValueError as ve:
-                    self.regex_model[row_index][-2] = '<span foreground="blue">groups?</span>'
+                    self.regex_model[row_index][0] = gui.ERRORS[0]
                 except AttributeError as ae:
-                    self.regex_model[row_index][-2] = '<span foreground="red">no match</span>'
+                    self.regex_model[row_index][0] = gui.ERRORS[1]
+                except IndexError as ie:
+                    self.regex_model[row_index][0] = gui.ERRORS[2]
         else:
             self._parse_single(None, self.interface.well_regex, 0)
-            self._parse_single(None, self.interface.gene_regex, -2)
+            self._parse_single(None, self.interface.gene_regex, 2)
             if self._reading_plates:
                 self._parse_single(None, self.interface.plate_regex, 1)
+        if self._search_rev:
+            self._parse_single(None, self.interface.rev_regex, 3)
         self.interface.view_trace_regex.columns_autosize()
         self.log.debug('parsing done')
 
@@ -469,14 +529,35 @@ class gui(gtk.Window):
         else:
             model = self.regex_model
 
-        for row_index in range(len(model)):
-            file = model[row_index][-1]
-            try:
-                model[row_index][col_index] = regex.search(file).groups()[0]
-            except ValueError as ve:
-                model[row_index][col_index] = '<span foreground="blue">groups?</span>'
-            except AttributeError as ae:
-                model[row_index][col_index] = '<span foreground="red">no match</span>'
+        if entry is not self.interface.rev_regex:
+            for row_index in range(len(model)):
+                file = model[row_index][-1]
+                try:
+                    model[row_index][col_index] = regex.search(file).groups()[0]
+                except ValueError as ve:
+                    # maybe wrong number of groups
+                    model[row_index][col_index] = gui.ERRORS[0]
+                except AttributeError as ae:
+                    # no match
+                    model[row_index][col_index] = gui.ERRORS[1]
+                except IndexError as ie:
+                    # no groups used
+                    model[row_index][col_index] = gui.ERRORS[2]
+        else:
+            for row_index in range(len(model)):
+                file = model[row_index][-1]
+                try:
+                    a = regex.search(file).groups()[0]
+                    model[row_index][col_index] = gui.MARKUP[0]
+                except ValueError as ve:
+                    # maybe wrong number of groups
+                    model[row_index][col_index] = gui.MARKUP[1]
+                except AttributeError as ae:
+                    # no match
+                    model[row_index][col_index] = gui.MARKUP[2]
+                except IndexError as ie:
+                    # no groups used
+                    model[row_index][col_index] = gui.MARKUP[3]
 
 
 class dataset:
