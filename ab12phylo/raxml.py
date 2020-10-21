@@ -216,7 +216,7 @@ class raxml_build:
         cpus = int(res[pos:pos + 60].split('\n')[0].split(' ')[-1])
 
         # how many parallel runs on how many cores?
-        runs = os.cpu_count() // cpus
+        runs = max(1, os.cpu_count() // cpus)
         # potentially limit threads
         if 'max_threads' in self.args:
             runs = min(runs, self.args.max_threads)
