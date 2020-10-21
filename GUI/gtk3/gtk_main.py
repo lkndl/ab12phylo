@@ -1,20 +1,15 @@
-import sys
-
-import gi, re
-from pathlib import Path
-from argparse import Namespace
 import logging
-import webbrowser
-import requests
-import json
-from time import sleep
+import sys
+from argparse import Namespace
+from pathlib import Path
+
+import gi
 
 from GUI.gtk3 import files, regex
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk as gtk, Gdk as gdk
+from gi.repository import Gtk as gtk
 
-# BASE_DIR = Path('/home/quirin/PYTHON/AB12PHYLO/GUI/gtk3/gtk_main.py').resolve().parents[2]
 BASE_DIR = Path(__file__).resolve().parents[2]
 __verbose__, __info__ = 1, 0
 

@@ -1,16 +1,15 @@
 import json
-import re
-import webbrowser
-
-import gi
 import logging
+import webbrowser
 from pathlib import Path
 from time import sleep
 
+import gi
+import re
 import requests
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk as gtk, Gdk as gdk
+from gi.repository import Gtk as gtk
 
 from GUI.gtk3 import commons
 

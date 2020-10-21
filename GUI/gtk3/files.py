@@ -1,11 +1,12 @@
-import gi
 import logging
 from pathlib import Path
 
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk as gtk, Gdk as gdk
+import gi
 
 from GUI.gtk3 import commons
+
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk as gtk, Gdk as gdk
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
