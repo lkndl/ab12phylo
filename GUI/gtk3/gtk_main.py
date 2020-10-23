@@ -5,10 +5,10 @@ from pathlib import Path
 
 import gi
 
-from GUI.gtk3 import files, regex
+from GUI.gtk3 import files, regex, quality
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk as gtk
+from gi.repository import Gtk as gtk, GLib as gLib
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 __verbose__, __info__ = 1, 0
@@ -17,6 +17,8 @@ __verbose__, __info__ = 1, 0
 gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
 gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
 
+
+# TODO page has errors
 
 class gui(gtk.Window):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
@@ -49,10 +51,14 @@ class gui(gtk.Window):
         self.interface.change_indicator = [False] * self.notebook.get_n_pages()
         self.interface.plates, self.interface.search_rev = True, False
 
+        self.reader = None  # quality.reader()
+        self.timeout_id = None  # gLib.timeout_add(50, quality.on_timeout, self.interface, self.reader)
+
         self.data = dataset()
 
-        files.init(self.data, self.interface)
-        regex.init(self.data, self.interface)
+        files.init(self)
+        regex.init(self)
+        quality.init(self)
 
 
 class dataset:
@@ -60,7 +66,8 @@ class dataset:
         self.filetypes = set()
         self.trace_model, self.csv_model = gtk.ListStore(str), gtk.ListStore(str)
         self.rx_model, self.wp_model = gtk.ListStore(str, str, str, str, str), gtk.ListStore(str, str)
-
+        self.q_model = gtk.ListStore(str, str)
+        self.genes = list()
 
 
 def _init_log(**kwargs):

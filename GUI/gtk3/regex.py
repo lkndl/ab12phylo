@@ -25,7 +25,8 @@ MARKUP = ['<span foreground="blue">reverse</span>',
           '<span foreground="green">use groups!</span>']
 
 
-def init(data, iface):
+def init(gui):
+    data, iface = gui.data, gui.interface
     iface.single_rt.connect('toggled', rx_toggle, data, iface)
     iface.triple_rt.connect('toggled', rx_toggle, data, iface)
     iface.triple_rt.join_group(iface.single_rt)
@@ -51,13 +52,14 @@ def init(data, iface):
         widget.connect('clicked', commons.delete_rows, iface, data, PAGE, sel())
 
     # connect buttons
-    iface.regex_next.connect('clicked', commons.proceed, data, iface)
-    iface.regex_back.connect('clicked', commons.step_back, iface)
-    reset(data, iface)
+    iface.regex_next.connect('clicked', commons.proceed, gui)
+    iface.regex_back.connect('clicked', commons.step_back, gui)
+    reset(gui)
     commons.refresh_files(iface, data, PAGE)
 
 
-def reset(data, iface):
+def reset(gui):
+    data, iface = gui.data, gui.interface
     # create TreeView model
     # path extraction: well/id, (plate), gene, (reversed), file
     data.rx_model = gtk.ListStore(str, str, str, str, str)
@@ -89,11 +91,13 @@ def reset(data, iface):
 
     reset_sort_size(iface)
     iface.reverse_rx_chk.set_active(False)
+    iface.search_rev = False
 
 
 def parse_single(widget, data, iface, entry, col):
     LOG.debug('parsing from %s' % entry.get_name())
     regex = re.compile(entry.get_text())
+    changed = False or commons.get_changed(iface, PAGE)
 
     if widget in [iface.wp_rx, iface.wp_apply]:
         model = data.wp_model
@@ -101,40 +105,52 @@ def parse_single(widget, data, iface, entry, col):
         model = data.rx_model
 
     if entry is not iface.reverse_rx:
-        for row in range(len(model)):
-            file = model[row][-1]
+        for i, row in enumerate(model):
+            file = row[-1]
             try:
-                model[row][col] = regex.search(file).groups()[0]
+                m = regex.search(file).groups()[0]
+                if not changed:
+                    changed = m != row[col]
+                model[i][col] = m
             except ValueError as ve:
                 # maybe wrong number of groups
-                model[row][col] = ERRORS[0]
+                model[i][col] = ERRORS[0]
             except AttributeError as ae:
                 # no match
-                model[row][col] = ERRORS[1]
+                model[i][col] = ERRORS[1]
             except IndexError as ie:
                 # no groups used
-                model[row][col] = ERRORS[2]
+                model[i][col] = ERRORS[2]
     else:
-        for row in range(len(model)):
-            file = model[row][-1]
+        for i, row in enumerate(model):
+            file = row[-1]
             try:
-                a = regex.search(file).groups()[0]
-                model[row][col] = MARKUP[0]
+                m = regex.search(file).groups()[0]
+                if not changed:
+                    changed = MARKUP[0] != row[col]
+                model[i][col] = MARKUP[0]
             except ValueError as ve:
-                model[row][col] = MARKUP[1]
+                if not changed:
+                    changed = MARKUP[1] != row[col]
+                model[i][col] = MARKUP[1]
             except AttributeError as ae:
-                model[row][col] = MARKUP[2]
+                if not changed:
+                    changed = MARKUP[2] != row[col]
+                model[i][col] = MARKUP[2]
             except IndexError as ie:
-                model[row][col] = MARKUP[3]
+                if not changed:
+                    changed = MARKUP[3] != row[col]
+                model[i][col] = MARKUP[3]
             # try:
             #     a = regex.search(file).groups()[0]
-            #     model[row][col] = 'go-previous-symbolic'
+            #     model[i][col] = 'go-previous-symbolic'
             # except ValueError:
-            #     model[row][col] = 'gtk-dialog-warning'
+            #     model[i][col] = 'gtk-dialog-warning'
             # except  AttributeError:
-            #     model[row][col] = ''  # 'go-next-symbolic'
+            #     model[i][col] = ''  # 'go-next-symbolic'
             # except IndexError:
-            #     model[row][col] = 'gtk-dialog-warning'
+            #     model[i][col] = 'gtk-dialog-warning'
+    commons.set_changed(iface, PAGE, changed)
 
 
 def parse_triple(widget, data, iface):
@@ -142,19 +158,23 @@ def parse_triple(widget, data, iface):
         LOG.debug('parsing with single regex')
         # if parsing with only a single regex
         regex = re.compile(iface.single_rx.get_text())
+        changed = False or commons.get_changed(iface, PAGE)
 
-        for row in range(len(data.rx_model)):
-            file = data.rx_model[row][-1]
+        for idx, row in enumerate(data.rx_model):
+            file = row[-1]
             try:
                 m = regex.search(file)
                 plate, gene, well = m.groups() if iface.plates else (None, *m.groups())
-                data.rx_model[row] = [well, plate, gene, data.rx_model[row][3], file]
+                if not changed:
+                    changed = not bool(row == [well, plate, gene, row[3], file])
+                data.rx_model[idx] = [well, plate, gene, row[3], file]
             except ValueError as ve:
-                data.rx_model[row][0] = ERRORS[0]
+                data.rx_model[idx][0] = ERRORS[0]
             except AttributeError as ae:
-                data.rx_model[row][0] = ERRORS[1]
+                data.rx_model[idx][0] = ERRORS[1]
             except IndexError as ie:
-                data.rx_model[row][0] = ERRORS[2]
+                data.rx_model[idx][0] = ERRORS[2]
+        commons.set_changed(iface, PAGE, changed)
     else:
         parse_single(None, data, iface, iface.well_rx, 0)
         parse_single(None, data, iface, iface.gene_rx, 2)

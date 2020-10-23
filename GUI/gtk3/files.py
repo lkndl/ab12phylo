@@ -14,7 +14,8 @@ PAGE = 0
 FILETYPES = ['.ab1', '.seq', '.fasta']
 
 
-def init(data, iface):
+def init(gui):
+    data, iface = gui.data, gui.interface
     # trace file types
     # create a TreeView model
     data.file_type_model = gtk.ListStore(str, bool)
@@ -61,7 +62,7 @@ def init(data, iface):
         iface.__getattribute__('delete_all_%s' % file_type) \
             .connect('clicked', commons.delete_rows, iface, data, PAGE, sel, mo)
 
-    iface.files_next.connect('clicked', commons.proceed, data, iface)
+    iface.files_next.connect('clicked', commons.proceed, gui)
 
 
 def add_folder(widget, iface, data, file_types, model):

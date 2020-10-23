@@ -5,7 +5,7 @@ import logging
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk as gtk, Gdk as gdk
 
-from GUI.gtk3 import regex
+from GUI.gtk3 import regex, quality
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ def refresh_files(iface, data, page):
     # self._set_page_changed(not iface.plates or self._get_page_changed())
     set_changed(iface, page, not iface.plates or get_changed(iface, page))
     [iface.__getattribute__(name).set_sensitive(iface.plates)
-     for name in ['plate_regex_label', 'plate_rx', 'wellsplate_regex_description',
+     for name in ['plate_regex_label', 'plate_rx', 'wp_rx_desc', 'wp_lbl',
                   'wp_rx', 'wellsplate_buttons', 'wellsplate_regex_box']]
     # toggle radiobutton line back off
     if not iface.triple_rt.get_active():
@@ -87,21 +87,27 @@ def delete_rows(widget, iface, data, page, selection, delete_all=False):
     refresh_files(iface, data, page)
 
 
-def proceed(widget, data, iface):
+def proceed(widget, gui):
+    data, iface = gui.data, gui.interface
     page = iface.notebook.get_current_page()
     # first integrate changes to the dataset
     if get_changed(iface, page):
         if page == 0:
-            regex.reset(data, iface)
+            regex.reset(gui)
         # TODO
+        elif page == 1:
+            quality.reset(gui)
+            print('no')
+            # gui.reader.join()
         set_changed(iface, page, False)
 
     # then proceed
     iface.notebook.next_page()
-    LOG.debug('proceeded to page %d' % page)
+    LOG.debug('proceeded to page %d' % iface.notebook.get_current_page())
 
 
-def step_back(widget, iface):
+def step_back(widget, gui):
+    data, iface = gui.data, gui.interface
     iface.notebook.prev_page()
     page = iface.notebook.get_current_page()
     set_changed(iface, page, False)
