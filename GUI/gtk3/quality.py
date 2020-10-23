@@ -1,8 +1,9 @@
 import logging
-import queue
+import queue, string
+import pandas as pd
 from pathlib import Path
 from time import sleep
-from threading import Thread, Event
+from threading import Thread
 
 import gi
 import re
@@ -10,7 +11,7 @@ import numpy as np
 import seaborn as sns
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk as gtk, Gdk as gdk, GLib as gLib, GObject as gobject
+from gi.repository import Gtk, Gdk, GLib
 
 from GUI.gtk3 import commons
 
@@ -23,16 +24,16 @@ VARIABLE = []
 def init(gui):
     data, iface = gui.data, gui.interface
     iface.read_prog.set_visible(False)
-    iface.gene_roll.set_model(gtk.ListStore(str))
+    iface.gene_roll.set_model(Gtk.ListStore(str))
     iface.gene_roll.connect('changed', redraw, data, iface)
 
     iface.accept_rev.set_active(iface.search_rev)
     iface.accept_nophred.set_active(True)
 
-    iface.min_phred.set_adjustment(gtk.Adjustment(value=30, upper=60, lower=0,
+    iface.min_phred.set_adjustment(Gtk.Adjustment(value=30, upper=60, lower=0,
                                                   step_increment=1, page_increment=1))
     iface.min_phred.set_numeric(True)
-    iface.min_phred.set_update_policy(gtk.SpinButtonUpdatePolicy.IF_VALID)
+    iface.min_phred.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
 
     iface.q_params = dict()
 
@@ -62,46 +63,58 @@ def reset(gui):
         gui.queue = queue.Queue()
 
         # install timer event to check for new data from the thread
-        gLib.timeout_add(50, _on_timer, gui)
-        ready = Event()
-        gui.reader = reader_thread(gui, ready)
+        GLib.timeout_add(50, _on_timer, gui)
+        gui.reader = reader_thread(gui)
         gui.reader.start()
-        # iface.notebook.next_page()
-        # iface.notebook.prev_page()
-        # ready.wait()
-
-        # create matrix
-        # make the initial trimming preview?
-        print('no')
-        # gui.reader.join()
-        redraw(None, data, iface)
 
 
 class reader_thread(Thread):
-    def __init__(self, gui, ready):
+    def __init__(self, gui):
         Thread.__init__(self)
         self._gui = gui
-        self._ready = ready
+        self._rx_model = [row for row in gui.data.rx_model]
+        self._wp_model = [row for row in gui.data.wp_model]
+        self._csvs = gui.data.csvs
+        self._page = gui.notebook.get_children()[PAGE]
+        self._queue = gui.queue
+        self._show = commons.show_message_dialog
+        self._LOG = LOG
+        self._csvs = dict()
 
     def run(self):
+        self._page.set_sensitive(False)
         done = 0
+        df, box, = None, None
         # read in wellsplates
-        for row in self._gui.data.wp_model:
-            sleep(1)
-
+        LOG.debug('reading wellsplates')
+        for row in self._wp_model:
+            print(row[:])
+            df = pd.read_csv(row[-1], header=None, engine='python')
+            df.index = list(range(1, df.shape[0] + 1))
+            df.columns = list(string.ascii_uppercase[0:df.shape[1]])
+            box = row[0]
+            if box in self._csvs:
+                self._LOG.error('wellsplate %s already read in. overwrite with %s' % (box, row[-2]))
+                self._show(message='wellsplate %s already read in. overwrite with %s' % (box, row[-2]))
+            self._csvs[box] = df
             done += 1
-            print(done)
-            self._gui.queue.put([done, 'plate %s' % row[-1]])
+            self._queue.put([done, 'plate %s' % row[-2]])
 
         # read in trace files
-        for row in self._gui.data.rx_model:
+        # LOG.debug('reading traces')
+        for row in self._rx_model:
             sleep(.3)
 
             done += 1
             print(done)
-            self._gui.queue.put([done, 'trace %s' % row[-1]])
+            self._queue.put([done, 'trace %s' % row[-2]])
 
-        self._ready.set()
+        try:
+            self._page.set_sensitive(True)
+        except Exception:
+            # LOG.error('inactivate notebook page failed')
+            pass
+        redraw(None, self._gui.data, self._gui.interface)
 
 
 def _on_timer(gui):
@@ -113,12 +126,12 @@ def _on_timer(gui):
         iface.read_prog.set_fraction(0)
         return False
 
-    # if data available
-    while not gui.queue.empty():
-        entry = gui.queue.get()
-        iface.read_prog.set_visible(True)
-        iface.read_prog.set_fraction(entry[0] / tasklen)
-        iface.read_prog.set_text('reading %s' % entry[1])
+    # # if data available
+    # while not gui.queue.empty():
+    #     entry = gui.queue.get()
+    #     iface.read_prog.set_visible(True)
+    #     iface.read_prog.set_fraction(entry[0] / tasklen)
+    #     iface.read_prog.set_text('reading %s' % entry[1])
 
     # keep the timer alive
     return True
@@ -129,7 +142,7 @@ def delete_event(widget, event):
 
 
 def keypress(widget, event, data, iface):
-    key = gdk.keyval_name(event.keyval)
+    key = Gdk.keyval_name(event.keyval)
     if key == 'Up':
         widget.set_text(str(1 + int(widget.get_text())))
         return True

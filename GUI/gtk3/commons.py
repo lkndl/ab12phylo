@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk as gtk, Gdk as gdk
+from gi.repository import Gtk
 
 from GUI.gtk3 import regex, quality
 
@@ -13,6 +13,10 @@ LOG = logging.getLogger(__name__)
 
 def get_changed(iface, page):
     return iface.change_indicator[page]
+
+
+def get_errors(iface, page):
+    return iface.errors_indicator[page]
 
 
 def set_changed(iface, page, changed):
@@ -35,15 +39,19 @@ def set_changed(iface, page, changed):
         iface.change_indicator[:page + 1] = [False] * (page + 1)
 
 
+def set_errors(iface, page, errors):
+    iface.errors_indicator[page] = errors
+
+
 def show_message_dialog(message, list_to_print=None):
-    dialog = gtk.MessageDialog(transient_for=None, flags=0,
-                               buttons=gtk.ButtonsType.OK, message_type=gtk.MessageType.WARNING,
+    dialog = Gtk.MessageDialog(transient_for=None, flags=0,
+                               buttons=Gtk.ButtonsType.OK, message_type=Gtk.MessageType.WARNING,
                                text=message)
     # dialog.format_secondary_text('\n'.join(not_found))  # not copyable -> not user-friendly
     if list_to_print:
-        txt_buf = gtk.TextBuffer()
+        txt_buf = Gtk.TextBuffer()
         txt_buf.set_text('\n'.join(list_to_print))
-        dialog.get_message_area().add(gtk.TextView().new_with_buffer(txt_buf))
+        dialog.get_message_area().add(Gtk.TextView().new_with_buffer(txt_buf))
     dialog.show_all()  # important
     dialog.run()
     dialog.destroy()
@@ -96,9 +104,12 @@ def proceed(widget, gui):
             regex.reset(gui)
         # TODO
         elif page == 1:
+            # check if everything seems fine on the
+            if get_errors(iface, page):
+                show_message_dialog('There are still errors on the page!')
+                return
+
             quality.reset(gui)
-            print('no')
-            # gui.reader.join()
         set_changed(iface, page, False)
 
     # then proceed
@@ -112,3 +123,10 @@ def step_back(widget, gui):
     page = iface.notebook.get_current_page()
     set_changed(iface, page, False)
     LOG.debug('stepped back to page %d' % page)
+
+
+def get_column(list_store, col_idx):
+    col = list()
+    for row in list_store:
+        col.append(row[col_idx])
+    return col

@@ -49,6 +49,8 @@ class gui(gtk.Window):
         # set up indicator of changes, tabs are not disabled initially
 
         self.interface.change_indicator = [False] * self.notebook.get_n_pages()
+        self.interface.errors_indicator = [False] * self.notebook.get_n_pages()
+        self.interface.rx_fired = False, False
         self.interface.plates, self.interface.search_rev = True, False
 
         self.reader = None  # quality.reader()
@@ -65,9 +67,10 @@ class dataset:
     def __init__(self):
         self.filetypes = set()
         self.trace_model, self.csv_model = gtk.ListStore(str), gtk.ListStore(str)
-        self.rx_model, self.wp_model = gtk.ListStore(str, str, str, str, str), gtk.ListStore(str, str)
+        self.rx_model, self.wp_model = gtk.ListStore(str, str, str, str, str, str), gtk.ListStore(str, str, str)
         self.q_model = gtk.ListStore(str, str)
         self.genes = list()
+        self.csvs = dict()
 
 
 def _init_log(**kwargs):
