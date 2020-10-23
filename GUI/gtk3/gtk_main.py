@@ -8,26 +8,24 @@ import gi
 from GUI.gtk3 import files, regex, quality
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk as gtk, GLib as gLib
+from gi.repository import Gtk, Gdk, GLib
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 __verbose__, __info__ = 1, 0
 
 # set the icon theme
-gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
-gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
+Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
+Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
 
 
-# TODO page has errors
-
-class gui(gtk.Window):
+class gui(Gtk.Window):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
 
     def __init__(self):
         self.log = logging.getLogger(__name__)
         # super(gui, self).__init__()
-        gtk.Window.__init__(self, title='AB12PHYLO')
+        Gtk.Window.__init__(self, title='AB12PHYLO')
         self.set_icon_from_file(str(gui.ICON))
         self.set_default_size(900, 600)
         self.set_size_request(640, 480)
@@ -35,7 +33,7 @@ class gui(gtk.Window):
 
         # fetch all named objects from the .glade XML
         self.interface = dict()
-        for widget in gtk.Builder().new_from_file(str(gui.TEMPLATE)).get_objects():
+        for widget in Gtk.Builder().new_from_file(str(gui.TEMPLATE)).get_objects():
             if widget.find_property('name') and not widget.get_name().startswith('Gtk'):
                 self.interface[widget.get_name()] = widget
         self.interface = Namespace(**self.interface)
@@ -45,7 +43,7 @@ class gui(gtk.Window):
         self.notebook = self.interface.notebook
         self.add(self.notebook)
         # connect to the window's delete event to close on x click
-        self.connect('destroy', gtk.main_quit)
+        self.connect('destroy', Gtk.main_quit)
         # set up indicator of changes, tabs are not disabled initially
 
         self.interface.change_indicator = [False] * self.notebook.get_n_pages()
@@ -53,7 +51,7 @@ class gui(gtk.Window):
         self.interface.rx_fired = False, False
         self.interface.plates, self.interface.search_rev = True, False
 
-        self.reader = None  # quality.reader()
+        # self.reader = None  # quality.reader()
         self.timeout_id = None  # gLib.timeout_add(50, quality.on_timeout, self.interface, self.reader)
 
         self.data = dataset()
@@ -66,9 +64,9 @@ class gui(gtk.Window):
 class dataset:
     def __init__(self):
         self.filetypes = set()
-        self.trace_model, self.csv_model = gtk.ListStore(str), gtk.ListStore(str)
-        self.rx_model, self.wp_model = gtk.ListStore(str, str, str, str, str, str), gtk.ListStore(str, str, str)
-        self.q_model = gtk.ListStore(str, str)
+        self.trace_model, self.csv_model = Gtk.ListStore(str), Gtk.ListStore(str)
+        self.rx_model, self.wp_model = Gtk.ListStore(str, str, str, str, str, str), Gtk.ListStore(str, str, str)
+        self.q_model = Gtk.ListStore(str, str)
         self.genes = list()
         self.csvs = dict()
 
@@ -100,8 +98,8 @@ def _init_log(**kwargs):
 
 _init_log()  # filename='nope')
 log = logging.getLogger(__name__)
-log.debug('AB12PHYLO GUI version')
+log.info('AB12PHYLO GUI version')
 
 win = gui()
 win.show_all()
-gtk.main()
+Gtk.main()

@@ -108,7 +108,6 @@ def proceed(widget, gui):
             if get_errors(iface, page):
                 show_message_dialog('There are still errors on the page!')
                 return
-
             quality.reset(gui)
         set_changed(iface, page, False)
 
