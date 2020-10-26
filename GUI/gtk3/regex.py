@@ -24,12 +24,16 @@ MARKUP = ['<span foreground="blue">reverse</span>',
           '',
           '<span foreground="green">use groups!</span>']
 
+
 # TODO errors on page after removing lines
 # TODO try for gene in references
 
 
 def init(gui):
     data, iface = gui.data, gui.interface
+
+    iface.plates, iface.search_rev = True, False
+
     iface.single_rt.connect('toggled', rx_toggle, data, iface)
     iface.triple_rt.connect('toggled', rx_toggle, data, iface)
     iface.triple_rt.join_group(iface.single_rt)
@@ -68,7 +72,11 @@ def reset(gui):
     # path extraction: well/id, (plate), gene, (reversed), is_reference, file, path
     data.rx_model = Gtk.ListStore(str, str, str, str, bool, str, str)
     # transfer file name, file path and reference info
-    [data.rx_model.append([''] * 4 + [row[1], Path(row[0]).name, row[0]]) for row in data.trace_model]
+    for row in data.trace_model:
+        if row[1]:  # is a reference
+            data.rx_model.append(['--', '--', '', '--', True, Path(row[0]).name, row[0]])
+        else:
+            data.rx_model.append([''] * 4 + [row[1], Path(row[0]).name, row[0]])
     if iface.plates:
         # plate ID, filename, path
         data.wp_model = Gtk.ListStore(str, str, str)
@@ -86,7 +94,7 @@ def reset(gui):
             crm = Gtk.CellRendererText(editable=True)
             crm.connect('edited', cell_edit, iface.view_trace_regex, column)
             iface.view_trace_regex.append_column(
-                Gtk.TreeViewColumn(title=title, cell_renderer=crm, markup=column))
+                Gtk.TreeViewColumn(title=title, cell_renderer=crm, text=column))
         # wellsplates:
         for title, column in zip(['plate ID', 'file'], list(range(2))):
             crm = Gtk.CellRendererText(editable=True)
@@ -99,7 +107,7 @@ def reset(gui):
             crm = Gtk.CellRendererText(editable=True)
             crm.connect('edited', cell_edit, iface.view_trace_regex, column)
             iface.view_trace_regex.append_column(
-                Gtk.TreeViewColumn(title=title, cell_renderer=crm, markup=column))
+                Gtk.TreeViewColumn(title=title, cell_renderer=crm, text=column))
         iface.rx_fired = False, True
 
     # reset_sort_size(data, iface)
@@ -255,7 +263,7 @@ def rev_adjust(widget, data, iface):
         #                        cell.set_property('icon-name', model[_iter][3]))
         # iface.view_trace_regex.insert_column(col, iface.view_trace_regex.get_n_columns() - 1)
         iface.view_trace_regex.insert_column(
-            Gtk.TreeViewColumn(title='reverse', cell_renderer=Gtk.CellRendererText(), markup=3), n_cols - 1)
+            Gtk.TreeViewColumn(title='reverse', cell_renderer=Gtk.CellRendererText(), text=3), n_cols - 1)
         # cause parsing
         parse_single(None, data, iface, iface.reverse_rx, 3)
     else:
@@ -274,7 +282,7 @@ def reset_sort_size(data, iface):
         for col_index in range(tree_view.get_n_columns()):
             tree_view.get_column(col_index).set_sort_column_id(col_index)
 
-    # check the dataset for empty strings
+    # check the dataset for empty strings TODO check if stringent enough
     if '' not in commons.get_column(data.rx_model, 0) \
             + commons.get_column(data.rx_model, 2) \
             + commons.get_column(data.wp_model, 0):

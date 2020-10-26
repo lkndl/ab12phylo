@@ -51,15 +51,10 @@ class gui(Gtk.Window):
         self.add(self.notebook)
         # connect to the window's delete event to close on x click
         self.connect('destroy', Gtk.main_quit)
-        # set up indicator of changes, tabs are not disabled initially
 
+        # set up indicator of changes, tabs are not disabled initially
         self.interface.change_indicator = [False] * self.notebook.get_n_pages()
         self.interface.errors_indicator = [False] * self.notebook.get_n_pages()
-        self.interface.rx_fired = False, False
-        self.interface.plates, self.interface.search_rev = True, False
-
-        # self.reader = None  # quality.reader()
-        self.timeout_id = None  # gLib.timeout_add(50, quality.on_timeout, self.interface, self.reader)
 
         self.data = dataset()
 
