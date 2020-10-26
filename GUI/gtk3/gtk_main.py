@@ -45,6 +45,7 @@ class gui(Gtk.Window):
         self.interface.FG = sc.get_color(Gtk.StateType.NORMAL)
         self.interface.BLUE = Gdk.RGBA(0.137255, 0.454902, 0.686275, 1)  # '#2374AF'
         self.interface.AQUA = Gdk.RGBA(0.180392, 0.701961, 0.596078, 1)  # '#2EB398'
+        self.interface.RED = Gdk.RGBA(1, 0, 0, 1)
 
         # fetch the notebook
         self.notebook = self.interface.notebook
@@ -59,19 +60,34 @@ class gui(Gtk.Window):
         self.data = dataset()
 
         files.init(self)
-        regex.init(self)
-        quality.init(self)
+        # regex.init(self)
+        # quality.init(self)
 
 
 class dataset:
     def __init__(self):
         self.filetypes = set()
-        self.trace_model = Gtk.ListStore(str, bool, Gdk.RGBA)
-        self.csv_model = Gtk.ListStore(str, bool, Gdk.RGBA)
-        self.rx_model = Gtk.ListStore(str, str, str, str, bool, str, str)
-        self.wp_model = Gtk.ListStore(str, str, str)
 
-        self.q_model = Gtk.ListStore(str, str)
+        # paths and extracted data
+        self.trace_store = Gtk.ListStore(str,  # path
+                                         str,  # filename
+                                         str,  # well/id
+                                         str,  # plate
+                                         str,  # gene
+                                         bool,  # reference
+                                         bool,  # reversed
+                                         Gdk.RGBA)  # color
+
+        self.plate_store = Gtk.ListStore(str,  # path
+                                         str,  # filename
+                                         str)  # plate ID
+
+        # self.trace_model = Gtk.ListStore(str, bool, Gdk.RGBA)
+        # self.csv_model = Gtk.ListStore(str, bool, Gdk.RGBA)
+        # self.rx_model = Gtk.ListStore(str, str, str, str, bool, str, str)
+        # self.wp_model = Gtk.ListStore(str, str, str)
+        #
+        # self.q_model = Gtk.ListStore(str, str)
         self.genes = list()
         self.csvs = dict()
         self.seqdata = dict()

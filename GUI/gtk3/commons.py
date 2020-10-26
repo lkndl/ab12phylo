@@ -58,13 +58,14 @@ def show_message_dialog(message, list_to_print=None):
     LOG.debug('showed a message')
 
 
-def refresh_files(iface, data, page):
+def refresh_files(gui, page):
     """
     Adjusts the display of the number of selected trace files on the files page
     and toggles reading wellsplates or not, inactivating respective GUI elements.
     :return:
     """
-    num_traces = len(data.trace_model)
+    data, iface = gui.data, gui.interface
+    num_traces = len(data.trace_store)
     if num_traces > 0:
         iface.trace_number.set_label('%d files' % num_traces)
         iface.trace_number.set_visible(True)
@@ -73,7 +74,7 @@ def refresh_files(iface, data, page):
         iface.trace_number.set_visible(False)
 
     # toggle _reading_plates
-    iface.plates = len(data.csv_model) > 0
+    iface.plates = len(data.plate_store) > 0
     # self._set_page_changed(not iface.plates or self._get_page_changed())
     set_changed(iface, page, not iface.plates or get_changed(iface, page))
     [iface.__getattribute__(name).set_sensitive(iface.plates)
@@ -85,14 +86,15 @@ def refresh_files(iface, data, page):
          ['plate_rx', 'plate_regex_label']]
 
 
-def delete_rows(widget, iface, data, page, selection, delete_all=False):
+def delete_rows(widget, gui, page, selection, delete_all=False):
+    data, iface = gui.data, gui.interface
     if delete_all:
         delete_all.clear()
     else:
         model, iterator = selection.get_selected_rows()
         [model.remove(model.get_iter(row)) for row in reversed(sorted(iterator))]
     set_changed(iface, page, True)
-    refresh_files(iface, data, page)
+    refresh_files(gui, page)
 
 
 def proceed(widget, gui):

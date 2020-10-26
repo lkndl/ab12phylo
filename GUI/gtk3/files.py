@@ -16,7 +16,8 @@ FILETYPES = ['.ab1', '.seq', '.fasta', '.fa']
 
 def init(gui):
     data, iface = gui.data, gui.interface
-    # trace file types
+
+    # MARK trace file types
     # create a TreeView model
     data.file_type_model = Gtk.ListStore(str, bool)
     [data.file_type_model.append([filetype, False]) for filetype in FILETYPES]
@@ -34,39 +35,41 @@ def init(gui):
     iface.view_filetypes.append_column(
         Gtk.TreeViewColumn(title='Selected', cell_renderer=crt, active=1))
 
-    iface.add_refs.connect('clicked', add_manually, iface, data, data.trace_model, 'references')
+    # MARK trace files
+    iface.add_refs.connect('clicked', add_manually, gui, data.trace_store, 'references')
 
     # set up the file paths tables
-    for mo, tv, file_type, file_types in zip([data.trace_model, data.csv_model],
+    for mo, tv, file_type, file_types in zip([data.trace_store, data.plate_store],
                                              [iface.view_trace_path, iface.view_csv_path],
                                              ['trace', 'csv'], [data.filetypes, {'.csv'}]):
         tv.set_model(mo)
         tv.set_headers_visible(False)
         tv.append_column(Gtk.TreeViewColumn(title='Paths',
                                             cell_renderer=Gtk.CellRendererText(),
-                                            foreground_rgba=2, text=0))
+                                            foreground_rgba=7, text=0))
         sel = tv.get_selection()
         sel.set_mode(Gtk.SelectionMode.MULTIPLE)
 
         iface.__getattribute__('add_%s_folder' % file_type) \
-            .connect('clicked', add_folder, iface, data, file_types, mo)
+            .connect('clicked', add_folder, gui, file_types, mo)
         iface.__getattribute__('add_%s_manual' % file_type) \
-            .connect('clicked', add_manually, iface, data, mo)
+            .connect('clicked', add_manually, gui, mo)
         try:
             iface.__getattribute__('add_%s_whitelist' % file_type) \
-                .connect('clicked', add_manually, iface, data, mo, 'whitelists')
+                .connect('clicked', add_manually, gui, mo, 'whitelists')
         except AttributeError:
             pass  # wellsplate whitelist not planned
 
         iface.__getattribute__('remove_%s' % file_type) \
-            .connect('clicked', commons.delete_rows, iface, data, PAGE, sel)
+            .connect('clicked', commons.delete_rows, gui, PAGE, sel)
         iface.__getattribute__('delete_all_%s' % file_type) \
-            .connect('clicked', commons.delete_rows, iface, data, PAGE, sel, mo)
+            .connect('clicked', commons.delete_rows, gui, PAGE, sel, mo)
 
     iface.files_next.connect('clicked', commons.proceed, gui)
 
 
-def add_folder(widget, iface, data, file_types, model):
+def add_folder(widget, gui, file_types, model):
+    data, iface = gui.data, gui.interface
     dialog = Gtk.FileChooserDialog(title='select folder(s)', parent=None, select_multiple=True,
                                    action=Gtk.FileChooserAction.SELECT_FOLDER)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -80,13 +83,15 @@ def add_folder(widget, iface, data, file_types, model):
                 # get all the matching files
                 new_paths = [list(folder.glob('**/*%s' % ext)) for ext in file_types]
                 # flatten the LoL
-                new_paths = [str(item) for sublist in new_paths for item in sublist]
+                new_paths = [item for sublist in new_paths for item in sublist]
+                # where to write
+                kw = 'csv' if '.csv' in file_types else 'trace'
                 # append to the ListStore
-                model, new_paths, duplicates = add_new_entries(model, new_paths, iface)
+                model, new_paths, duplicates = add_new_entries(model, new_paths, iface, kw)
             except UnicodeDecodeError as ex:
                 LOG.info(ex)
-        commons.refresh_files(iface, data, PAGE)
-        scroll_to_end(iface, data, model)
+        commons.refresh_files(gui, PAGE)
+        scroll_to_end(gui, model)
         LOG.debug('found %d new paths in folder(s)' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -100,7 +105,12 @@ def add_folder(widget, iface, data, file_types, model):
         commons.show_message_dialog('Some files already selected', duplicates)
 
 
-def add_manually(widget, iface, data, model, *args):
+def add_manually(widget, gui, model, *args):
+    """
+    Load trace or wellsplate paths into the appropriate GtkListStore,
+    also remembering if this is a reference.
+    """
+    data, iface = gui.data, gui.interface
     args = ['nope'] if not args else args
     dialog = Gtk.FileChooserDialog(title='select files', parent=None,
                                    action=Gtk.FileChooserAction.OPEN, select_multiple=True)
@@ -121,17 +131,28 @@ def add_manually(widget, iface, data, model, *args):
                     LOG.info(ex)
 
             # sort extracted into valid and invalid file paths
+
             new_paths = list()
             for string_path in extracted:
                 path = Path(string_path).resolve()
                 if path.is_file():
-                    new_paths.append(str(path))
+                    new_paths.append(path)
                 else:
                     not_found.append(string_path)
+        else:
+            new_paths = [Path(string_path) for string_path in new_paths]
 
-        model, new_paths, duplicates = add_new_entries(model, new_paths, iface, args[0])
-        commons.refresh_files(iface, data, PAGE)
-        scroll_to_end(iface, data, model)
+        # where to write
+        if widget in [iface.add_csv_folder, iface.add_csv_manual]:
+            kw = 'csv'
+        elif widget == iface.add_refs:
+            kw = 'ref'
+        else:
+            kw = 'trace'
+        # append to ListStore
+        model, new_paths, duplicates = add_new_entries(model, new_paths, iface, kw)
+        commons.refresh_files(gui, PAGE)
+        scroll_to_end(gui, model)
         LOG.info('added %d paths' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -169,32 +190,41 @@ def add_new_entries(model, new_paths, iface, *args):
     :param iface: the namespace containing all named widgets of a gui object
     :return:
     """
-    if 'references' in args:
+    if 'ref' in args:
         color = iface.BLUE
         is_ref = True
-    else:
+    elif 'trace' in args or 'csv' in args:
         color = iface.FG
         is_ref = False
+    else:
+        assert False
 
     old_entries = [line[0] for line in model]
     dups, news = list(), list()
-    for path in new_paths:
+
+    for ppath in new_paths:
+        path = str(ppath)
         if path in old_entries:
             dups.append(path)
         else:
-            model.append([path, is_ref, color])
+            if 'csv' in args:
+                model.append([path, ppath.name, ''])
+            else:  # trace file
+                model.append([path, ppath.name, '', '', '', is_ref, False, color])
             news.append(path)
     if len(news) > 0:
         commons.set_changed(iface, PAGE, True)
     return model, news, dups
 
 
-def scroll_to_end(iface, data, model):
-    if model == data.trace_model:
-        iface.view_trace_path.scroll_to_cell(path=len(data.trace_model), use_align=False)
+def scroll_to_end(gui, model):
+    """After new entries have been added to it, the TreeView will scroll to them at its end."""
+    data, iface = gui.data, gui.interface
+    if model == data.trace_store:
+        iface.view_trace_path.scroll_to_cell(path=len(data.trace_store), use_align=False)
         adj = iface.view_trace_path.get_vadjustment()
-    elif model == data.csv_model:
-        iface.view_csv_path.scroll_to_cell(path=len(data.csv_model), use_align=False)
+    elif model == data.plate_store:
+        iface.view_csv_path.scroll_to_cell(path=len(data.plate_store), use_align=False)
         adj = iface.view_csv_path.get_vadjustment()
     else:
         assert False
