@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 
 from GUI.gtk3 import regex, quality
 
@@ -60,8 +60,8 @@ def show_message_dialog(message, list_to_print=None):
 
 def refresh_files(iface, data, page):
     """
-    Adjusts the display of the number of selected trace files
-    and toggles reading wellsplates or not.
+    Adjusts the display of the number of selected trace files on the files page
+    and toggles reading wellsplates or not, inactivating respective GUI elements.
     :return:
     """
     num_traces = len(data.trace_model)

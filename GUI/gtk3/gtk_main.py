@@ -5,7 +5,7 @@ from pathlib import Path
 
 import gi
 
-from GUI.gtk3 import files, regex, quality
+from GUI.gtk3 import files, regex, quality, commons
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
@@ -39,6 +39,13 @@ class gui(Gtk.Window):
         self.interface = Namespace(**self.interface)
         self.log.debug('Fetched control elements')
 
+        # get some colors
+        sc = self.get_style_context()
+        self.interface.BG = sc.get_background_color(Gtk.StateType.NORMAL)
+        self.interface.FG = sc.get_color(Gtk.StateType.NORMAL)
+        self.interface.BLUE = Gdk.RGBA(0.137255, 0.454902, 0.686275, 1)  # '#2374AF'
+        self.interface.AQUA = Gdk.RGBA(0.180392, 0.701961, 0.596078, 1)  # '#2EB398'
+
         # fetch the notebook
         self.notebook = self.interface.notebook
         self.add(self.notebook)
@@ -64,11 +71,15 @@ class gui(Gtk.Window):
 class dataset:
     def __init__(self):
         self.filetypes = set()
-        self.trace_model, self.csv_model = Gtk.ListStore(str), Gtk.ListStore(str)
-        self.rx_model, self.wp_model = Gtk.ListStore(str, str, str, str, str, str), Gtk.ListStore(str, str, str)
+        self.trace_model = Gtk.ListStore(str, bool, Gdk.RGBA)
+        self.csv_model = Gtk.ListStore(str, bool, Gdk.RGBA)
+        self.rx_model = Gtk.ListStore(str, str, str, str, bool, str, str)
+        self.wp_model = Gtk.ListStore(str, str, str)
+
         self.q_model = Gtk.ListStore(str, str)
         self.genes = list()
         self.csvs = dict()
+        self.seqdata = dict()
 
 
 def _init_log(**kwargs):

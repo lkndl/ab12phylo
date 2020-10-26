@@ -6,12 +6,12 @@ import gi
 from GUI.gtk3 import commons
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 0
-FILETYPES = ['.ab1', '.seq', '.fasta']
+FILETYPES = ['.ab1', '.seq', '.fasta', '.fa']
 
 
 def init(gui):
@@ -34,16 +34,17 @@ def init(gui):
     iface.view_filetypes.append_column(
         Gtk.TreeViewColumn(title='Selected', cell_renderer=crt, active=1))
 
+    iface.add_refs.connect('clicked', add_manually, iface, data, data.trace_model, 'references')
+
+    # set up the file paths tables
     for mo, tv, file_type, file_types in zip([data.trace_model, data.csv_model],
                                              [iface.view_trace_path, iface.view_csv_path],
                                              ['trace', 'csv'], [data.filetypes, {'.csv'}]):
-        # data.__setattr__(model, Gtk.ListStore(str))
-        # mo, tv = data.__getattribute__(model), iface.__getattribute__(tree_view)
         tv.set_model(mo)
         tv.set_headers_visible(False)
         tv.append_column(Gtk.TreeViewColumn(title='Paths',
-                                            cell_renderer=Gtk.CellRendererText(), text=0))
-
+                                            cell_renderer=Gtk.CellRendererText(),
+                                            foreground_rgba=2, text=0))
         sel = tv.get_selection()
         sel.set_mode(Gtk.SelectionMode.MULTIPLE)
 
@@ -53,7 +54,7 @@ def init(gui):
             .connect('clicked', add_manually, iface, data, mo)
         try:
             iface.__getattribute__('add_%s_whitelist' % file_type) \
-                .connect('clicked', add_manually, iface, data, mo, True)
+                .connect('clicked', add_manually, iface, data, mo, 'whitelists')
         except AttributeError:
             pass  # wellsplate whitelist not planned
 
@@ -85,6 +86,7 @@ def add_folder(widget, iface, data, file_types, model):
             except UnicodeDecodeError as ex:
                 LOG.info(ex)
         commons.refresh_files(iface, data, PAGE)
+        scroll_to_end(iface, data, model)
         LOG.debug('found %d new paths in folder(s)' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -98,7 +100,8 @@ def add_folder(widget, iface, data, file_types, model):
         commons.show_message_dialog('Some files already selected', duplicates)
 
 
-def add_manually(widget, iface, data, model, whitelists=False):
+def add_manually(widget, iface, data, model, *args):
+    args = ['nope'] if not args else args
     dialog = Gtk.FileChooserDialog(title='select files', parent=None,
                                    action=Gtk.FileChooserAction.OPEN, select_multiple=True)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -108,7 +111,7 @@ def add_manually(widget, iface, data, model, whitelists=False):
     if response == Gtk.ResponseType.OK:
         # read the filenames
         new_paths = dialog.get_filenames()
-        if whitelists:
+        if 'whitelists' in args:
             # read lines from the files
             extracted = list()
             for whitelist in new_paths:
@@ -126,9 +129,9 @@ def add_manually(widget, iface, data, model, whitelists=False):
                 else:
                     not_found.append(string_path)
 
-        # append to the ListStore
-        model, new_paths, duplicates = add_new_entries(model, new_paths, iface)
+        model, new_paths, duplicates = add_new_entries(model, new_paths, iface, args[0])
         commons.refresh_files(iface, data, PAGE)
+        scroll_to_end(iface, data, model)
         LOG.info('added %d paths' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -155,23 +158,44 @@ def change_filetypes(widget, path, data):
     LOG.debug('selected ' + ' and '.join(data.filetypes))
 
 
-def add_new_entries(store, entries_to_add, iface):
+def add_new_entries(model, new_paths, iface, *args):
     """
     Adds new entries to a list and returns the modified list
-    as well as lists of both newly added entries and observed duplicates
-    :param store: the ListStore
-    :param entries_to_add: obvs
+    as well as lists of both newly added entries and observed duplicates.
+    If *args, the new entries are reference sequences and the value in
+    the color column will change accordingly
+    :param model: the ListStore
+    :param new_paths: obvs
     :param iface: the namespace containing all named widgets of a gui object
     :return:
     """
-    old_entries = [line[0] for line in store]
+    if 'references' in args:
+        color = iface.BLUE
+        is_ref = True
+    else:
+        color = iface.FG
+        is_ref = False
+
+    old_entries = [line[0] for line in model]
     dups, news = list(), list()
-    for entry in entries_to_add:
-        if entry in old_entries:
-            dups.append(entry)
+    for path in new_paths:
+        if path in old_entries:
+            dups.append(path)
         else:
-            store.append([entry])
-            news.append(entry)
+            model.append([path, is_ref, color])
+            news.append(path)
     if len(news) > 0:
         commons.set_changed(iface, PAGE, True)
-    return store, news, dups
+    return model, news, dups
+
+
+def scroll_to_end(iface, data, model):
+    if model == data.trace_model:
+        iface.view_trace_path.scroll_to_cell(path=len(data.trace_model), use_align=False)
+        adj = iface.view_trace_path.get_vadjustment()
+    elif model == data.csv_model:
+        iface.view_csv_path.scroll_to_cell(path=len(data.csv_model), use_align=False)
+        adj = iface.view_csv_path.get_vadjustment()
+    else:
+        assert False
+    adj.set_value(adj.get_upper())

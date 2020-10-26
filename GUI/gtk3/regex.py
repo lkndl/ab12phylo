@@ -9,7 +9,7 @@ import re
 import requests
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 
 from GUI.gtk3 import commons
 
@@ -23,6 +23,9 @@ MARKUP = ['<span foreground="blue">reverse</span>',
           '<span foreground="red">no match</span>',
           '',
           '<span foreground="green">use groups!</span>']
+
+# TODO errors on page after removing lines
+# TODO try for gene in references
 
 
 def init(gui):
@@ -39,6 +42,7 @@ def init(gui):
     for thing, col in zip(['well', 'gene', 'plate', 'wp'], [0, 2, 1, 0]):
         entry = iface.__getattribute__('%s_rx' % thing)
         entry.connect('activate', parse_single, data, iface, entry, col)
+        entry.connect('focus_out_event', parse_single, data, iface, entry, col)
 
     iface.reverse_rx_chk.connect('toggled', rev_adjust, data, iface)
     iface.reverse_rx.connect('activate', parse_single, data, iface, iface.reverse_rx, 3)
@@ -61,10 +65,10 @@ def init(gui):
 def reset(gui):
     data, iface = gui.data, gui.interface
     # create TreeView model
-    # path extraction: well/id, (plate), gene, (reversed), file, path
-    data.rx_model = Gtk.ListStore(str, str, str, str, str, str)
-    # fill last column with initial filename data
-    [data.rx_model.append([''] * 4 + [Path(path[0]).name] + [path[0]]) for path in data.trace_model]
+    # path extraction: well/id, (plate), gene, (reversed), is_reference, file, path
+    data.rx_model = Gtk.ListStore(str, str, str, str, bool, str, str)
+    # transfer file name, file path and reference info
+    [data.rx_model.append([''] * 4 + [row[1], Path(row[0]).name, row[0]]) for row in data.trace_model]
     if iface.plates:
         # plate ID, filename, path
         data.wp_model = Gtk.ListStore(str, str, str)
@@ -78,23 +82,33 @@ def reset(gui):
 
     # columns depend on _reading_plates
     if iface.plates:
-        for title, column in zip(['well', 'plate', 'gene', 'file'], [0, 1, 2, 4]):
+        for title, column in zip(['well', 'plate', 'gene', 'file'], [0, 1, 2, 5]):
+            crm = Gtk.CellRendererText(editable=True)
+            crm.connect('edited', cell_edit, iface.view_trace_regex, column)
             iface.view_trace_regex.append_column(
-                Gtk.TreeViewColumn(title=title, cell_renderer=Gtk.CellRendererText(), markup=column))
+                Gtk.TreeViewColumn(title=title, cell_renderer=crm, markup=column))
         # wellsplates:
         for title, column in zip(['plate ID', 'file'], list(range(2))):
+            crm = Gtk.CellRendererText(editable=True)
+            crm.connect('edited', cell_edit, iface.view_csv_regex, column)
             iface.view_csv_regex.append_column(
-                Gtk.TreeViewColumn(title=title, cell_renderer=Gtk.CellRendererText(), markup=column))
+                Gtk.TreeViewColumn(title=title, cell_renderer=crm, text=column))
         iface.rx_fired = False, False
     else:
-        for title, column in zip(['sample', 'gene', 'file'], [0, 2, 4]):
+        for title, column in zip(['sample', 'gene', 'file'], [0, 2, 5]):
+            crm = Gtk.CellRendererText(editable=True)
+            crm.connect('edited', cell_edit, iface.view_trace_regex, column)
             iface.view_trace_regex.append_column(
-                Gtk.TreeViewColumn(title=title, cell_renderer=Gtk.CellRendererText(), markup=column))
+                Gtk.TreeViewColumn(title=title, cell_renderer=crm, markup=column))
         iface.rx_fired = False, True
 
     # reset_sort_size(data, iface)
     iface.reverse_rx_chk.set_active(False)
     iface.search_rev = False
+
+    # fire the initial parse
+    parse_single(iface.wp_rx, data, iface, iface.wp_rx, 0)
+    parse_triple(None, data, iface)
 
 
 def parse_single(widget, data, iface, entry, col):
@@ -106,11 +120,16 @@ def parse_single(widget, data, iface, entry, col):
     if widget in [iface.wp_rx, iface.wp_apply]:
         model = data.wp_model
         iface.rx_fired = True, iface.rx_fired[1]
+        traces = False
     else:
         model = data.rx_model
+        traces = True
 
     if entry is not iface.reverse_rx:
         for i, row in enumerate(model):
+            # skip references
+            if traces and row[4]:
+                continue
             file = row[-2]
             try:
                 m = regex.search(file).groups()[0]
@@ -131,6 +150,9 @@ def parse_single(widget, data, iface, entry, col):
                 errors, changed = True, True
     else:
         for i, row in enumerate(model):
+            # skip references
+            if traces and row[4]:
+                continue
             file = row[-2]
             try:
                 m = regex.search(file).groups()[0]
@@ -164,13 +186,15 @@ def parse_triple(widget, data, iface):
         changed = False or commons.get_changed(iface, PAGE)
 
         for idx, row in enumerate(data.rx_model):
+            if row[4]:
+                continue
             file = row[-2]
             try:
                 m = regex.search(file)
                 plate, gene, well = m.groups() if iface.plates else (None, *m.groups())
                 if not changed:
                     changed = not bool(row == [well, plate, gene, row[3], file])
-                data.rx_model[idx] = [well, plate, gene, row[3], file, row[-1]]
+                data.rx_model[idx] = [well, plate, gene] + row[3:]
             except ValueError as ve:
                 errors, changed = True, True
                 data.rx_model[idx][0] = ERRORS[0]
@@ -192,6 +216,10 @@ def parse_triple(widget, data, iface):
     iface.rx_fired = True, iface.rx_fired[1]
     reset_sort_size(data, iface)
     LOG.debug('parse_triple done')
+
+
+def cell_edit(cell, path, new_text, tree_view, col):
+    tree_view.get_model()[path][col] = new_text
 
 
 def rx_toggle(widget, data, iface):

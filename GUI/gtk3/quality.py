@@ -9,11 +9,13 @@ import gi
 import re
 import numpy as np
 import seaborn as sns
+from Bio import SeqIO
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject
 
 from GUI.gtk3 import commons
+from ab12phylo import filter
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
@@ -25,7 +27,7 @@ def init(gui):
     data, iface = gui.data, gui.interface
     iface.read_prog.set_visible(False)
     iface.gene_roll.set_model(Gtk.ListStore(str))
-    iface.gene_roll.connect('changed', redraw, data, iface)
+    iface.gene_roll.connect('changed', replace, data, iface)
 
     iface.accept_rev.set_active(iface.search_rev)
     iface.accept_nophred.set_active(True)
@@ -67,6 +69,7 @@ def reset(gui):
         iface.running = True
         GObject.timeout_add(100, update, data, iface)
         iface.reader.start()
+        print('when does this fire? EARLY')
         # GUI thread returns to main loop?
 
 
@@ -83,16 +86,21 @@ def update(data, iface):
         return False
 
 
-def stop(iface):
+def stop(iface, errors):
     iface.running = False
     iface.reader.join()
     iface.read_prog.set_text('idle')
     LOG.info('idle')
+    if errors:
+        commons.show_message_dialog('There were errors reading some files', errors)
+    return
 
 
 def read(args):
     data, iface = args
     data.csvs.clear()
+    data.seqdata.clear()
+    errors = list()
     do = len(data.rx_model) + len(data.wp_model)
     done = 0
     # read in wellsplates
@@ -114,17 +122,42 @@ def read(args):
     LOG.debug('reading traces')
     for row in data.rx_model:
         iface.txt = 'reading %s' % row[-2]
-        sleep(.3)
+        file_path = row[-1]
 
+        if file_path.endswith('.ab1'):
+            # also check for phred scores. ABI traces also only contain a single record!
+            sleep(0.16)
+            try:
+                record = SeqIO.read(file_path, 'abi')
+            except UnicodeDecodeError:
+                errors.append(row[-2])
+            pass
+        elif file_path.endswith('.fasta') or file_path.endswith('.fa') or file_path.endswith('.seq'):
+            try:
+                for record in SeqIO.parse(file_path, 'fasta'):
+                    pass
+            except UnicodeDecodeError:
+                errors.append(row[-2])
         done += 1
         iface.frac = done / do
-    GObject.idle_add(stop, iface)
+    # TODO start or call the initial redraw here
+    GObject.idle_add(stop, iface, errors)
+    return
 
 
-def redraw(widget, data, iface, gene='all'):
+def replace(widget, data, iface):
+    LOG.debug('tabling ...')
+    # transfer to GtkTreeView
+    data.q_model.clear()
+
+    redraw(None, data, iface)
+    return
+
+
+def redraw(widget, data, iface):
     LOG.debug('drawing ...')
-
     # get parameters from interface
+    # also start this from re-sorting the treeview
     print(iface.q_params)
 
 
