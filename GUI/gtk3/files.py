@@ -20,7 +20,7 @@ def init(gui):
     # MARK trace file types
     # create a TreeView model
     data.file_type_model = Gtk.ListStore(str, bool)
-    [data.file_type_model.append([filetype, False]) for filetype in FILETYPES]
+    [data.file_type_model.append([file_type, False]) for file_type in FILETYPES]
 
     # check ABI traces by default
     data.file_type_model[0][1] = True
@@ -38,15 +38,20 @@ def init(gui):
     # MARK trace files
     iface.add_refs.connect('clicked', add_manually, gui, data.trace_store, 'references')
 
+    # initial or old number of entries in model used for scrolling to end after adding
+    iface.file_nums = dict()
+
     # set up the file paths tables
-    for mo, tv, file_type, file_types in zip([data.trace_store, data.plate_store],
-                                             [iface.view_trace_path, iface.view_csv_path],
-                                             ['trace', 'csv'], [data.filetypes, {'.csv'}]):
+    for mo, tv, file_type, file_types, col in zip([data.trace_store, data.plate_store],
+                                                  [iface.view_trace_path, iface.view_csv_path],
+                                                  ['trace', 'csv'], [data.filetypes, {'.csv'}], [7, 3]):
         tv.set_model(mo)
         tv.set_headers_visible(False)
         tv.append_column(Gtk.TreeViewColumn(title='Paths',
                                             cell_renderer=Gtk.CellRendererText(),
-                                            foreground_rgba=7, text=0))
+                                            foreground=col, text=0))
+        tv.connect('size-allocate', scroll_to_end, iface, tv, mo)
+        iface.file_nums[mo] = 0
         sel = tv.get_selection()
         sel.set_mode(Gtk.SelectionMode.MULTIPLE)
 
@@ -91,7 +96,6 @@ def add_folder(widget, gui, file_types, model):
             except UnicodeDecodeError as ex:
                 LOG.info(ex)
         commons.refresh_files(gui, PAGE)
-        scroll_to_end(gui, model)
         LOG.debug('found %d new paths in folder(s)' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -152,7 +156,6 @@ def add_manually(widget, gui, model, *args):
         # append to ListStore
         model, new_paths, duplicates = add_new_entries(model, new_paths, iface, kw)
         commons.refresh_files(gui, PAGE)
-        scroll_to_end(gui, model)
         LOG.info('added %d paths' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -208,7 +211,7 @@ def add_new_entries(model, new_paths, iface, *args):
             dups.append(path)
         else:
             if 'csv' in args:
-                model.append([path, ppath.name, ''])
+                model.append([path, ppath.name, '', color])
             else:  # trace file
                 model.append([path, ppath.name, '', '', '', is_ref, False, color])
             news.append(path)
@@ -217,15 +220,10 @@ def add_new_entries(model, new_paths, iface, *args):
     return model, news, dups
 
 
-def scroll_to_end(gui, model):
-    """After new entries have been added to it, the TreeView will scroll to them at its end."""
-    data, iface = gui.data, gui.interface
-    if model == data.trace_store:
-        iface.view_trace_path.scroll_to_cell(path=len(data.trace_store), use_align=False)
-        adj = iface.view_trace_path.get_vadjustment()
-    elif model == data.plate_store:
-        iface.view_csv_path.scroll_to_cell(path=len(data.plate_store), use_align=False)
-        adj = iface.view_csv_path.get_vadjustment()
-    else:
-        assert False
-    adj.set_value(adj.get_upper())
+def scroll_to_end(widget, rectangle, iface, tv, mo):
+    """After new entries have been added to it, the TreeView will scroll to its end."""
+    if len(mo) > iface.file_nums[mo]:
+        LOG.debug('scrolling to end)')
+        adj = tv.get_vadjustment()
+        adj.set_value(adj.get_upper() - adj.get_page_size())
+    iface.file_nums[mo] = len(mo)

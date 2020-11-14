@@ -41,11 +41,15 @@ class gui(Gtk.Window):
 
         # get some colors
         sc = self.get_style_context()
-        self.interface.BG = sc.get_background_color(Gtk.StateType.NORMAL)
-        self.interface.FG = sc.get_color(Gtk.StateType.NORMAL)
-        self.interface.BLUE = Gdk.RGBA(0.137255, 0.454902, 0.686275, 1)  # '#2374AF'
-        self.interface.AQUA = Gdk.RGBA(0.180392, 0.701961, 0.596078, 1)  # '#2EB398'
-        self.interface.RED = Gdk.RGBA(1, 0, 0, 1)
+        self.interface.FG = '#' + ''.join([(hex(min(int(c*256), 255))[2:]).upper()
+                                           for c in list(sc.get_color(Gtk.StateType.NORMAL))])
+        # self.interface.BG = sc.get_background_color(Gtk.StateType.NORMAL)
+        # self.interface.FG = '#FFFFFF'
+        # self.interface.BLUE = Gdk.RGBA(0.137255, 0.454902, 0.686275, 1)  # '#2374AF'
+        # self.interface.AQUA = Gdk.RGBA(0.180392, 0.701961, 0.596078, 1)  # '#2EB398'
+        self.interface.BLUE = '#2374AF'
+        self.interface.AQUA = '#2EB398'
+        self.interface.RED = '#FF0000'
 
         # fetch the notebook
         self.notebook = self.interface.notebook
@@ -60,8 +64,8 @@ class gui(Gtk.Window):
         self.data = dataset()
 
         files.init(self)
-        # regex.init(self)
-        # quality.init(self)
+        regex.init(self)
+        quality.init(self)
 
 
 class dataset:
@@ -76,18 +80,13 @@ class dataset:
                                          str,  # gene
                                          bool,  # reference
                                          bool,  # reversed
-                                         Gdk.RGBA)  # color
+                                         str)  # color
 
         self.plate_store = Gtk.ListStore(str,  # path
                                          str,  # filename
-                                         str)  # plate ID
+                                         str,  # plate ID
+                                         str)  # errors
 
-        # self.trace_model = Gtk.ListStore(str, bool, Gdk.RGBA)
-        # self.csv_model = Gtk.ListStore(str, bool, Gdk.RGBA)
-        # self.rx_model = Gtk.ListStore(str, str, str, str, bool, str, str)
-        # self.wp_model = Gtk.ListStore(str, str, str)
-        #
-        # self.q_model = Gtk.ListStore(str, str)
         self.genes = list()
         self.csvs = dict()
         self.seqdata = dict()
