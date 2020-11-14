@@ -10,22 +10,19 @@ from time import sleep
 
 import gi
 import pandas as pd
-import requests
+import requests, random
 from Bio import SeqIO
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
 from GUI.gtk3 import commons, quality
+from ab12phylo import filter
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 1
 ERRORS = ['groups?', 'no match', 'use groups!']
-MARKUP = ['<span foreground="blue">reverse</span>',
-          '<span foreground="red">no match</span>',
-          '',
-          '<span foreground="green">use groups!</span>']
 
 
 def init(gui):
@@ -291,11 +288,11 @@ def search_genes(gui):
     # try matching reference files to genes
     data, iface = gui.data, gui.interface
 
-    genes = {gene for gene, is_ref, color in commons.get_column(data.trace_store, (4, 5, 7))
-             if not is_ref and color is not iface.RED}
-    if not genes or genes == {''}:
+    data.genes = {gene for gene, is_ref, color in commons.get_column(data.trace_store, (4, 5, 7))
+                  if not is_ref and color is not iface.RED}
+    if not data.genes or data.genes == {''}:
         return
-    single_gene = genes.pop() if len(genes) == 1 else False
+    single_gene = data.genes.pop() if len(data.genes) == 1 else False
     for i, row in enumerate(data.trace_store):
         if row[5] and row[-1] == iface.AQUA:
             print(row[:])
@@ -304,7 +301,7 @@ def search_genes(gui):
                 data.trace_store[i][7] = iface.BLUE
             else:
                 file_name = row[1].upper()
-                for gene in genes:
+                for gene in data.genes:
                     if gene.upper() in file_name:
                         data.trace_store[i][4] = gene
                         data.trace_store[i][7] = iface.BLUE
@@ -395,7 +392,7 @@ def update(iface):
         return False
 
 
-def stop(gui, errors):
+def stop(gui, errors, warnings):
     data, iface = gui.data, gui.interface
     iface.running = False
     iface.reader.join()
@@ -403,6 +400,11 @@ def stop(gui, errors):
     LOG.info('idle')
     if errors:
         commons.show_message_dialog('There were errors reading some files', errors)
+    if warnings:
+        commons.show_message_dialog('Additional warnings', warnings)
+
+    [data.gene_model.append([gene]) for gene in data.genes]
+
     # now finally flip to next page
     commons.set_changed(iface, PAGE, False)
     commons.proceed(None, gui)
@@ -414,9 +416,16 @@ def read(gui):
     data, iface = gui.data, gui.interface
     data.csvs.clear()
     data.seqdata.clear()
-    errors = list()
-    do = len(data.trace_store) + len(data.plate_store)
+    records, warnings, errors = list(), list(), list()
+    yet_to_do = len(data.trace_store) + len(data.plate_store) + 2  # add some extra time for tabularizing
     done = 0
+
+    # use random but reproducible prefixes for references. different seed from raxml -> less confusion
+    random.seed(data.seed + 2)
+
+    # dict of reference source organism -> random key
+    lookup = dict()
+
     # read in wellsplates
     LOG.debug('reading wellsplates')
     iface.txt = 'reading plates ...'
@@ -424,40 +433,109 @@ def read(gui):
         df = pd.read_csv(row[0], header=None, engine='python')
         df.index = list(range(1, df.shape[0] + 1))
         df.columns = list(string.ascii_uppercase[0:df.shape[1]])
-        box = row[2]
+        file, box = row[1:3]
         if box in data.csvs:
-            LOG.error('wellsplate %s already read in. overwrite with %s' % (box, row[1]))
-            commons.show_message_dialog(message='wellsplate %s already read in. overwrite with %s' % (box, row[1]))
+            errors.append('overwrite wellsplate %s with %s' % (box, file))
         data.csvs[box] = df
         done += 1
-        iface.frac = done / do
+        iface.frac = done / yet_to_do
 
     # read in trace files
     LOG.debug('reading traces')
     for row in data.trace_store:
-        iface.txt = 'reading %s' % row[1]
-        file_path = row[0]
+        file_path, file, coords, box, gene, is_ref, is_rev, color = row
+        iface.txt = 'reading %s' % file
 
+        # read in one file
         if file_path.endswith('.ab1'):
-            # also check for phred scores. ABI traces also only contain a single record!
-            sleep(0.16)
             try:
-                record = SeqIO.read(file_path, 'abi')
-                # TODO
+                records = [SeqIO.read(file_path, 'abi')]  # ABI traces also only contain a single record!
             except UnicodeDecodeError:
-                # save the filename for message
-                errors.append(row[1])
-            pass
+                errors.append('ABI trace error %s' % file)
         elif file_path.endswith('.fasta') or file_path.endswith('.fa') or file_path.endswith('.seq'):
             try:
-                for record in SeqIO.parse(file_path, 'fasta'):
-                    # TODO
-                    pass
+                records = SeqIO.parse(file_path, 'fasta')
             except UnicodeDecodeError:
-                # save the filename for message
-                errors.append(row[1])
+                errors.append('Seq file error %s' % file)
+
+        # iterate over records found in file (usually only one)
+        for record in records:
+
+            # normal sequence
+            if not is_ref:
+                try:
+                    # swap out well coordinates for isolate numbers
+                    (y, x) = (int(coords[1:]), coords[0])
+                    record.id = data.csvs[box].loc[y, x]
+                except (KeyError, ValueError):
+                    if len(data.csvs) == 0:
+                        # record.id = record.name.replace(gene, '')
+                        if box in ['', ' ', '-', '_']:
+                            record.id = coords.upper()
+                        else:
+                            record.id = box + '_' + coords
+                    else:
+                        errors.append('missing wellsplate %s' % box)
+
+                attributes = {'file': file_path, 'wellsplate': box}
+                # TODO continue here
+
+                if is_rev:
+                    record = record.reverse_complement(record.id, description='')
+                    attributes['direction'] = 'reverse'
+
+                if gene not in data.seqdata:
+                    data.seqdata[gene] = dict()
+                    data.metadata[gene] = dict()
+                elif record.id in data.seqdata[gene]:
+                    warnings.append('duplicate ID %s' % record.id)
+                    # add suffix to duplicate IDs
+                    record = filter.new_version(record, data.seqdata[gene].keys())
+
+            else:  # reference
+                # parse species and possibly strain
+                strain = re.split(r'[\s_]', record.description.strip().split(',')[0])
+                accession = strain.pop(0)
+                species = strain.pop(0) + ' ' + strain.pop(0)
+                try:
+                    ix = strain.index('strain')
+                    strain = ' '.join(strain[ix + 1:ix + 3])
+                    # cope with longer composite species names
+                    if ix > 0:
+                        species += ' ' + ' '.join(strain[0:ix])
+                except ValueError:
+                    strain = species
+
+                # catch some illegal characters
+                for char in ['<', '>', '\'', '"', '&']:
+                    strain = strain.replace(char, '')
+
+                # retrieve or generate random key
+                if strain in lookup:
+                    _id = lookup[strain]
+                else:
+                    # swap original ids for random short ones that no tool takes offense at.
+                    _id = 'REF_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+                    lookup[strain] = _id
+
+                # save original id+description
+                data.metadata[gene][_id] = {'file': file_path,
+                                            'accession': accession,
+                                            'reference_species': species + ' strain ' + strain}
+                record.id = _id
+                record.description = ''  # MARK do not delete deletion
+
+            # save SeqRecord
+            data.seqdata[gene][record.id] = record
+            data.metadata[gene][record.id] = attributes
+
         done += 1
-        iface.frac = done / do
+        iface.frac = done / yet_to_do
+
+    # create matrix from trace files
+    LOG.debug('create matrix')
+    # TODO continue here
+
     # TODO start or call the initial redraw here or inside stop?
-    GObject.idle_add(stop, gui, errors)
+    GObject.idle_add(stop, gui, errors, warnings)
     return

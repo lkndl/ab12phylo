@@ -26,7 +26,8 @@ VARIABLE = []
 def init(gui):
     data, iface = gui.data, gui.interface
     iface.read_prog.set_visible(False)
-    iface.gene_roll.set_model(Gtk.ListStore(str))
+    data.gene_model = Gtk.ListStore(str)
+    iface.gene_roll.set_model(data.gene_model)
     iface.gene_roll.connect('changed', replace, data, iface)
 
     iface.accept_rev.set_active(iface.search_rev)
@@ -58,10 +59,6 @@ def init(gui):
 
 def reset(gui):
     data, iface = gui.data, gui.interface
-    # lookup sample IDs in the wellsplates
-
-
-
 
 
 

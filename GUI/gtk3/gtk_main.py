@@ -87,10 +87,11 @@ class dataset:
                                          str,  # filename
                                          str,  # plate ID
                                          str)  # errors
-
-        self.genes = list()
+        self.genes = set()
         self.csvs = dict()
         self.seqdata = dict()
+        self.metadata = dict()
+        self.seed = 0
 
 
 def _init_log(**kwargs):
