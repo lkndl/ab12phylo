@@ -19,6 +19,10 @@ def get_errors(iface, page):
     return iface.errors_indicator[page]
 
 
+def set_errors(iface, page, errors):
+    iface.errors_indicator[page] = errors
+
+
 def set_changed(iface, page, changed):
     """
     Set page to changed and disable further stages; set page to unchanged and enable next page
@@ -37,10 +41,6 @@ def set_changed(iface, page, changed):
         iface.notebook.get_children()[page + 1].set_sensitive(True)
         # set earlier pages to 'unchanged'
         iface.change_indicator[:page + 1] = [False] * (page + 1)
-
-
-def set_errors(iface, page, errors):
-    iface.errors_indicator[page] = errors
 
 
 def show_message_dialog(message, list_to_print=None):
@@ -104,13 +104,20 @@ def proceed(widget, gui):
     if get_changed(iface, page):
         if page == 0:
             regex.reset(gui)
-        # TODO
         elif page == 1:
-            # check if everything seems fine on the
+            # check if everything ok
+            regex.re_check(gui)
             if get_errors(iface, page):
                 show_message_dialog('There are still errors on the page!')
                 return
-            quality.reset(gui)
+            if sum(iface.rx_fired) < 5:
+                show_message_dialog('Make sure all columns have been parsed.')
+                return
+            regex.read_files(gui)
+            return  # leave this alone
+        elif page == 2:
+            # TODO
+            print('wohooo')
         set_changed(iface, page, False)
 
     # then proceed

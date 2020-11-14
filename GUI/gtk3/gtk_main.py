@@ -42,14 +42,15 @@ class gui(Gtk.Window):
         # get some colors
         sc = self.get_style_context()
         self.interface.FG = '#' + ''.join([(hex(min(int(c*256), 255))[2:]).upper()
-                                           for c in list(sc.get_color(Gtk.StateType.NORMAL))])
+                                           for c in list(sc.get_color(Gtk.StateType.NORMAL))[:-1]])
         # self.interface.BG = sc.get_background_color(Gtk.StateType.NORMAL)
         # self.interface.FG = '#FFFFFF'
         # self.interface.BLUE = Gdk.RGBA(0.137255, 0.454902, 0.686275, 1)  # '#2374AF'
         # self.interface.AQUA = Gdk.RGBA(0.180392, 0.701961, 0.596078, 1)  # '#2EB398'
-        self.interface.BLUE = '#2374AF'
-        self.interface.AQUA = '#2EB398'
         self.interface.RED = '#FF0000'
+        self.interface.BLUE = '#2374AF'
+        self.interface.GREEN = '#23AF46'
+        self.interface.AQUA = '#2EB398'
 
         # fetch the notebook
         self.notebook = self.interface.notebook

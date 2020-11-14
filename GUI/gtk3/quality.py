@@ -55,94 +55,14 @@ def init(gui):
     iface.quality_next.connect('clicked', commons.proceed, gui)
     iface.quality_back.connect('clicked', commons.step_back, gui)
 
-    reset(gui)
-
 
 def reset(gui):
-    if len(gui.data.rx_model) > 0:
-        data, iface = gui.data, gui.interface
-
-        iface.frac = 0
-        iface.txt = ''
-
-        iface.reader = threading.Thread(target=read, args=[(data, iface)])
-        iface.running = True
-        GObject.timeout_add(100, update, data, iface)
-        iface.reader.start()
-        print('when does this fire? EARLY')
-        # GUI thread returns to main loop?
+    data, iface = gui.data, gui.interface
+    # lookup sample IDs in the wellsplates
 
 
-def update(data, iface):
-    if iface.running:
-        iface.notebook.get_children()[PAGE].set_sensitive(False)
-        iface.read_prog.set_visible(True)
-        iface.read_prog.set_fraction(iface.frac)
-        iface.read_prog.set_text(iface.txt)
-        return True
-    else:
-        iface.notebook.get_children()[PAGE].set_sensitive(True)
-        iface.read_prog.set_visible(False)
-        return False
 
 
-def stop(iface, errors):
-    iface.running = False
-    iface.reader.join()
-    iface.read_prog.set_text('idle')
-    LOG.info('idle')
-    if errors:
-        commons.show_message_dialog('There were errors reading some files', errors)
-    return
-
-
-def read(args):
-    data, iface = args
-    data.csvs.clear()
-    data.seqdata.clear()
-    errors = list()
-    do = len(data.rx_model) + len(data.wp_model)
-    done = 0
-    # read in wellsplates
-    LOG.debug('reading wellsplates')
-    iface.txt = 'reading plates ...'
-    for row in data.wp_model:
-        df = pd.read_csv(row[-1], header=None, engine='python')
-        df.index = list(range(1, df.shape[0] + 1))
-        df.columns = list(string.ascii_uppercase[0:df.shape[1]])
-        box = row[0]
-        if box in data.csvs:
-            LOG.error('wellsplate %s already read in. overwrite with %s' % (box, row[-2]))
-            commons.show_message_dialog(message='wellsplate %s already read in. overwrite with %s' % (box, row[-2]))
-        data.csvs[box] = df
-        done += 1
-        iface.frac = done / do
-
-    # read in trace files
-    LOG.debug('reading traces')
-    for row in data.rx_model:
-        iface.txt = 'reading %s' % row[-2]
-        file_path = row[-1]
-
-        if file_path.endswith('.ab1'):
-            # also check for phred scores. ABI traces also only contain a single record!
-            sleep(0.16)
-            try:
-                record = SeqIO.read(file_path, 'abi')
-            except UnicodeDecodeError:
-                errors.append(row[-2])
-            pass
-        elif file_path.endswith('.fasta') or file_path.endswith('.fa') or file_path.endswith('.seq'):
-            try:
-                for record in SeqIO.parse(file_path, 'fasta'):
-                    pass
-            except UnicodeDecodeError:
-                errors.append(row[-2])
-        done += 1
-        iface.frac = done / do
-    # TODO start or call the initial redraw here
-    GObject.idle_add(stop, iface, errors)
-    return
 
 
 def replace(widget, data, iface):

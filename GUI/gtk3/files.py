@@ -111,7 +111,7 @@ def add_folder(widget, gui, file_types, model):
 
 def add_manually(widget, gui, model, *args):
     """
-    Load trace or wellsplate paths into the appropriate GtkListStore,
+    Load trace, wellsplate or reference paths into the appropriate GtkListStore,
     also remembering if this is a reference.
     """
     data, iface = gui.data, gui.interface
@@ -124,27 +124,25 @@ def add_manually(widget, gui, model, *args):
     response = dialog.run()
     if response == Gtk.ResponseType.OK:
         # read the filenames
-        new_paths = dialog.get_filenames()
+        filenames = dialog.get_filenames()
         if 'whitelists' in args:
             # read lines from the files
             extracted = list()
-            for whitelist in new_paths:
+            for whitelist in filenames:
                 try:
                     extracted += open(whitelist, 'r').read().strip().split('\n')
                 except UnicodeDecodeError as ex:
                     LOG.info(ex)
+            filenames = extracted
 
-            # sort extracted into valid and invalid file paths
-
-            new_paths = list()
-            for string_path in extracted:
-                path = Path(string_path).resolve()
-                if path.is_file():
-                    new_paths.append(path)
-                else:
-                    not_found.append(string_path)
-        else:
-            new_paths = [Path(string_path) for string_path in new_paths]
+        # sort extracted into valid and invalid file paths
+        new_paths = list()
+        for string_path in filenames:
+            path = Path(string_path).resolve()
+            if path.is_file():
+                new_paths.append(path)
+            else:
+                not_found.append(string_path)
 
         # where to write
         if widget in [iface.add_csv_folder, iface.add_csv_manual]:
@@ -194,7 +192,7 @@ def add_new_entries(model, new_paths, iface, *args):
     :return:
     """
     if 'ref' in args:
-        color = iface.BLUE
+        color = iface.AQUA
         is_ref = True
     elif 'trace' in args or 'csv' in args:
         color = iface.FG
