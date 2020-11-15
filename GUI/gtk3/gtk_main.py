@@ -41,7 +41,7 @@ class gui(Gtk.Window):
 
         # get some colors
         sc = self.get_style_context()
-        self.interface.FG = '#' + ''.join([(hex(min(int(c*256), 255))[2:]).upper()
+        self.interface.FG = '#' + ''.join([(hex(min(int(c * 256), 255))[2:]).upper()
                                            for c in list(sc.get_color(Gtk.StateType.NORMAL))[:-1]])
         # self.interface.BG = sc.get_background_color(Gtk.StateType.NORMAL)
         # self.interface.FG = '#FFFFFF'
@@ -88,10 +88,17 @@ class dataset:
                                          str,  # plate ID
                                          str)  # errors
         self.genes = set()
+        self.gene_model = Gtk.ListStore(str)
         self.csvs = dict()
         self.seqdata = dict()
         self.metadata = dict()
         self.seed = 0
+        self.record_ids = list()
+        self.seq_array = None
+        # self.qal_array = None
+        self.qal_model = Gtk.ListStore(str,  # id
+                                       bool,  # versionized
+                                       bool)  # low quality
 
 
 def _init_log(**kwargs):

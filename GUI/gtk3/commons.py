@@ -138,3 +138,24 @@ def get_column(list_store, col_idx):
     for row in list_store:
         col.append(row[col_idx])
     return col
+
+
+def update(iface, bar, page):
+    """
+    Keeps a progress bar up-to-date
+    :param iface:
+    :param bar: the progress bar to update
+    :param page: the page to freeze
+    :return:
+    """
+
+    if iface.running:
+        iface.notebook.get_children()[page].set_sensitive(False)
+        bar.set_visible(True)
+        bar.set_fraction(iface.frac)
+        bar.set_text(iface.txt)
+        return True
+    else:
+        iface.notebook.get_children()[page].set_sensitive(True)
+        bar.set_visible(False)
+        return False

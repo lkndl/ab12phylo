@@ -12,6 +12,8 @@ import gi
 import pandas as pd
 import requests, random
 from Bio import SeqIO
+import numpy as np
+import seaborn as sns
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
@@ -133,6 +135,7 @@ def parse_single(widget, gui, entry, col, fifth=None):
     for i, row in enumerate(model):
         # skip references
         if traces and row[5]:
+            errors = errors or row[-1] == iface.AQUA
             continue
 
         file = row[1]
@@ -197,6 +200,7 @@ def parse_triple(widget, gui):
         for idx, row in enumerate(data.trace_store):
             # skip references
             if row[5]:  # is reference
+                errors = errors or row[-1] == iface.AQUA
                 continue
             file = row[1]
             try:
@@ -295,7 +299,6 @@ def search_genes(gui):
     single_gene = data.genes.pop() if len(data.genes) == 1 else False
     for i, row in enumerate(data.trace_store):
         if row[5] and row[-1] == iface.AQUA:
-            print(row[:])
             if single_gene:
                 data.trace_store[i][4] = single_gene
                 data.trace_store[i][7] = iface.BLUE
@@ -364,60 +367,27 @@ def try_online(widget, gui):
 
 def read_files(gui):
     data, iface = gui.data, gui.interface
-    iface.frac = 0
-    iface.txt = ''
 
     # stop if there are no traces
     if len(data.trace_store) == 0:
         commons.show_message_dialog('No sequence data!')
         # return  # TODO maybe really stop
 
-    iface.reader = threading.Thread(target=read, args=[gui])
+    iface.bg_thread = threading.Thread(target=read, args=[gui])
     iface.running = True
-    GObject.timeout_add(100, update, iface)
-    iface.reader.start()
+    GObject.timeout_add(100, commons.update, iface, iface.read_prog, PAGE)
+    iface.bg_thread.start()
     # GUI thread returns to main loop
-
-
-def update(iface):
-    if iface.running:
-        iface.notebook.get_children()[PAGE].set_sensitive(False)
-        iface.read_prog.set_visible(True)
-        iface.read_prog.set_fraction(iface.frac)
-        iface.read_prog.set_text(iface.txt)
-        return True
-    else:
-        iface.notebook.get_children()[PAGE].set_sensitive(True)
-        iface.read_prog.set_visible(False)
-        return False
-
-
-def stop(gui, errors, warnings):
-    data, iface = gui.data, gui.interface
-    iface.running = False
-    iface.reader.join()
-    iface.read_prog.set_text('idle')
-    LOG.info('idle')
-    if errors:
-        commons.show_message_dialog('There were errors reading some files', errors)
-    if warnings:
-        commons.show_message_dialog('Additional warnings', warnings)
-
-    [data.gene_model.append([gene]) for gene in data.genes]
-
-    # now finally flip to next page
-    commons.set_changed(iface, PAGE, False)
-    commons.proceed(None, gui)
-    quality.reset(gui)
-    return
 
 
 def read(gui):
     data, iface = gui.data, gui.interface
+    iface.frac = 0
+    iface.txt = ''
     data.csvs.clear()
     data.seqdata.clear()
     records, warnings, errors = list(), list(), list()
-    yet_to_do = len(data.trace_store) + len(data.plate_store) + 2  # add some extra time for tabularizing
+    all_there_is_to_do = len(data.trace_store) + len(data.plate_store)
     done = 0
 
     # use random but reproducible prefixes for references. different seed from raxml -> less confusion
@@ -438,7 +408,7 @@ def read(gui):
             errors.append('overwrite wellsplate %s with %s' % (box, file))
         data.csvs[box] = df
         done += 1
-        iface.frac = done / yet_to_do
+        iface.frac = done / all_there_is_to_do
 
     # read in trace files
     LOG.debug('reading traces')
@@ -519,23 +489,75 @@ def read(gui):
                     lookup[strain] = _id
 
                 # save original id+description
-                data.metadata[gene][_id] = {'file': file_path,
-                                            'accession': accession,
-                                            'reference_species': species + ' strain ' + strain}
+                attributes = {'file': file_path, 'accession': accession,
+                              'reference_species': species + ' strain ' + strain}
                 record.id = _id
                 record.description = ''  # MARK do not delete deletion
 
             # save SeqRecord
             data.seqdata[gene][record.id] = record
             data.metadata[gene][record.id] = attributes
+            # save the order of all records
+            data.record_ids.append((record.id, gene))
 
         done += 1
-        iface.frac = done / yet_to_do
+        iface.frac = done / all_there_is_to_do
 
-    # create matrix from trace files
-    LOG.debug('create matrix')
-    # TODO continue here
-
-    # TODO start or call the initial redraw here or inside stop?
     GObject.idle_add(stop, gui, errors, warnings)
     return
+
+
+def stop(gui, errors, warnings):
+    data, iface = gui.data, gui.interface
+    iface.running = False
+    iface.bg_thread.join()
+    iface.read_prog.set_text('idle')
+    LOG.info('idle')
+    if errors:
+        commons.show_message_dialog('There were errors reading some files', errors)
+    if warnings:
+        commons.show_message_dialog('Additional warnings', warnings)
+
+    data.gene_model.clear()
+    [data.gene_model.append([gene]) for gene in data.genes | {'all'}]
+
+    # now finally flip to next page
+    commons.set_changed(iface, PAGE, False)
+    commons.proceed(None, gui)
+    quality.redraw(None, gui)
+    return
+
+
+def seq2ints(seq):
+    ints = []
+    for nt in seq:
+        if nt == 'A':
+            ints.append(0)
+        elif nt == 'C':
+            ints.append(1)
+        elif nt == 'G':
+            ints.append(2)
+        elif nt == 'T':
+            ints.append(3)
+        elif nt == 'N':
+            ints.append(4)
+        elif nt == '-':
+            ints.append(5)
+        elif nt == ' ':
+            ints.append(6)
+        elif nt == 'S':
+            ints.append(7)
+        else:
+            ints.append(8)
+    return ints
+
+
+def seq2qals(seqrecord, attributes):
+    try:
+        phreds = seqrecord.letter_annotations['phred_quality']
+        if set(phreds) == {0}:
+            raise ValueError('no quality')
+    except (KeyError, ValueError):
+        attributes['has_qal'] = False
+        phreds = [0] * len(seqrecord)
+    return phreds
