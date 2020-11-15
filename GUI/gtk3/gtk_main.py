@@ -88,7 +88,6 @@ class dataset:
                                          str,  # plate ID
                                          str)  # errors
         self.genes = set()
-        self.gene_model = Gtk.ListStore(str)
         self.csvs = dict()
         self.seqdata = dict()
         self.metadata = dict()

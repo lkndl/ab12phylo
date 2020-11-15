@@ -45,13 +45,14 @@ def set_changed(iface, page, changed):
 
 def show_message_dialog(message, list_to_print=None):
     dialog = Gtk.MessageDialog(transient_for=None, flags=0,
-                               buttons=Gtk.ButtonsType.OK, message_type=Gtk.MessageType.WARNING,
-                               text=message)
+                               message_type=Gtk.MessageType.WARNING, text=message)
     # dialog.format_secondary_text('\n'.join(not_found))  # not copyable -> not user-friendly
     if list_to_print:
         txt_buf = Gtk.TextBuffer()
         txt_buf.set_text('\n'.join(list_to_print))
         dialog.get_message_area().add(Gtk.TextView().new_with_buffer(txt_buf))
+    dialog.add_button('OK', 0)
+    dialog.get_widget_for_response(0).grab_focus()
     dialog.show_all()  # important
     dialog.run()
     dialog.destroy()
@@ -159,3 +160,38 @@ def update(iface, bar, page):
         iface.notebook.get_children()[page].set_sensitive(True)
         bar.set_visible(False)
         return False
+
+
+def seq2ints(seq):
+    ints = []
+    for nt in seq:
+        if nt == 'A':
+            ints.append(0)
+        elif nt == 'C':
+            ints.append(1)
+        elif nt == 'G':
+            ints.append(2)
+        elif nt == 'T':
+            ints.append(3)
+        elif nt == 'N':
+            ints.append(4)
+        elif nt == '-':
+            ints.append(5)
+        elif nt == ' ':
+            ints.append(6)
+        elif nt == 'S':
+            ints.append(7)
+        else:
+            ints.append(8)
+    return ints
+
+
+def seq2qals(seqrecord, attributes):
+    try:
+        phreds = seqrecord.letter_annotations['phred_quality']
+        if set(phreds) == {0}:
+            raise ValueError('no quality')
+    except (KeyError, ValueError):
+        attributes['has_qal'] = False
+        phreds = [0] * len(seqrecord)
+    return phreds

@@ -1,35 +1,41 @@
 import logging
-import queue, string
-import pandas as pd
 from pathlib import Path
-from argparse import Namespace
-from time import sleep
 import threading
+import sys
 
 import gi
-import re
 import numpy as np
 import seaborn as sns
-from Bio import SeqIO
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_gtk3agg import (
+    FigureCanvasGTK3Agg as FigureCanvas)
+from matplotlib.figure import Figure
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject
 
 from GUI.gtk3 import commons
-from ab12phylo import filter
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 2
-KXLIN = [(.46, 1, .44, 1), (.16, .44, .8, 1), (1, .47, .66, 1), (.92, 1, .4, 1),
-         (.84, .84, .84, .6), (1, 1, 1, 0), (1, 1, 1, 0), (1, 1, 1, 0), (1, 0, 0, 1)]
+KXLIN = [('A', (0.46, 1, 0.44, 1)),
+         ('C', (0.16, 0.44, 0.8, 1)),
+         ('G', (1, 0.47, 0.66, 1)),
+         ('T', (0.92, 1, 0.4, 1)),
+         ('N', (0.84, 0.84, 0.84, 0.6)),
+         ('-', (1, 1, 1, 0)),
+         ('[ ]', (1, 1, 1, 0)),
+         ('sep', (1, 1, 1, 0)),
+         ('unknown', (1, 0, 0, 1))]
+CMAP = sns.color_palette([c[1] for c in KXLIN], as_cmap=True)
 
 
 def init(gui):
     data, iface = gui.data, gui.interface
     iface.read_prog.set_visible(False)
-    iface.gene_roll.set_model(data.gene_model)
-    iface.gene_roll.connect('changed', parse, gui)
+    iface.gene_roll.set_entry_text_column(0)
+    iface.gene_roll.connect('changed', parse, None, gui)
 
     iface.accept_rev.set_active(iface.search_rev)
     iface.accept_nophred.set_active(True)
@@ -38,9 +44,10 @@ def init(gui):
                                                   step_increment=1, page_increment=1))
     iface.min_phred.set_numeric(True)
     iface.min_phred.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
+    iface.qal_scroll.connect('change_value', lambda *args: iface.qal_win.set_hadjustment(args[0].get_adjustment()))
 
     # this is kept up-to-date by the signals below
-    iface.q_params = dict()
+    iface.q_params = {'gene_roll': 'all'}
 
     for w_name in ['min_phred', 'trim_out', 'trim_of', 'bad_stretch']:
         wi = iface.__getattribute__(w_name)
@@ -49,76 +56,127 @@ def init(gui):
         wi.connect('focus_out_event', parse, gui)
         wi.connect('activate', parse, None, gui)
 
+    for w_name in ['accept_rev', 'accept_nophred']:
+        wi = iface.__getattribute__(w_name)
+        iface.q_params[w_name] = wi.get_active()
+
     for wi in [iface.trim_out, iface.trim_of, iface.bad_stretch]:
         wi.connect('key-press-event', keypress, data, iface)
 
     for widget in [iface.accept_rev, iface.accept_nophred]:
-        widget.connect('toggled', parse, gui)
+        widget.connect('toggled', parse, None, gui)
 
-    iface.qal_plot = Namespace()
-    iface.qal_plot.sel = iface.view_dataset.get_selection()
-    # TODO connect click inside plot with
-    # iface.qal_plot.sel.select_iter(iter)
-
-    # TODO init treeview
-    # TODO sync treeview scrolling to plot scrolling
-
-    iface.qal_plot.cmap = sns.color_palette(KXLIN, as_cmap=True)
+    # init row annotation
+    iface.view_qal.set_model(data.qal_model)
+    iface.view_qal.set_headers_visible(False)
+    iface.view_qal.append_column(Gtk.TreeViewColumn(
+        title='id', cell_renderer=Gtk.CellRendererText(), text=0))
+    iface.view_qal.append_column(Gtk.TreeViewColumn(
+        title='versionized', cell_renderer=Gtk.CellRendererToggle(radio=False), active=1))
+    iface.view_qal.append_column(Gtk.TreeViewColumn(
+        title='low quality', cell_renderer=Gtk.CellRendererToggle(radio=False), active=2))
+    iface.view_qal.connect('size_allocate', set_dims, iface)
 
     iface.quality_next.connect('clicked', commons.proceed, gui)
     iface.quality_back.connect('clicked', commons.step_back, gui)
 
 
-def redraw(widget, gui):
+def redraw(gui):
+    """
+    For non-empty gene set, start a background re-drawing thread and return the GUI to the main loop.
+    :param gui:
+    :return:
+    """
     data, iface = gui.data, gui.interface
     # called after files are read
     # TODO start sth easier than this from re-sorting the treeview
-    if not data.genes:
+    # TODO palplot in upper half
+    if not data.genes or iface.notebook.get_current_page() != PAGE:
+        LOG.debug('abort re-draw')
         return
 
-    iface.bg_thread = threading.Thread(target=qplot, args=[gui])
+    iface.qal_thread = threading.Thread(target=qplot, args=[gui])
     iface.running = True
-    GObject.timeout_add(100, commons.update, iface, iface.plot_prog, PAGE)
-    iface.bg_thread.start()
+    GObject.timeout_add(50, commons.update, iface, iface.plot_prog, PAGE)
+    iface.qal_thread.start()
     # GUI thread returns to main loop
 
 
 def qplot(gui):
     """
-    Create a matrix representation of valid characters and plot as sns.heatmap
+    Iterate over records and trim, create a matrix representation of valid characters and plot as seaborn heatmap
     :param gui:
     :return:
     """
     data, iface = gui.data, gui.interface
-    iface.frac = 0
-    iface.txt = ''
-
     # parameters are up-to-date
     LOG.debug('re-draw with %s' % str(iface.q_params))
+    iface.frac = 0
+    iface.txt = 'creating matrix'
+    data.qal_model.clear()
+    rows = list()
+    all_there_is_to_do = len(data.record_ids) + 3
+    done = 0
 
-    # # create matrix from trace files
-    # LOG.debug('create matrices')
-    # iface.txt = 'sequence matrix'
-    # data.seq_array = np.array([seq2ints(data.seqdata[_gene][_id].seq) for _id, _gene in data.record_ids])
-    # LOG.debug('matrix shape: %s' % str(data.seq_array.shape))
-    # done += 1
-    # iface.frac = done / all_there_is_to_do
-    # iface.txt = 'quality matrix'
-    # data.qal_array = np.array([seq2qals(data.seqdata[_gene][_id], data.metadata[_gene][_id])
-    #                            for _id, _gene in data.record_ids])
-    # done += 1
-    # iface.frac = done / all_there_is_to_do
+    for record in [data.seqdata[_id[1]][_id[0]] for _id in data.record_ids]:
+        rows.append(commons.seq2ints(record))
+        # TODO get as sequence?
+        # TODO get as integers
+        data.qal_model.append([record.id, False, False])
+
+        done += 1
+        iface.frac = done / all_there_is_to_do
+
+    set_dims(iface.view_qal, None, iface)
+
+    iface.txt = 'tabularize'
+    max_len = max(map(len, rows))
+    data.seq_array = np.array([row + [5] * (max_len - len(row)) for row in rows])  # MARK 5 is the gap character
+    done += 1
+    iface.frac = done / all_there_is_to_do
+
+    iface.txt = 'plot'
+    sns.set(style='white')
+    sns.despine(offset=0, trim=True)
+    ratio = data.seq_array.shape[1] / data.seq_array.shape[0]
+    figure = Figure(dpi=72)
+
+    sns.heatmap(data.seq_array, ax=figure.add_subplot(111), cmap=CMAP,  # DO NOT USE annot=True,
+                yticklabels=False, xticklabels=False,  # DO NOT USE square=True
+                vmin=-.5, vmax=len(KXLIN) - .5,  # adjust the color map to the character range
+                linewidth=0, cbar=False)
+    figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+    canvas = FigureCanvas(figure)  # a Gtk.DrawingArea
+    canvas.mpl_connect('pick_event', onpick)
+    canvas.mpl_connect('button_press_event', onclick)
+
+    done += 1
+    iface.frac = done / all_there_is_to_do
+
+    iface.txt = 'place + resize'
+    canvas.set_size_request(width=max(4 * data.seq_array.shape[1], iface.q_params['height'] * ratio // 2),
+                            height=iface.q_params['height'])
+
+    [child.destroy() for child in iface.qal_win.get_children()]
+    iface.qal_win.add(canvas)
+
+    iface.frac = 1
+    # plt.ion()
 
     GObject.idle_add(stop, iface)
-    return
+    gui.show_all()
+    set_dims(iface.view_qal, None, iface)
+    return True
 
 
 def stop(iface):
     iface.running = False
-    iface.bg_thread.join()
+    print('try join', file=sys.stderr)
+    iface.qal_thread.join()
+    # del iface.qal_thread
+    LOG.info('good join')
     iface.plot_prog.set_text('idle')
-    LOG.info('idle')
-    return
+    return False
 
 
 def delete_event(widget, event):
@@ -139,16 +197,24 @@ def edit(widget, data, iface):
     LOG.debug('editing ...')
     # filter for numbers only
     value = ''.join([c for c in widget.get_text() if c.isdigit()])
-    widget.set_text(value if value else '0')
+    widget.set_text(value if value else '')  # entering 0 is annoying
 
 
 def parse(widget, event, gui):
     data, iface = gui.data, gui.interface
-    LOG.debug('parsing ...')
-    pre = iface.q_params[widget.get_name()]
+    print(event, file=sys.stderr)
+    print(widget, file=sys.stderr)
+    LOG.debug('parsing for re-draw')
+    pre = None
+    try:
+        pre = iface.q_params[widget.get_name()]
+    except KeyError:
+        exit('%s not in q_params' % widget.get_name())
     # getting new value depends on widget type
     if widget == iface.gene_roll:
-        now = data.gene_model[event.get_active_iter()]
+        now = widget.get_active_text()
+        # if now == {}:
+        #     return
         now = data.genes if now == 'all' else set(now)
     elif widget in [iface.accept_rev, iface.accept_nophred]:
         now = widget.get_active()
@@ -156,7 +222,7 @@ def parse(widget, event, gui):
         now = int(widget.get_text())
     delete_event(widget, event)
 
-    # cause redrawing if something changed
+    # cause re-drawing if something changed
     if pre != now:
         iface.q_params[widget.get_name()] = now
         if iface.q_params['trim_out'] > iface.q_params['trim_of']:
@@ -164,4 +230,32 @@ def parse(widget, event, gui):
                                         (iface.q_params['trim_out'], iface.q_params['trim_of']))
             widget.set_text('0')
         else:
-            redraw(None, gui)
+            redraw(gui)
+    else:
+        LOG.debug('no change, abort re-draw')
+    return True
+
+
+def set_dims(widget, rect, iface):
+    iface.q_params['height'] = min(20, widget.get_allocated_height())
+    iface.qal_spacer.set_size_request(widget.get_allocated_width(), -1)
+    return True
+
+
+def onpick(event):
+    thisline = event.artist
+    xdata = thisline.get_xdata()
+    ydata = thisline.get_ydata()
+    ind = event.ind
+    points = tuple(zip(xdata[ind], ydata[ind]))
+    print('onpick points:', points)
+    print('This would be useful after the next big restructuring', file=sys.stderr)
+    return True
+
+
+def onclick(event):
+    print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+          ('double' if event.dblclick else 'single', event.button,
+           event.x, event.y, event.xdata, event.ydata))
+    print('This would be useful after the next big restructuring', file=sys.stderr)
+    return True

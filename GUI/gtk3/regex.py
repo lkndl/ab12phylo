@@ -373,10 +373,10 @@ def read_files(gui):
         commons.show_message_dialog('No sequence data!')
         # return  # TODO maybe really stop
 
-    iface.bg_thread = threading.Thread(target=read, args=[gui])
+    iface.rx_thread = threading.Thread(target=read, args=[gui])
     iface.running = True
     GObject.timeout_add(100, commons.update, iface, iface.read_prog, PAGE)
-    iface.bg_thread.start()
+    iface.rx_thread.start()
     # GUI thread returns to main loop
 
 
@@ -457,6 +457,7 @@ def read(gui):
                 if gene not in data.seqdata:
                     data.seqdata[gene] = dict()
                     data.metadata[gene] = dict()
+                    data.genes.add(gene)
                 elif record.id in data.seqdata[gene]:
                     warnings.append('duplicate ID %s' % record.id)
                     # add suffix to duplicate IDs
@@ -504,60 +505,27 @@ def read(gui):
         iface.frac = done / all_there_is_to_do
 
     GObject.idle_add(stop, gui, errors, warnings)
+
+    # has to be in main thread?
+    iface.gene_roll.remove_all()
+    [iface.gene_roll.append_text(gene) for gene in ['all'] + list(data.genes)]
+    # iface.gene_roll.set_active(0)
     return
 
 
 def stop(gui, errors, warnings):
     data, iface = gui.data, gui.interface
     iface.running = False
-    iface.bg_thread.join()
+    iface.rx_thread.join()
+    del iface.rx_thread
     iface.read_prog.set_text('idle')
     LOG.info('idle')
     if errors:
         commons.show_message_dialog('There were errors reading some files', errors)
     if warnings:
         commons.show_message_dialog('Additional warnings', warnings)
-
-    data.gene_model.clear()
-    [data.gene_model.append([gene]) for gene in data.genes | {'all'}]
-
     # now finally flip to next page
     commons.set_changed(iface, PAGE, False)
     commons.proceed(None, gui)
-    quality.redraw(None, gui)
+    quality.redraw(gui)
     return
-
-
-def seq2ints(seq):
-    ints = []
-    for nt in seq:
-        if nt == 'A':
-            ints.append(0)
-        elif nt == 'C':
-            ints.append(1)
-        elif nt == 'G':
-            ints.append(2)
-        elif nt == 'T':
-            ints.append(3)
-        elif nt == 'N':
-            ints.append(4)
-        elif nt == '-':
-            ints.append(5)
-        elif nt == ' ':
-            ints.append(6)
-        elif nt == 'S':
-            ints.append(7)
-        else:
-            ints.append(8)
-    return ints
-
-
-def seq2qals(seqrecord, attributes):
-    try:
-        phreds = seqrecord.letter_annotations['phred_quality']
-        if set(phreds) == {0}:
-            raise ValueError('no quality')
-    except (KeyError, ValueError):
-        attributes['has_qal'] = False
-        phreds = [0] * len(seqrecord)
-    return phreds

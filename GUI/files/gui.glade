@@ -2,32 +2,6 @@
 <!-- Generated with glade 3.38.1 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
-  <object class="GtkTreeStore" id="filetypes">
-    <columns>
-      <!-- column-name selector -->
-      <column type="gboolean"/>
-      <!-- column-name extension -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkLabel" id="read_prog_lbl">
-    <property name="name">read_prog_lbl</property>
-    <property name="can-focus">False</property>
-    <property name="no-show-all">True</property>
-    <property name="halign">start</property>
-    <property name="valign">end</property>
-    <property name="vexpand">False</property>
-    <property name="label" translatable="yes">label</property>
-  </object>
-  <object class="GtkTextBuffer" id="textbuffer1">
-    <property name="text" translatable="yes">If a widget has native scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.Container.add() method. If a widget does not, you must first add the widget to a gtk.Viewport, then add the gtk.Viewport to the scrolled window. The convenience method add_with_viewport() does exactly this, so you can ignore the presence of the viewport.</property>
-  </object>
-  <object class="GtkTextBuffer" id="textbuffer2">
-    <property name="text" translatable="yes">the other widget hasn't.
-
-
-ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.Container.add() met to a gtk.Viewportthen add the gtk.Viewport to the scrolled window. The convenience method add_with_viewport() does exactly this, so you can ignore the presence of the viewport.d</property>
-  </object>
   <object class="GtkNotebook" id="notebook">
     <property name="name">notebook</property>
     <property name="width-request">640</property>
@@ -1544,40 +1518,13 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
             <property name="orientation">vertical</property>
             <property name="wide-handle">True</property>
             <child>
-              <!-- n-columns=3 n-rows=7 -->
+              <!-- n-columns=2 n-rows=7 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="margin-bottom">10</property>
                 <property name="row-spacing">10</property>
                 <property name="column-spacing">10</property>
-                <child>
-                  <object class="GtkScrolledWindow">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="hexpand">True</property>
-                    <property name="vexpand">True</property>
-                    <property name="shadow-type">in</property>
-                    <child>
-                      <object class="GtkTreeView" id="view_dataset">
-                        <property name="name">view_dataset</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">True</property>
-                        <property name="rubber-banding">True</property>
-                        <child internal-child="selection">
-                          <object class="GtkTreeSelection"/>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="left-attach">2</property>
-                    <property name="top-attach">1</property>
-                    <property name="height">6</property>
-                  </packing>
-                </child>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
@@ -1607,7 +1554,7 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                   <packing>
                     <property name="left-attach">0</property>
                     <property name="top-attach">0</property>
-                    <property name="width">3</property>
+                    <property name="width">2</property>
                   </packing>
                 </child>
                 <child>
@@ -1654,7 +1601,7 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                         <property name="halign">start</property>
                         <property name="vexpand">False</property>
                         <property name="max-length">3</property>
-                        <property name="width-chars">2</property>
+                        <property name="width-chars">3</property>
                         <property name="text" translatable="yes">8</property>
                         <property name="input-purpose">number</property>
                       </object>
@@ -1687,7 +1634,7 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                         <property name="halign">start</property>
                         <property name="vexpand">False</property>
                         <property name="max-length">3</property>
-                        <property name="width-chars">2</property>
+                        <property name="width-chars">3</property>
                         <property name="text" translatable="yes">10</property>
                         <property name="input-purpose">number</property>
                       </object>
@@ -1778,7 +1725,7 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                         <property name="halign">start</property>
                         <property name="vexpand">False</property>
                         <property name="max-length">3</property>
-                        <property name="width-chars">2</property>
+                        <property name="width-chars">3</property>
                         <property name="text" translatable="yes">5</property>
                         <property name="input-purpose">number</property>
                       </object>
@@ -1840,19 +1787,14 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBox" id="gene_roll">
+                  <object class="GtkComboBoxText" id="gene_roll">
                     <property name="name">gene_roll</property>
+                    <property name="width-request">10</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="halign">start</property>
-                    <property name="has-entry">True</property>
-                    <child internal-child="entry">
-                      <object class="GtkEntry">
-                        <property name="can-focus">False</property>
-                        <property name="width-chars">10</property>
-                        <property name="text" translatable="yes">all</property>
-                      </object>
-                    </child>
+                    <property name="hexpand">False</property>
+                    <property name="active">0</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -1866,10 +1808,11 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
               </packing>
             </child>
             <child>
-              <object class="GtkBox">
+              <!-- n-columns=2 n-rows=3 -->
+              <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="orientation">vertical</property>
+                <property name="column-spacing">10</property>
                 <child>
                   <object class="GtkProgressBar" id="plot_prog">
                     <property name="name">plot_prog</property>
@@ -1879,9 +1822,9 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                     <property name="show-text">True</property>
                   </object>
                   <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                    <property name="width">2</property>
                   </packing>
                 </child>
                 <child>
@@ -1890,6 +1833,7 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="margin-top">10</property>
+                    <property name="hexpand">True</property>
                     <property name="hscrollbar-policy">never</property>
                     <property name="shadow-type">in</property>
                     <child>
@@ -1897,36 +1841,16 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
-                          <!-- n-columns=3 n-rows=3 -->
-                          <object class="GtkGrid">
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid" id="qal_grid">
+                            <property name="name">qal_grid</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="row-spacing">10</property>
                             <property name="column-spacing">10</property>
                             <child>
                               <object class="GtkScrolledWindow">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="hscrollbar-policy">never</property>
-                                <property name="vscrollbar-policy">never</property>
-                                <property name="shadow-type">in</property>
-                                <child>
-                                  <object class="GtkTextView">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="wrap-mode">word</property>
-                                    <property name="buffer">textbuffer1</property>
-                                  </object>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkScrolledWindow">
+                                <property name="width-request">30</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="hexpand">False</property>
@@ -1934,66 +1858,41 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                                 <property name="vscrollbar-policy">never</property>
                                 <property name="shadow-type">in</property>
                                 <child>
-                                  <object class="GtkTextView">
+                                  <object class="GtkTreeView" id="view_qal">
+                                    <property name="name">view_qal</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="hexpand">True</property>
-                                    <property name="wrap-mode">word</property>
-                                    <property name="buffer">textbuffer2</property>
-                                  </object>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkScrolledWindow">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="hscrollbar-policy">always</property>
-                                <property name="vscrollbar-policy">never</property>
-                                <property name="window-placement">bottom-right</property>
-                                <property name="shadow-type">in</property>
-                                <property name="propagate-natural-width">True</property>
-                                <property name="propagate-natural-height">True</property>
-                                <child>
-                                  <object class="GtkViewport">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <child>
-                                      <object class="GtkImage">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="pixbuf">../images/msa.png</property>
-                                      </object>
+                                    <property name="rubber-banding">True</property>
+                                    <child internal-child="selection">
+                                      <object class="GtkTreeSelection"/>
                                     </child>
                                   </object>
                                 </child>
                               </object>
                               <packing>
-                                <property name="left-attach">2</property>
-                                <property name="top-attach">1</property>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
                               </packing>
                             </child>
                             <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
+                              <object class="GtkScrolledWindow" id="qal_win">
+                                <property name="name">qal_win</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="vexpand">True</property>
+                                <property name="hscrollbar-policy">external</property>
+                                <property name="vscrollbar-policy">never</property>
+                                <property name="window-placement">bottom-right</property>
+                                <property name="shadow-type">in</property>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
                             </child>
                           </object>
                         </child>
@@ -2001,9 +1900,34 @@ ive scrolling abilities, it can be added to the gtk.ScrolledWindow with the gtk.
                     </child>
                   </object>
                   <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                    <property name="width">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="qal_spacer">
+                    <property name="name">qal_spacer</property>
+                    <property name="width-request">30</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrollbar" id="qal_scroll">
+                    <property name="name">qal_scroll</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">False</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
                   </packing>
                 </child>
               </object>
