@@ -6,6 +6,7 @@ import sys
 import gi
 import numpy as np
 import seaborn as sns
+from time import sleep
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)
@@ -15,6 +16,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject
 
 from GUI.gtk3 import commons
+from ab12phylo import filter
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
@@ -44,7 +46,8 @@ def init(gui):
                                                   step_increment=1, page_increment=1))
     iface.min_phred.set_numeric(True)
     iface.min_phred.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
-    iface.qal_scroll.connect('change_value', lambda *args: iface.qal_win.set_hadjustment(args[0].get_adjustment()))
+    iface.qal_scroll.connect('change_value', lambda *args: iface.
+                             qal_win.set_hadjustment(args[0].get_adjustment()))
 
     # this is kept up-to-date by the signals below
     iface.q_params = {'gene_roll': 'all'}
@@ -72,9 +75,8 @@ def init(gui):
     iface.view_qal.append_column(Gtk.TreeViewColumn(
         title='id', cell_renderer=Gtk.CellRendererText(), text=0))
     iface.view_qal.append_column(Gtk.TreeViewColumn(
-        title='versionized', cell_renderer=Gtk.CellRendererToggle(radio=False), active=1))
-    iface.view_qal.append_column(Gtk.TreeViewColumn(
-        title='low quality', cell_renderer=Gtk.CellRendererToggle(radio=False), active=2))
+        title='has phreds', active=1,
+        cell_renderer=Gtk.CellRendererToggle(radio=False)))
     iface.view_qal.connect('size_allocate', set_dims, iface)
 
     iface.quality_next.connect('clicked', commons.proceed, gui)
@@ -83,28 +85,36 @@ def init(gui):
 
 def redraw(gui):
     """
-    For non-empty gene set, start a background re-drawing thread and return the GUI to the main loop.
+    For non-empty gene set, start a background re-drawing thread
+    and return the GUI to the main loop.
     :param gui:
     :return:
     """
+    LOG.debug('start-up redraw')
     data, iface = gui.data, gui.interface
     # called after files are read
     # TODO start sth easier than this from re-sorting the treeview
     # TODO palplot in upper half
-    if not data.genes or iface.notebook.get_current_page() != PAGE:
+
+    # (gtk_main.py:5417): Gtk-CRITICAL **: 22:28:20.481: gtk_container_forall: assertion 'GTK_IS_CONTAINER (container)' failed
+    if not data.genes or iface.notebook.get_current_page() != PAGE or iface.running:
         LOG.debug('abort re-draw')
         return
 
+    data.qal_model.clear()
+    [child.destroy() for child in iface.qal_win.get_children()]
+    sleep(.1)
     iface.qal_thread = threading.Thread(target=qplot, args=[gui])
     iface.running = True
-    GObject.timeout_add(50, commons.update, iface, iface.plot_prog, PAGE)
+    GObject.timeout_add(20, commons.update, iface, iface.plot_prog, PAGE)
     iface.qal_thread.start()
     # GUI thread returns to main loop
 
 
 def qplot(gui):
     """
-    Iterate over records and trim, create a matrix representation of valid characters and plot as seaborn heatmap
+    Iterate over records and trim, create a matrix representation
+    of valid characters and plot as seaborn heatmap.
     :param gui:
     :return:
     """
@@ -113,69 +123,90 @@ def qplot(gui):
     LOG.debug('re-draw with %s' % str(iface.q_params))
     iface.frac = 0
     iface.txt = 'creating matrix'
-    data.qal_model.clear()
     rows = list()
     all_there_is_to_do = len(data.record_ids) + 3
     done = 0
 
-    for record in [data.seqdata[_id[1]][_id[0]] for _id in data.record_ids]:
-        rows.append(commons.seq2ints(record))
-        # TODO get as sequence?
-        # TODO get as integers
-        data.qal_model.append([record.id, False, False])
+    genes = iface.q_params['gene_roll']
+    genes = data.genes if genes == 'all' else genes
+    min_phred, a, b, bad_length = [iface.q_params[i] for i in
+                                   ['min_phred', 'trim_out',
+                                    'trim_of', 'bad_stretch']]
+    end_ratio = (a, b)
+
+    for record in [data.seqdata[_id[1]][_id[0]] for _id
+                   in data.record_ids if _id[1] in genes]:
+        # skip records from other genes for the trimming preview
+        try:
+            record = filter.trim_ends(record, min_phred, end_ratio, keep=True)
+            qal, bad = True, False
+            row = commons.seq2ints(record)
+        except AttributeError:
+            qal, bad = False, False
+            row = commons.seq2ints(record)
+        except ValueError:
+            qal, bad = True, True
+            row = [0]
+        rows.append(row)
+        data.qal_model.append([record.id, qal, bad])
 
         done += 1
         iface.frac = done / all_there_is_to_do
 
-    set_dims(iface.view_qal, None, iface)
+    if not rows:
+        LOG.warning('no sequence data remains')
+        commons.show_message_dialog('no sequence data remains. Try less strict criteria?')
+    else:
+        set_dims(iface.view_qal, None, iface)
 
-    iface.txt = 'tabularize'
-    max_len = max(map(len, rows))
-    data.seq_array = np.array([row + [5] * (max_len - len(row)) for row in rows])  # MARK 5 is the gap character
-    done += 1
-    iface.frac = done / all_there_is_to_do
+        iface.txt = 'tabularize'
+        max_len = max(map(len, rows))
+        data.seq_array = np.array([row + [5] * (max_len - len(row)) for row in rows])  # MARK 5 is the gap character
+        done += 1
+        iface.frac = done / all_there_is_to_do
 
-    iface.txt = 'plot'
-    sns.set(style='white')
-    sns.despine(offset=0, trim=True)
-    ratio = data.seq_array.shape[1] / data.seq_array.shape[0]
-    figure = Figure(dpi=72)
+        iface.txt = 'plot'
+        sns.set(style='white')
+        sns.despine(offset=0, trim=True)
+        ratio = data.seq_array.shape[1] / data.seq_array.shape[0]
+        figure = Figure(dpi=72)
 
-    sns.heatmap(data.seq_array, ax=figure.add_subplot(111), cmap=CMAP,  # DO NOT USE annot=True,
-                yticklabels=False, xticklabels=False,  # DO NOT USE square=True
-                vmin=-.5, vmax=len(KXLIN) - .5,  # adjust the color map to the character range
-                linewidth=0, cbar=False)
-    figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-    canvas = FigureCanvas(figure)  # a Gtk.DrawingArea
-    canvas.mpl_connect('pick_event', onpick)
-    canvas.mpl_connect('button_press_event', onclick)
+        sns.heatmap(data.seq_array, ax=figure.add_subplot(111), cmap=CMAP,  # DO NOT USE annot=True,
+                    yticklabels=False, xticklabels=False,  # DO NOT USE square=True
+                    vmin=-.5, vmax=len(KXLIN) - .5,  # adjust the color map to the character range
+                    linewidth=0, cbar=False)
+        figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+        canvas = FigureCanvas(figure)  # a Gtk.DrawingArea
+        # canvas.mpl_connect('pick_event', onpick)
+        # canvas.mpl_connect('button_press_event', onclick)
 
-    done += 1
-    iface.frac = done / all_there_is_to_do
+        done += 1
+        iface.frac = done / all_there_is_to_do
+        iface.txt = 'place + resize'
+        canvas.set_size_request(width=max(4 * data.seq_array.shape[1],
+                                          iface.q_params['height'] * ratio // 2),
+                                height=iface.q_params['height'])
+        try:
+            iface.qal_win.add(canvas)
+        except Gtk.Error as ex:
+            LOG.error(ex)
+        iface.frac = .99
+        # plt.ion()
 
-    iface.txt = 'place + resize'
-    canvas.set_size_request(width=max(4 * data.seq_array.shape[1], iface.q_params['height'] * ratio // 2),
-                            height=iface.q_params['height'])
-
-    [child.destroy() for child in iface.qal_win.get_children()]
-    iface.qal_win.add(canvas)
-
-    iface.frac = 1
-    # plt.ion()
-
-    GObject.idle_add(stop, iface)
-    gui.show_all()
-    set_dims(iface.view_qal, None, iface)
+    sleep(.1)
+    GObject.idle_add(stop, gui)
     return True
 
 
-def stop(iface):
+def stop(gui):
+    iface = gui.interface
     iface.running = False
-    print('try join', file=sys.stderr)
     iface.qal_thread.join()
-    # del iface.qal_thread
-    LOG.info('good join')
+    del iface.qal_thread
+    gui.show_all()
+    set_dims(iface.view_qal, None, iface)
     iface.plot_prog.set_text('idle')
+    LOG.info('idle')
     return False
 
 
@@ -201,6 +232,13 @@ def edit(widget, data, iface):
 
 
 def parse(widget, event, gui):
+    """
+    Parse the content of a widget and if something changed cause a re-draw
+    :param widget: The element to parse and inspect for changes
+    :param event: sometimes passed by the signal
+    :param gui:
+    :return:
+    """
     data, iface = gui.data, gui.interface
     print(event, file=sys.stderr)
     print(widget, file=sys.stderr)
@@ -215,11 +253,14 @@ def parse(widget, event, gui):
         now = widget.get_active_text()
         # if now == {}:
         #     return
-        now = data.genes if now == 'all' else set(now)
+        now = data.genes if now == 'all' else {now}
     elif widget in [iface.accept_rev, iface.accept_nophred]:
         now = widget.get_active()
     else:
-        now = int(widget.get_text())
+        try:
+            now = int(widget.get_text())
+        except ValueError:
+            now = 0
     delete_event(widget, event)
 
     # cause re-drawing if something changed
@@ -227,13 +268,23 @@ def parse(widget, event, gui):
         iface.q_params[widget.get_name()] = now
         if iface.q_params['trim_out'] > iface.q_params['trim_of']:
             commons.show_message_dialog('cannot draw %d from %d' %
-                                        (iface.q_params['trim_out'], iface.q_params['trim_of']))
+                                        (iface.q_params['trim_out'],
+                                         iface.q_params['trim_of']))
             widget.set_text('0')
         else:
             redraw(gui)
     else:
         LOG.debug('no change, abort re-draw')
     return True
+
+
+def trim_all(gui):
+    """
+    Really trim all sequences and write to new data structure.
+    :param gui:
+    :return:
+    """
+    data, iface = gui.data, gui.interface
 
 
 def set_dims(widget, rect, iface):

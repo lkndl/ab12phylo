@@ -213,13 +213,13 @@ class reader:
                                 attributes['direction'] = 'reverse'
                                 bad_seqs.write('%s\t%s\t%s\t%s\treverse read\n' % (file, record.id, box, gene))
                                 self.log.debug('reverse read %s: %s' % (record.id, file))
-                        except ValueError as v:
+                        except (AttributeError, ValueError) as v:
                             bad_seqs.write('%s\t%s\t%s\t%s\t%s\n' % (file, record.id, box, gene, v))
                             self.log.info('%s: %s' % (v, file))
-                            if v.args[0] == 'low quality':
-                                continue
+                            if type(v) is AttributeError:
+                                attributes['quality'] = str(v)
                             else:
-                                attributes['quality'] = v.args[0]
+                                continue
 
                         # ensure gene dict is present
                         if gene not in self.seqdata:

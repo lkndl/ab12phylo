@@ -96,7 +96,7 @@ class dataset:
         self.seq_array = None
         # self.qal_array = None
         self.qal_model = Gtk.ListStore(str,  # id
-                                       bool,  # versionized
+                                       bool,  # has phreds
                                        bool)  # low quality
 
 

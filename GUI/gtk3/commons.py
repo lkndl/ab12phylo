@@ -117,6 +117,7 @@ def proceed(widget, gui):
             regex.read_files(gui)
             return  # leave this alone
         elif page == 2:
+            quality.trim_all(gui)
             # TODO
             print('wohooo')
         set_changed(iface, page, False)

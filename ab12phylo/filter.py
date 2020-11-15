@@ -1,13 +1,15 @@
 from Bio.Seq import MutableSeq
 
 
-def trim_ends(seqrecord, min_phred, end_ratio):
+def trim_ends(seqrecord, min_phred, end_ratio, keep=False):
     """
     Trims a supplied SeqRecord with given minimal quality score and ratio of good bases in end of given length.
     """
+    if not seqrecord.letter_annotations:
+        raise AttributeError('no quality')
     phreds = seqrecord.letter_annotations['phred_quality']
     if set(phreds) == {0}:
-        raise ValueError('no quality')
+        raise AttributeError('no quality')
 
     # trim left
     start = _ok = 0
@@ -30,7 +32,13 @@ def trim_ends(seqrecord, min_phred, end_ratio):
     if start >= end:
         raise ValueError('low quality')
 
-    return seqrecord[start:end]
+    if keep:
+        seqrecord.seq = seqrecord.seq.tomutable()
+        seqrecord.seq[0:start] = '-' * start
+        seqrecord.seq[end:] = '-' * (len(seqrecord) - end)
+        return seqrecord
+    else:
+        return seqrecord[start:end]
 
 
 def mark_bad_stretches(seqrecord, min_phred, _len):

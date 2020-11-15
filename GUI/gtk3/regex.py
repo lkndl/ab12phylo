@@ -12,8 +12,6 @@ import gi
 import pandas as pd
 import requests, random
 from Bio import SeqIO
-import numpy as np
-import seaborn as sns
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
@@ -386,7 +384,7 @@ def read(gui):
     iface.txt = ''
     data.csvs.clear()
     data.seqdata.clear()
-    records, warnings, errors = list(), list(), list()
+    records, warnings, errors = list(), set(), set()
     all_there_is_to_do = len(data.trace_store) + len(data.plate_store)
     done = 0
 
@@ -421,12 +419,12 @@ def read(gui):
             try:
                 records = [SeqIO.read(file_path, 'abi')]  # ABI traces also only contain a single record!
             except UnicodeDecodeError:
-                errors.append('ABI trace error %s' % file)
+                errors.add('ABI trace error %s' % file)
         elif file_path.endswith('.fasta') or file_path.endswith('.fa') or file_path.endswith('.seq'):
             try:
                 records = SeqIO.parse(file_path, 'fasta')
             except UnicodeDecodeError:
-                errors.append('Seq file error %s' % file)
+                errors.add('Seq file error %s' % file)
 
         # iterate over records found in file (usually only one)
         for record in records:
@@ -445,7 +443,7 @@ def read(gui):
                         else:
                             record.id = box + '_' + coords
                     else:
-                        errors.append('missing wellsplate %s' % box)
+                        errors.add('missing wellsplate %s' % box)
 
                 attributes = {'file': file_path, 'wellsplate': box}
                 # TODO continue here
@@ -459,7 +457,7 @@ def read(gui):
                     data.metadata[gene] = dict()
                     data.genes.add(gene)
                 elif record.id in data.seqdata[gene]:
-                    warnings.append('duplicate ID %s' % record.id)
+                    warnings.add('duplicate ID %s' % record.id)
                     # add suffix to duplicate IDs
                     record = filter.new_version(record, data.seqdata[gene].keys())
 
