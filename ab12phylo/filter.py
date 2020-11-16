@@ -1,14 +1,15 @@
 from Bio.Seq import MutableSeq
+import copy
 
 
-def trim_ends(seqrecord, min_phred, end_ratio, keep=False):
+def trim_ends(seqrecord, min_phred, end_ratio, trim_preview=False):
     """
     Trims a supplied SeqRecord with given minimal quality score and ratio of good bases in end of given length.
     """
     if not seqrecord.letter_annotations:
         raise AttributeError('no quality')
     phreds = seqrecord.letter_annotations['phred_quality']
-    if set(phreds) == {0}:
+    if set(phreds) == {0} and min_phred > 0:
         raise AttributeError('no quality')
 
     # trim left
@@ -32,11 +33,24 @@ def trim_ends(seqrecord, min_phred, end_ratio, keep=False):
     if start >= end:
         raise ValueError('low quality')
 
-    if keep:
-        seqrecord.seq = seqrecord.seq.tomutable()
-        seqrecord.seq[0:start] = '-' * start
-        seqrecord.seq[end:] = '-' * (len(seqrecord) - end)
-        return seqrecord
+    if trim_preview:
+        # make some copies
+        qal = copy.copy(phreds)
+        rec = copy.copy(seqrecord)
+        rec.letter_annotations = copy.copy(rec.letter_annotations)
+        rec.letter_annotations['phred_quality'] = qal
+
+        if type(rec.seq) != MutableSeq:
+            rec.seq = rec.seq.tomutable()
+
+        if start > 0:
+            rec.seq[0:start] = '-' * start
+            qal[0:start] = [min_phred + 1] * start
+
+        assert end > 0
+        rec.seq[end:] = '-' * (len(rec) - end)
+        qal[end:] = [min_phred + 1] * (len(rec) - end)
+        return rec
     else:
         return seqrecord[start:end]
 
@@ -54,7 +68,8 @@ def mark_bad_stretches(seqrecord, min_phred, _len):
     """
 
     phreds = seqrecord.letter_annotations['phred_quality']
-    seqrecord.seq = seqrecord.seq.tomutable()
+    if type(seqrecord.seq) != MutableSeq:
+        seqrecord.seq = seqrecord.seq.tomutable()
     start = 0
 
     while True:
@@ -87,6 +102,57 @@ def new_version(seqrecord, keys):
             version = int(seqrecord.id[pos + 1:])
             seqrecord.id = seqrecord.id[:pos + 1] + str(version + 1)
     return seqrecord
+
+
+def seq2ints(seqrecord):
+    """
+    For the trimming preview, return an integer list representation of the sequence.
+    :param seqrecord: an object of class SeqRecord to iterate.
+    :return: a list of integers
+    """
+    ints = []
+    for nt in seqrecord:
+        if nt == 'A':
+            ints.append(0)
+        elif nt == 'C':
+            ints.append(1)
+        elif nt == 'G':
+            ints.append(2)
+        elif nt == 'T':
+            ints.append(3)
+        elif nt == 'N':
+            ints.append(4)
+        elif nt == '-':
+            ints.append(5)
+        elif nt == ' ':
+            ints.append(6)
+        elif nt == 'S':
+            ints.append(7)
+        else:
+            ints.append(8)
+    return ints
+
+
+def seq2gray(seqrecord):
+    """
+    For the trimming preview, return an equal-length list of ints representing N.
+    :param seqrecord: an object of class SeqRecord to iterate.
+    :return: a list of integers
+    """
+    ints = []
+    shift = {'A', 'C', 'G', 'T', 'N'}
+    for nt in seqrecord:
+        if nt in shift:
+            ints.append(4)
+        elif nt == '-':
+            ints.append(5)
+        elif nt == ' ':
+            ints.append(6)
+        elif nt == 'S':
+            ints.append(7)
+        else:
+            ints.append(8)
+    return ints
 
 
 def mark_bad_bases(seqrecord, min_phred):

@@ -1,5 +1,6 @@
 import logging
 import sys
+import threading
 from argparse import Namespace
 from pathlib import Path
 
@@ -38,6 +39,8 @@ class gui(Gtk.Window):
                 self.interface[widget.get_name()] = widget
         self.interface = Namespace(**self.interface)
         self.log.debug('Fetched control elements')
+
+        self.interface.thread = threading.Thread()
 
         # get some colors
         sc = self.get_style_context()
@@ -87,14 +90,12 @@ class dataset:
                                          str,  # filename
                                          str,  # plate ID
                                          str)  # errors
-        self.genes = set()
+        self.genes = set()  # used *before* seqdata exists
         self.csvs = dict()
         self.seqdata = dict()
         self.metadata = dict()
         self.seed = 0
-        self.record_ids = list()
-        self.seq_array = None
-        # self.qal_array = None
+        self.record_order = list()
         self.qal_model = Gtk.ListStore(str,  # id
                                        bool,  # has phreds
                                        bool)  # low quality

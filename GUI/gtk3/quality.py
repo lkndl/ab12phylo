@@ -7,7 +7,7 @@ import gi
 import numpy as np
 import seaborn as sns
 from time import sleep
-import matplotlib.pyplot as plt
+from argparse import Namespace
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)
 from matplotlib.figure import Figure
@@ -37,10 +37,10 @@ def init(gui):
     data, iface = gui.data, gui.interface
     iface.read_prog.set_visible(False)
     iface.gene_roll.set_entry_text_column(0)
-    iface.gene_roll.connect('changed', parse, None, gui)
-
-    iface.accept_rev.set_active(iface.search_rev)
+    iface.gene_handler = iface.gene_roll.connect('changed', parse, None, gui)
+    iface.rev_handler = iface.accept_rev.connect('toggled', parse, None, gui)
     iface.accept_nophred.set_active(True)
+    iface.accept_nophred.connect('toggled', parse, None, gui)
 
     iface.min_phred.set_adjustment(Gtk.Adjustment(value=30, upper=60, lower=0,
                                                   step_increment=1, page_increment=1))
@@ -50,24 +50,20 @@ def init(gui):
                              qal_win.set_hadjustment(args[0].get_adjustment()))
 
     # this is kept up-to-date by the signals below
-    iface.q_params = {'gene_roll': 'all'}
+    iface.q_params = Namespace(gene_roll='all')
 
     for w_name in ['min_phred', 'trim_out', 'trim_of', 'bad_stretch']:
         wi = iface.__getattribute__(w_name)
-        iface.q_params[w_name] = int(wi.get_text())
+        iface.q_params.__setattr__(w_name, int(wi.get_text()))
         wi.connect('changed', edit, data, iface)
         wi.connect('focus_out_event', parse, gui)
         wi.connect('activate', parse, None, gui)
 
     for w_name in ['accept_rev', 'accept_nophred']:
-        wi = iface.__getattribute__(w_name)
-        iface.q_params[w_name] = wi.get_active()
+        iface.q_params.__setattr__(w_name, iface.__getattribute__(w_name).get_active())
 
     for wi in [iface.trim_out, iface.trim_of, iface.bad_stretch]:
         wi.connect('key-press-event', keypress, data, iface)
-
-    for widget in [iface.accept_rev, iface.accept_nophred]:
-        widget.connect('toggled', parse, None, gui)
 
     # init row annotation
     iface.view_qal.set_model(data.qal_model)
@@ -81,6 +77,22 @@ def init(gui):
 
     iface.quality_next.connect('clicked', commons.proceed, gui)
     iface.quality_back.connect('clicked', commons.step_back, gui)
+
+
+def reset(gui):
+    data, iface = gui.data, gui.interface
+    with iface.gene_roll.handler_block(iface.gene_handler):
+        iface.gene_roll.remove_all()
+
+        [iface.gene_roll.append_text(gene) for gene in data.genes]
+        if len(data.genes) > 1:
+            iface.gene_roll.insert_text(0, 'all')
+        iface.gene_roll.set_active(0)
+    with iface.accept_rev.handler_block(iface.rev_handler):
+        iface.accept_rev.set_active(iface.reverse_rx_chk.get_active())
+        iface.accept_rev.set_sensitive(iface.reverse_rx_chk.get_active())
+
+    redraw(gui)
 
 
 def redraw(gui):
@@ -97,17 +109,17 @@ def redraw(gui):
     # TODO palplot in upper half
 
     # (gtk_main.py:5417): Gtk-CRITICAL **: 22:28:20.481: gtk_container_forall: assertion 'GTK_IS_CONTAINER (container)' failed
-    if not data.genes or iface.notebook.get_current_page() != PAGE or iface.running:
+    if not data.genes or iface.running or iface.notebook.get_current_page() != PAGE:
         LOG.debug('abort re-draw')
         return
 
     data.qal_model.clear()
     [child.destroy() for child in iface.qal_win.get_children()]
     sleep(.1)
-    iface.qal_thread = threading.Thread(target=qplot, args=[gui])
+    iface.thread = threading.Thread(target=qplot, args=[gui])
     iface.running = True
     GObject.timeout_add(20, commons.update, iface, iface.plot_prog, PAGE)
-    iface.qal_thread.start()
+    iface.thread.start()
     # GUI thread returns to main loop
 
 
@@ -124,54 +136,62 @@ def qplot(gui):
     iface.frac = 0
     iface.txt = 'creating matrix'
     rows = list()
-    all_there_is_to_do = len(data.record_ids) + 3
+    p = iface.q_params
+    p.gene_roll = data.genes if p.gene_roll == 'all' else p.gene_roll
     done = 0
+    all_there_is_to_do = sum([len(data.seqdata[gene]) for gene in p.gene_roll]) + 3
 
-    genes = iface.q_params['gene_roll']
-    genes = data.genes if genes == 'all' else genes
-    min_phred, a, b, bad_length = [iface.q_params[i] for i in
-                                   ['min_phred', 'trim_out',
-                                    'trim_of', 'bad_stretch']]
-    end_ratio = (a, b)
+    try:
+        for record_id, gene in data.record_order:
+            # skip records from other genes for the trimming preview
+            if gene not in p.gene_roll:
+                continue
 
-    for record in [data.seqdata[_id[1]][_id[0]] for _id
-                   in data.record_ids if _id[1] in genes]:
-        # skip records from other genes for the trimming preview
-        try:
-            record = filter.trim_ends(record, min_phred, end_ratio, keep=True)
-            qal, bad = True, False
-            row = commons.seq2ints(record)
-        except AttributeError:
-            qal, bad = False, False
-            row = commons.seq2ints(record)
-        except ValueError:
-            qal, bad = True, True
-            row = [0]
-        rows.append(row)
-        data.qal_model.append([record.id, qal, bad])
+            done += 1
+            iface.frac = done / all_there_is_to_do
+            # maybe skip reversed seqs
+            if not p.accept_rev and data.metadata[gene][record_id]['is_rev']:
+                continue
 
-        done += 1
-        iface.frac = done / all_there_is_to_do
+            record = data.seqdata[gene][record_id]
+            try:
+                record = filter.trim_ends(record, p.min_phred, (p.trim_out, p.trim_of), trim_preview=True)
+                record = filter.mark_bad_stretches(record, p.min_phred, p.bad_stretch)
+                has_qal, is_bad = True, False
+                row = filter.seq2ints(record)
+            except AttributeError:
+                # accept references anyway, but maybe skip no-phred ones
+                if not data.metadata[gene][record_id]['is_ref'] and not p.accept_nophred:
+                    continue
+                has_qal, is_bad = False, False
+                row = filter.seq2ints(record)
+            except ValueError:
+                has_qal, is_bad = True, True
+                row = filter.seq2gray(record)
+            rows.append(row)
+            data.qal_model.append([record.id, has_qal, is_bad])
+
+    except KeyError as ke:
+        exit(ke)
 
     if not rows:
-        LOG.warning('no sequence data remains')
-        commons.show_message_dialog('no sequence data remains. Try less strict criteria?')
+        exit('no sequence data remains')
     else:
         set_dims(iface.view_qal, None, iface)
 
         iface.txt = 'tabularize'
         max_len = max(map(len, rows))
-        data.seq_array = np.array([row + [5] * (max_len - len(row)) for row in rows])  # MARK 5 is the gap character
+        seq_array = np.array([row + [5] * (max_len - len(row)) for row in rows])  # MARK 5 is the gap character
         done += 1
         iface.frac = done / all_there_is_to_do
 
         iface.txt = 'plot'
         sns.set(style='white')
         sns.despine(offset=0, trim=True)
-        ratio = data.seq_array.shape[1] / data.seq_array.shape[0]
+        ratio = seq_array.shape[1] / seq_array.shape[0]
         figure = Figure(dpi=72)
 
-        sns.heatmap(data.seq_array, ax=figure.add_subplot(111), cmap=CMAP,  # DO NOT USE annot=True,
+        sns.heatmap(seq_array, ax=figure.add_subplot(111), cmap=CMAP,  # DO NOT USE annot=True,
                     yticklabels=False, xticklabels=False,  # DO NOT USE square=True
                     vmin=-.5, vmax=len(KXLIN) - .5,  # adjust the color map to the character range
                     linewidth=0, cbar=False)
@@ -183,9 +203,8 @@ def qplot(gui):
         done += 1
         iface.frac = done / all_there_is_to_do
         iface.txt = 'place + resize'
-        canvas.set_size_request(width=max(4 * data.seq_array.shape[1],
-                                          iface.q_params['height'] * ratio // 2),
-                                height=iface.q_params['height'])
+        canvas.set_size_request(width=max(4 * seq_array.shape[1], p.height * ratio // 2),
+                                height=p.height)
         try:
             iface.qal_win.add(canvas)
         except Gtk.Error as ex:
@@ -201,10 +220,12 @@ def qplot(gui):
 def stop(gui):
     iface = gui.interface
     iface.running = False
-    iface.qal_thread.join()
-    del iface.qal_thread
+    iface.thread.join()
+    # del iface.thread
     gui.show_all()
     set_dims(iface.view_qal, None, iface)
+    # link and resize scrollbar
+    iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
     iface.plot_prog.set_text('idle')
     LOG.info('idle')
     return False
@@ -245,7 +266,7 @@ def parse(widget, event, gui):
     LOG.debug('parsing for re-draw')
     pre = None
     try:
-        pre = iface.q_params[widget.get_name()]
+        pre = iface.q_params.__getattribute__(widget.get_name())
     except KeyError:
         exit('%s not in q_params' % widget.get_name())
     # getting new value depends on widget type
@@ -265,11 +286,10 @@ def parse(widget, event, gui):
 
     # cause re-drawing if something changed
     if pre != now:
-        iface.q_params[widget.get_name()] = now
-        if iface.q_params['trim_out'] > iface.q_params['trim_of']:
+        iface.q_params.__setattr__(widget.get_name(), now)
+        if iface.q_params.trim_out > iface.q_params.trim_of:
             commons.show_message_dialog('cannot draw %d from %d' %
-                                        (iface.q_params['trim_out'],
-                                         iface.q_params['trim_of']))
+                                        (iface.q_params.trim_out, iface.q_params.trim_of))
             widget.set_text('0')
         else:
             redraw(gui)
@@ -288,7 +308,7 @@ def trim_all(gui):
 
 
 def set_dims(widget, rect, iface):
-    iface.q_params['height'] = min(20, widget.get_allocated_height())
+    iface.q_params.height = min(20, widget.get_allocated_height())
     iface.qal_spacer.set_size_request(widget.get_allocated_width(), -1)
     return True
 

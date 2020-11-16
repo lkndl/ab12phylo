@@ -795,7 +795,7 @@
                 <property name="can-focus">False</property>
                 <property name="shadow-type">none</property>
                 <child>
-                  <!-- n-columns=3 n-rows=13 -->
+                  <!-- n-columns=3 n-rows=14 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -813,7 +813,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
+                        <property name="top-attach">5</property>
                         <property name="width">3</property>
                       </packing>
                     </child>
@@ -888,7 +888,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">5</property>
+                        <property name="top-attach">6</property>
                         <property name="height">7</property>
                       </packing>
                     </child>
@@ -906,7 +906,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">5</property>
+                        <property name="top-attach">6</property>
                       </packing>
                     </child>
                     <child>
@@ -923,7 +923,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">6</property>
+                        <property name="top-attach">7</property>
                         <property name="width">3</property>
                       </packing>
                     </child>
@@ -939,7 +939,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">8</property>
+                        <property name="top-attach">9</property>
                       </packing>
                     </child>
                     <child>
@@ -955,7 +955,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">8</property>
+                        <property name="top-attach">9</property>
                       </packing>
                     </child>
                     <child>
@@ -971,7 +971,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">9</property>
+                        <property name="top-attach">10</property>
                       </packing>
                     </child>
                     <child>
@@ -982,7 +982,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">12</property>
+                        <property name="top-attach">13</property>
                         <property name="width">3</property>
                       </packing>
                     </child>
@@ -999,7 +999,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">7</property>
+                        <property name="top-attach">8</property>
                       </packing>
                     </child>
                     <child>
@@ -1043,7 +1043,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">11</property>
+                        <property name="top-attach">12</property>
                       </packing>
                     </child>
                     <child>
@@ -1058,7 +1058,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">9</property>
+                        <property name="top-attach">10</property>
                       </packing>
                     </child>
                     <child>
@@ -1073,7 +1073,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">7</property>
+                        <property name="top-attach">8</property>
                       </packing>
                     </child>
                     <child>
@@ -1084,7 +1084,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">11</property>
+                        <property name="top-attach">12</property>
                       </packing>
                     </child>
                     <child>
@@ -1232,7 +1232,7 @@
                       <packing>
                         <property name="left-attach">2</property>
                         <property name="top-attach">1</property>
-                        <property name="height">2</property>
+                        <property name="height">3</property>
                       </packing>
                     </child>
                     <child>
@@ -1242,7 +1242,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">3</property>
+                        <property name="top-attach">4</property>
                         <property name="width">3</property>
                       </packing>
                     </child>
@@ -1260,7 +1260,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">5</property>
+                        <property name="top-attach">6</property>
                       </packing>
                     </child>
                     <child>
@@ -1275,7 +1275,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">10</property>
+                        <property name="top-attach">11</property>
                       </packing>
                     </child>
                     <child>
@@ -1292,7 +1292,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">10</property>
+                        <property name="top-attach">11</property>
                       </packing>
                     </child>
                     <child>
@@ -1349,6 +1349,18 @@
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                   </object>
@@ -1853,6 +1865,7 @@
                                 <property name="width-request">30</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">The check indicates if this sample has phred quality scores.</property>
                                 <property name="hexpand">False</property>
                                 <property name="hscrollbar-policy">never</property>
                                 <property name="vscrollbar-policy">never</property>
@@ -1906,18 +1919,6 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="qal_spacer">
-                    <property name="name">qal_spacer</property>
-                    <property name="width-request">30</property>
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">2</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkScrollbar" id="qal_scroll">
                     <property name="name">qal_scroll</property>
                     <property name="visible">True</property>
@@ -1927,6 +1928,18 @@
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="qal_space">
+                    <property name="name">qal_spacer</property>
+                    <property name="width-request">30</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
                     <property name="top-attach">2</property>
                   </packing>
                 </child>

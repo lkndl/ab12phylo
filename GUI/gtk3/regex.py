@@ -27,7 +27,7 @@ ERRORS = ['groups?', 'no match', 'use groups!']
 
 def init(gui):
     data, iface = gui.data, gui.interface
-    iface.plates, iface.search_rev = True, False
+    iface.plates = True
 
     iface.single_rt.connect('toggled', rx_toggle, gui)
     iface.triple_rt.connect('toggled', rx_toggle, gui)
@@ -98,7 +98,6 @@ def reset(gui):
     # reset_sort_size(gui)
     iface.reverse_rx_chk.set_active(False)
     iface.rx_fired[6] = True
-    iface.search_rev = False
 
     # fire the initial parse
     parse_single(iface.wp_rx, gui, iface.wp_rx, 2)
@@ -229,14 +228,18 @@ def parse_triple(widget, gui):
         parse_single(None, gui, iface.gene_rx, 4)
         if iface.plates:
             parse_single(None, gui, iface.plate_rx, 3)
-    if iface.search_rev:
+    if iface.reverse_rx_chk.get_active():
         parse_single(None, gui, iface.reverse_rx, 6)
     LOG.debug('parse_triple done')
 
 
 def cell_edit(cell, path, new_text, iface, tv, col):
     mo = tv.get_model()
+    old_text = mo[path][col]
+    if old_text == new_text:
+        return
     mo[path][col] = new_text
+    commons.set_changed(iface, PAGE, True)
     # set row to error-free. also for references
     if tv == iface.view_trace_regex:
         mo[path][-1] = iface.BLUE if mo[path][5] else iface.FG
@@ -266,7 +269,6 @@ def rev_adjust(widget, gui):
     data, iface = gui.data, gui.interface
     n_cols = iface.view_trace_regex.get_n_columns()
     if widget.get_active():
-        iface.search_rev = True
         # enable entry field
         iface.reverse_rx.set_sensitive(True)
         # create new column
@@ -277,7 +279,6 @@ def rev_adjust(widget, gui):
         # cause parsing
         parse_single(None, gui, iface.reverse_rx, 6)
     else:
-        iface.search_rev = False
         iface.reverse_rx.set_sensitive(False)
         for col in iface.view_trace_regex.get_columns():
             if col.get_title() == 'rev':
@@ -371,10 +372,10 @@ def read_files(gui):
         commons.show_message_dialog('No sequence data!')
         # return  # TODO maybe really stop
 
-    iface.rx_thread = threading.Thread(target=read, args=[gui])
+    iface.thread = threading.Thread(target=read, args=[gui])
     iface.running = True
     GObject.timeout_add(100, commons.update, iface, iface.read_prog, PAGE)
-    iface.rx_thread.start()
+    iface.thread.start()
     # GUI thread returns to main loop
 
 
@@ -384,6 +385,7 @@ def read(gui):
     iface.txt = ''
     data.csvs.clear()
     data.seqdata.clear()
+    data.record_order.clear()
     records, warnings, errors = list(), set(), set()
     all_there_is_to_do = len(data.trace_store) + len(data.plate_store)
     done = 0
@@ -403,7 +405,7 @@ def read(gui):
         df.columns = list(string.ascii_uppercase[0:df.shape[1]])
         file, box = row[1:3]
         if box in data.csvs:
-            errors.append('overwrite wellsplate %s with %s' % (box, file))
+            errors.add('overwrite wellsplate %s with %s' % (box, file))
         data.csvs[box] = df
         done += 1
         iface.frac = done / all_there_is_to_do
@@ -429,6 +431,16 @@ def read(gui):
         # iterate over records found in file (usually only one)
         for record in records:
 
+            # any kind of seq can define a new gene
+            if gene not in data.seqdata:
+                data.seqdata[gene] = dict()
+                data.metadata[gene] = dict()
+                data.genes.add(gene)
+            elif record.id in data.seqdata[gene]:
+                warnings.add('duplicate ID %s' % record.id)
+                # add suffix to duplicate IDs
+                record = filter.new_version(record, data.seqdata[gene].keys())
+
             # normal sequence
             if not is_ref:
                 try:
@@ -445,21 +457,11 @@ def read(gui):
                     else:
                         errors.add('missing wellsplate %s' % box)
 
-                attributes = {'file': file_path, 'wellsplate': box}
+                attributes = {'file': file_path, 'wellsplate': box, 'is_ref': False, 'is_rev': is_rev}
                 # TODO continue here
 
                 if is_rev:
                     record = record.reverse_complement(record.id, description='')
-                    attributes['direction'] = 'reverse'
-
-                if gene not in data.seqdata:
-                    data.seqdata[gene] = dict()
-                    data.metadata[gene] = dict()
-                    data.genes.add(gene)
-                elif record.id in data.seqdata[gene]:
-                    warnings.add('duplicate ID %s' % record.id)
-                    # add suffix to duplicate IDs
-                    record = filter.new_version(record, data.seqdata[gene].keys())
 
             else:  # reference
                 # parse species and possibly strain
@@ -488,7 +490,7 @@ def read(gui):
                     lookup[strain] = _id
 
                 # save original id+description
-                attributes = {'file': file_path, 'accession': accession,
+                attributes = {'file': file_path, 'accession': accession, 'is_rev': False, 'is_ref': True,
                               'reference_species': species + ' strain ' + strain}
                 record.id = _id
                 record.description = ''  # MARK do not delete deletion
@@ -497,25 +499,20 @@ def read(gui):
             data.seqdata[gene][record.id] = record
             data.metadata[gene][record.id] = attributes
             # save the order of all records
-            data.record_ids.append((record.id, gene))
+            data.record_order.append((record.id, gene))
 
         done += 1
         iface.frac = done / all_there_is_to_do
 
+    LOG.debug('reading done')
     GObject.idle_add(stop, gui, errors, warnings)
-
-    # has to be in main thread?
-    iface.gene_roll.remove_all()
-    [iface.gene_roll.append_text(gene) for gene in ['all'] + list(data.genes)]
-    # iface.gene_roll.set_active(0)
     return
 
 
 def stop(gui, errors, warnings):
     data, iface = gui.data, gui.interface
     iface.running = False
-    iface.rx_thread.join()
-    del iface.rx_thread
+    iface.thread.join()
     iface.read_prog.set_text('idle')
     LOG.info('idle')
     if errors:
@@ -525,5 +522,5 @@ def stop(gui, errors, warnings):
     # now finally flip to next page
     commons.set_changed(iface, PAGE, False)
     commons.proceed(None, gui)
-    quality.redraw(gui)
+    quality.reset(gui)
     return
