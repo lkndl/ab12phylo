@@ -1,3 +1,5 @@
+# 2020 Leo Kaindl
+
 import json
 import logging
 import re
@@ -57,11 +59,13 @@ def init(gui):
     # connect buttons
     iface.regex_next.connect('clicked', commons.proceed, gui)
     iface.regex_back.connect('clicked', commons.step_back, gui)
+    commons.bind_accelerator(gui.accelerators, iface.regex_next, '<Alt>Right')
+    commons.bind_accelerator(gui.accelerators, iface.regex_back, '<Alt>Left')
     reset(gui)
     commons.refresh_files(gui, PAGE)
 
 
-def reset(gui):
+def reset(gui, do_parse=False):
     data, iface = gui.data, gui.interface
     iface.view_trace_regex.set_model(data.trace_store)
     iface.view_csv_regex.set_model(data.plate_store)
@@ -99,9 +103,10 @@ def reset(gui):
     iface.reverse_rx_chk.set_active(False)
     iface.rx_fired[6] = True
 
-    # fire the initial parse
-    parse_single(iface.wp_rx, gui, iface.wp_rx, 2)
-    parse_triple(None, gui)
+    if do_parse:
+        # fire the initial parse
+        parse_single(iface.wp_rx, gui, iface.wp_rx, 2)
+        parse_triple(None, gui)
 
 
 def parse_single(widget, gui, entry, col, fifth=None):

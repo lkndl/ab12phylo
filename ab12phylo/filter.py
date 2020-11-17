@@ -1,3 +1,5 @@
+# 2020 Leo Kaindl
+
 from Bio.Seq import MutableSeq
 import copy
 

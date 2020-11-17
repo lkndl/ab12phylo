@@ -1,3 +1,5 @@
+# 2020 Leo Kaindl
+
 import logging
 from pathlib import Path
 
@@ -71,6 +73,7 @@ def init(gui):
             .connect('clicked', commons.delete_rows, gui, PAGE, sel, mo)
 
     iface.files_next.connect('clicked', commons.proceed, gui)
+    commons.bind_accelerator(gui.accelerators, iface.files_next, '<Alt>Right')
 
 
 def add_folder(widget, gui, file_types, model):

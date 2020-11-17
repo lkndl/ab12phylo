@@ -1,3 +1,5 @@
+# 2020 Leo Kaindl
+
 import logging
 import sys
 import threading
@@ -9,7 +11,7 @@ import gi
 from GUI.gtk3 import files, regex, quality, commons
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, GObject
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 __verbose__, __info__ = 1, 0
@@ -19,7 +21,7 @@ Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Mai
 Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
 
 
-class gui(Gtk.Window):
+class gui(Gtk.ApplicationWindow):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
 
@@ -57,13 +59,20 @@ class gui(Gtk.Window):
 
         # fetch the notebook
         self.notebook = self.interface.notebook
-        self.add(self.notebook)
+        self.add(self.interface.toplayer)
         # connect to the window's delete event to close on x click
         self.connect('destroy', Gtk.main_quit)
+        self.interface.quit.connect('activate', Gtk.main_quit)
 
         # set up indicator of changes, tabs are not disabled initially
         self.interface.change_indicator = [False] * self.notebook.get_n_pages()
         self.interface.errors_indicator = [False] * self.notebook.get_n_pages()
+
+        self.accelerators = Gtk.AccelGroup()
+        self.add_accel_group(self.accelerators)
+
+        # bind all the hotkeys to their events
+        commons.bind_accelerator(self.accelerators, self.interface.quit, '<Control>q', 'activate')
 
         self.data = dataset()
 

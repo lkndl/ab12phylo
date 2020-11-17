@@ -1,3 +1,5 @@
+# 2020 Leo Kaindl
+
 import gi
 from pathlib import Path
 import logging
@@ -104,14 +106,15 @@ def proceed(widget, gui):
     # first integrate changes to the dataset
     if get_changed(iface, page):
         if page == 0:
-            regex.reset(gui)
+            regex.reset(gui, do_parse=True)
         elif page == 1:
             # check if everything ok
             regex.re_check(gui)
             if get_errors(iface, page):
                 show_message_dialog('There are still errors on the page!')
                 return
-            if sum(iface.rx_fired) < 5:
+            if 1 < sum(iface.rx_fired) < 5:
+                print(iface.rx_fired)
                 show_message_dialog('Make sure all columns have been parsed.')
                 return
             regex.read_files(gui)
@@ -163,4 +166,6 @@ def update(iface, bar, page):
         return False
 
 
-
+def bind_accelerator(accelerators, widget, accelerator, signal='clicked'):
+    key, mod = Gtk.accelerator_parse(accelerator)
+    widget.add_accelerator(signal, accelerators, key, mod, Gtk.AccelFlags.VISIBLE)

@@ -1,3 +1,5 @@
+# 2020 Leo Kaindl
+
 import logging
 from pathlib import Path
 import threading
@@ -77,6 +79,8 @@ def init(gui):
 
     iface.quality_next.connect('clicked', commons.proceed, gui)
     iface.quality_back.connect('clicked', commons.step_back, gui)
+    commons.bind_accelerator(gui.accelerators, iface.quality_next, '<Alt>Right')
+    commons.bind_accelerator(gui.accelerators, iface.quality_back, '<Alt>Left')
 
 
 def reset(gui):

@@ -1,10 +1,10 @@
 # 2020 Leo Kaindl
 
 """
-The command line interface of the package defines possible options and parses valid arguments
-from user input via `sys.argv`, supplemented by the `config/config.yaml` file.
+The AB12PHYLO command line interface defines possible options and parses valid arguments
+from user input via :class:`sys.argv`, supplemented by the :file:`config/config.yaml` file.
 Arguments will be saved as an :class:`argparse.Namespace` object and directly accessed by the
-:class:`main` module. Additionally, this module initiates logging.
+:module:`main` module. Additionally, this module initiates logging.
 """
 
 import os
