@@ -21,19 +21,19 @@ def init(gui):
 
     # MARK trace file types
     # create a TreeView model
-    data.__file_type_model = Gtk.ListStore(str, bool)
-    [data.__file_type_model.append([file_type, False]) for file_type in FILETYPES]
+    iface.file_type_model = commons.picklable_liststore(str, bool)
+    [iface.file_type_model.append([file_type, False]) for file_type in FILETYPES]
 
     # check ABI traces by default
-    data.__file_type_model[0][1] = True
+    iface.file_type_model[0][1] = True
 
-    iface.view_filetypes.set_model(data.__file_type_model)
+    iface.view_filetypes.set_model(iface.file_type_model)
     iface.view_filetypes.set_headers_visible(False)
     iface.view_filetypes.append_column(
         Gtk.TreeViewColumn(title='Filetype', cell_renderer=Gtk.CellRendererText(), text=0))
     crt = Gtk.CellRendererToggle()
-    crt.connect('toggled', lambda widget, path: data.__file_type_model.set(
-        data.__file_type_model.get_iter(path), [1], [not data.__file_type_model[path][1]]))
+    crt.connect('toggled', lambda widget, path: iface.file_type_model.set(
+        iface.file_type_model.get_iter(path), [1], [not iface.file_type_model[path][1]]))
     iface.view_filetypes.append_column(
         Gtk.TreeViewColumn(title='Selected', cell_renderer=crt, active=1))
 
@@ -80,7 +80,7 @@ def add_folder(widget, gui, file_type, model):
     data, iface = gui.data, gui.interface
 
     if file_type == 'trace':
-        file_types = {a[0] for a in commons.get_column(data.__file_type_model, (0, 1)) if a[1]}
+        file_types = {a[0] for a in commons.get_column(iface.file_type_model, (0, 1)) if a[1]}
     else:
         file_types = {'.csv'}
 
@@ -218,7 +218,7 @@ def add_new_entries(model, new_paths, iface, *args):
 
 def scroll_to_end(widget, rectangle, iface, tv, mo):
     """After new entries have been added to it, the TreeView will scroll to its end."""
-    if len(mo) > iface.file_nums[mo]:
+    if mo not in iface.file_nums or len(mo) > iface.file_nums[mo]:
         LOG.debug('scrolling to end')
         adj = tv.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())

@@ -345,6 +345,9 @@
                                 <property name="tooltip-text" translatable="yes">All extensions except '.ab1' will be interpreted as FASTA-formatted input.</property>
                                 <property name="vexpand">True</property>
                                 <property name="search-column">0</property>
+                                <child internal-child="selection">
+                                  <object class="GtkTreeSelection"/>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -461,6 +464,9 @@
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
                                     <property name="rubber-banding">True</property>
+                                    <child internal-child="selection">
+                                      <object class="GtkTreeSelection"/>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
@@ -498,6 +504,9 @@
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
                                     <property name="rubber-banding">True</property>
+                                    <child internal-child="selection">
+                                      <object class="GtkTreeSelection"/>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
@@ -876,6 +885,9 @@
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
                                     <property name="rubber-banding">True</property>
+                                    <child internal-child="selection">
+                                      <object class="GtkTreeSelection"/>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
@@ -1183,6 +1195,9 @@
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
                                     <property name="rubber-banding">True</property>
+                                    <child internal-child="selection">
+                                      <object class="GtkTreeSelection"/>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
@@ -1885,6 +1900,9 @@
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="rubber-banding">True</property>
+                                        <child internal-child="selection">
+                                          <object class="GtkTreeSelection"/>
+                                        </child>
                                       </object>
                                     </child>
                                   </object>
@@ -1970,6 +1988,53 @@
                 <property name="spacing">10</property>
                 <property name="layout-style">start</property>
                 <child>
+                  <object class="GtkButton" id="quality_refresh">
+                    <property name="name">quality_refresh</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">center</property>
+                        <property name="spacing">10</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="icon-name">view-refresh-symbolic</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">_Refresh</property>
+                            <property name="use-underline">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="pack-type">end</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkButton" id="quality_back">
                     <property name="name">quality_back</property>
                     <property name="visible">True</property>
@@ -2013,7 +2078,7 @@
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -2059,7 +2124,7 @@
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>

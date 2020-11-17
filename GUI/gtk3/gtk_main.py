@@ -49,6 +49,7 @@ class gui(Gtk.ApplicationWindow):
 
         # set up an empty thread so Gtk can get used to it
         iface.thread = threading.Thread()
+        iface.running = False
         self.cwd = Path.cwd()
         self.proj = None
 
@@ -78,11 +79,11 @@ class gui(Gtk.ApplicationWindow):
         iface.new.connect('activate', self.new)
         commons.bind_accelerator(self.accelerators, iface.new, '<Control>n', 'activate')
         iface.open.connect('activate', self.open)
-        commons.bind_accelerator(self.accelerators, iface.open, '<Control>n', 'activate')
+        commons.bind_accelerator(self.accelerators, iface.open, '<Control>o', 'activate')
         iface.save.connect('activate', self.save)
-        commons.bind_accelerator(self.accelerators, iface.save, '<Control>n', 'activate')
+        commons.bind_accelerator(self.accelerators, iface.save, '<Control>s', 'activate')
         iface.saveas.connect('activate', self.saveas)
-        commons.bind_accelerator(self.accelerators, iface.saveas, '<Control>n', 'activate')
+        commons.bind_accelerator(self.accelerators, iface.saveas, '<Control><Shift>s', 'activate')
 
         self.data = dataset()
         self.log.debug('vars and dataset initialized')
@@ -114,49 +115,89 @@ class gui(Gtk.ApplicationWindow):
             self.data.reset()
             files.refresh_files(self)
 
-    def open(self):
-        pass
-    def save(self):
-        if not self.proj:
-            self.saveas()
-        with open(self.proj) as proj:
-            pickle.dump((self.data, self.interface.toplayer), proj)
-    def saveas(self):
-        dialog = Gtk.FileChooserDialog(title='save project', parent=None, select_multiple=True,
-                                       action=Gtk.FileChooserAction.SAVE)
+    def open(self, event):
+        dialog = Gtk.FileChooserDialog(title='open project', parent=None,
+                                       action=Gtk.FileChooserAction.OPEN)
         dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                            Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-        pass
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            self.proj = Path(dialog.get_filename())
+            self.log.debug('got dataset path %s' % self.proj)
+
+            # read in dataset
+            with open(self.proj, 'rb') as proj:
+                self.data = pickle.load(proj)
+            # set models again. do not delete next line, otherwise data refers to old one
+            data, iface = self.data, self.interface
+            for mo, tv in zip([data.trace_store, data.plate_store,
+                               data.trace_store, data.plate_store, data.qal_model],
+                              [iface.view_trace_path, iface.view_csv_path,
+                               iface.view_trace_regex, iface.view_csv_regex, iface.view_qal]):
+                tv.set_model(mo)
+            # set gene chooser + plot quality
+            quality.reset(self)
+            dialog.destroy()
+            return True
+        dialog.destroy()
+        return False
+
+    def save(self, event):
+        if not self.proj:
+            self.saveas(None)
+            return
+        with open(self.proj, 'wb') as proj:
+            self.log.info('saving to %s' % self.proj)
+            try:
+                pickle.dump(self.data, proj)
+                self.log.info('finished save')
+            except pickle.PicklingError as pe:
+                self.log.warning('saving failed')
+
+    def saveas(self, event):
+        dialog = Gtk.FileChooserDialog(title='save project', parent=None,
+                                       action=Gtk.FileChooserAction.SAVE)
+        if not self.proj:
+            dialog.set_current_name('untitled.proj')
+        else:
+            dialog.set_filename(str(self.proj))
+        dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                           Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            self.proj = Path(dialog.get_filename())
+            self.log.debug('got save path to %s' % self.proj)
+            self.save(None)
+        dialog.destroy()
 
 
 class dataset:
     def __init__(self):
-        self.trace_store = Gtk.ListStore(str,  # path
-                                         str,  # filename
-                                         str,  # well/id
-                                         str,  # plate
-                                         str,  # gene
-                                         bool,  # reference
-                                         bool,  # reversed
-                                         str)  # color
+        self.trace_store = commons.picklable_liststore(str,  # path
+                                                       str,  # filename
+                                                       str,  # well/id
+                                                       str,  # plate
+                                                       str,  # gene
+                                                       bool,  # reference
+                                                       bool,  # reversed
+                                                       str)  # color
 
-        self.plate_store = Gtk.ListStore(str,  # path
-                                         str,  # filename
-                                         str,  # plate ID
-                                         str)  # errors
+        self.plate_store = commons.picklable_liststore(str,  # path
+                                                       str,  # filename
+                                                       str,  # plate ID
+                                                       str)  # errors
         self.genes = set()  # used *before* seqdata exists
         self.csvs = dict()
         self.seqdata = dict()
         self.metadata = dict()
         self.seed = 0
         self.record_order = list()
-        self.qal_model = Gtk.ListStore(str,  # id
-                                       bool,  # has phreds
-                                       bool)  # low quality
+        self.qal_model = commons.picklable_liststore(str,  # id
+                                                     bool,  # has phreds
+                                                     bool)  # low quality
 
     def reset(self):
-        for attr in [a for a in dir(self)
-                     if not a.startswith('__') and not callable(getattr(self, a))]:
+        for attr in [a for a in dir(self) if not callable(getattr(self, a))]:
             try:
                 self.__getattribute__(attr).clear()
             except AttributeError:

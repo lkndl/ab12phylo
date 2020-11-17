@@ -141,3 +141,25 @@ def update(iface, bar, page):
 def bind_accelerator(accelerators, widget, accelerator, signal='clicked'):
     key, mod = Gtk.accelerator_parse(accelerator)
     widget.add_accelerator(signal, accelerators, key, mod, Gtk.AccelFlags.VISIBLE)
+
+
+class picklable_liststore(Gtk.ListStore):
+    """
+    kudos go to samplebias on https://stackoverflow.com/a/5969700
+    """
+
+    def __reduce__(self):
+        try:
+            rows = [list(row) for row in self]
+            coltypes = [type(c) for c in rows[0]]
+            return _unpickle_liststore, (self.__class__, coltypes, rows)
+        except Exception as ex:
+            LOG.exception(ex)
+
+
+def _unpickle_liststore(cls, col_types, rows):
+    inst = cls.__new__(cls)
+    inst.__init__(*col_types)
+    for row in rows:
+        inst.append(row)
+    return inst

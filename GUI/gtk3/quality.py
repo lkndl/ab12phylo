@@ -76,6 +76,7 @@ def init(gui):
         title='has phreds', active=1,
         cell_renderer=Gtk.CellRendererToggle(radio=False)))
     iface.view_qal.connect('size_allocate', set_dims, iface)
+    iface.quality_refresh.connect('clicked', lambda *args: redraw(gui))
 
     iface.quality_next.connect('clicked', commons.proceed, gui)
     iface.quality_back.connect('clicked', commons.step_back, gui)
@@ -111,9 +112,10 @@ def redraw(gui):
     # called after files are read
     # TODO start sth easier than this from re-sorting the treeview
     # TODO palplot in upper half
+    # TODO check why invisible when not on page
 
     # (gtk_main.py:5417): Gtk-CRITICAL **: 22:28:20.481: gtk_container_forall: assertion 'GTK_IS_CONTAINER (container)' failed
-    if not data.genes or iface.running or iface.notebook.get_current_page() != PAGE:
+    if not data.genes or iface.running:  # or iface.notebook.get_current_page() != PAGE:
         LOG.debug('abort re-draw')
         return
 
