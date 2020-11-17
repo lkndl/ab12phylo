@@ -21,19 +21,19 @@ def init(gui):
 
     # MARK trace file types
     # create a TreeView model
-    data.file_type_model = Gtk.ListStore(str, bool)
-    [data.file_type_model.append([file_type, False]) for file_type in FILETYPES]
+    data.__file_type_model = Gtk.ListStore(str, bool)
+    [data.__file_type_model.append([file_type, False]) for file_type in FILETYPES]
 
     # check ABI traces by default
-    data.file_type_model[0][1] = True
-    data.filetypes.add('.ab1')
+    data.__file_type_model[0][1] = True
 
-    iface.view_filetypes.set_model(data.file_type_model)
+    iface.view_filetypes.set_model(data.__file_type_model)
     iface.view_filetypes.set_headers_visible(False)
     iface.view_filetypes.append_column(
         Gtk.TreeViewColumn(title='Filetype', cell_renderer=Gtk.CellRendererText(), text=0))
     crt = Gtk.CellRendererToggle()
-    crt.connect('toggled', change_filetypes, data)
+    crt.connect('toggled', lambda widget, path: data.__file_type_model.set(
+        data.__file_type_model.get_iter(path), [1], [not data.__file_type_model[path][1]]))
     iface.view_filetypes.append_column(
         Gtk.TreeViewColumn(title='Selected', cell_renderer=crt, active=1))
 
@@ -44,9 +44,9 @@ def init(gui):
     iface.file_nums = dict()
 
     # set up the file paths tables
-    for mo, tv, file_type, file_types, col in zip([data.trace_store, data.plate_store],
-                                                  [iface.view_trace_path, iface.view_csv_path],
-                                                  ['trace', 'csv'], [data.filetypes, {'.csv'}], [7, 3]):
+    for mo, tv, file_type, col in zip([data.trace_store, data.plate_store],
+                                      [iface.view_trace_path, iface.view_csv_path],
+                                      ['trace', 'csv'], [7, 3]):
         tv.set_model(mo)
         tv.set_headers_visible(False)
         tv.append_column(Gtk.TreeViewColumn(title='Paths',
@@ -58,7 +58,7 @@ def init(gui):
         sel.set_mode(Gtk.SelectionMode.MULTIPLE)
 
         iface.__getattribute__('add_%s_folder' % file_type) \
-            .connect('clicked', add_folder, gui, file_types, mo)
+            .connect('clicked', add_folder, gui, file_type, mo)
         iface.__getattribute__('add_%s_manual' % file_type) \
             .connect('clicked', add_manually, gui, mo)
         try:
@@ -76,8 +76,14 @@ def init(gui):
     commons.bind_accelerator(gui.accelerators, iface.files_next, '<Alt>Right')
 
 
-def add_folder(widget, gui, file_types, model):
+def add_folder(widget, gui, file_type, model):
     data, iface = gui.data, gui.interface
+
+    if file_type == 'trace':
+        file_types = {a[0] for a in commons.get_column(data.__file_type_model, (0, 1)) if a[1]}
+    else:
+        file_types = {'.csv'}
+
     dialog = Gtk.FileChooserDialog(title='select folder(s)', parent=None, select_multiple=True,
                                    action=Gtk.FileChooserAction.SELECT_FOLDER)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -98,7 +104,7 @@ def add_folder(widget, gui, file_types, model):
                 model, new_paths, duplicates = add_new_entries(model, new_paths, iface, kw)
             except UnicodeDecodeError as ex:
                 LOG.info(ex)
-        commons.refresh_files(gui, PAGE)
+        refresh_files(gui, PAGE)
         LOG.debug('found %d new paths in folder(s)' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -156,7 +162,7 @@ def add_manually(widget, gui, model, *args):
             kw = 'trace'
         # append to ListStore
         model, new_paths, duplicates = add_new_entries(model, new_paths, iface, kw)
-        commons.refresh_files(gui, PAGE)
+        refresh_files(gui, PAGE)
         LOG.info('added %d paths' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -170,17 +176,6 @@ def add_manually(widget, gui, model, *args):
         commons.show_message_dialog('Some file paths were invalid', not_found)
     if duplicates:
         commons.show_message_dialog('Some files already selected', duplicates)
-
-
-def change_filetypes(widget, path, data):
-    # toggle the button
-    data.file_type_model[path][1] = not data.file_type_model[path][1]
-    # adapt the filetypes to read for the next folder
-    if data.file_type_model[path][1]:
-        data.filetypes.add(data.file_type_model[path][0])
-    else:
-        data.filetypes.remove(data.file_type_model[path][0])
-    LOG.debug('selected ' + ' and '.join(data.filetypes))
 
 
 def add_new_entries(model, new_paths, iface, *args):
@@ -224,7 +219,37 @@ def add_new_entries(model, new_paths, iface, *args):
 def scroll_to_end(widget, rectangle, iface, tv, mo):
     """After new entries have been added to it, the TreeView will scroll to its end."""
     if len(mo) > iface.file_nums[mo]:
-        LOG.debug('scrolling to end)')
+        LOG.debug('scrolling to end')
         adj = tv.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
     iface.file_nums[mo] = len(mo)
+
+
+def refresh_files(gui, page=PAGE):
+    """
+    Adjusts the display of the number of selected trace files on the files page
+    and toggles reading wellsplates or not, inactivating respective GUI elements.
+    :return:
+    """
+    data, iface = gui.data, gui.interface
+    num_traces = len(data.trace_store)
+    if num_traces > 0:
+        iface.trace_number.set_label('%d files' % num_traces)
+        iface.trace_number.set_visible(True)
+    else:
+        iface.trace_number.set_label('0 files')
+        iface.trace_number.set_visible(False)
+
+    # toggle _reading_plates
+    has_plates_now = len(data.plate_store) > 0
+    if iface.plates != has_plates_now:
+        iface.plates = has_plates_now
+        # self._set_page_changed(not iface.plates or self._get_page_changed())
+        commons.set_changed(iface, page, not iface.plates or commons.get_changed(iface, page))
+        [iface.__getattribute__(name).set_sensitive(iface.plates)
+         for name in ['plate_regex_label', 'plate_rx', 'wp_rx_desc', 'wp_lbl',
+                      'wp_rx', 'wellsplate_buttons', 'wellsplate_regex_box']]
+        # toggle radiobutton line back off
+        if not iface.triple_rt.get_active():
+            [iface.__getattribute__(name).set_sensitive(False) for name in
+             ['plate_rx', 'plate_regex_label']]

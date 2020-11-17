@@ -62,7 +62,6 @@ def init(gui):
     commons.bind_accelerator(gui.accelerators, iface.regex_next, '<Alt>Right')
     commons.bind_accelerator(gui.accelerators, iface.regex_back, '<Alt>Left')
     reset(gui)
-    commons.refresh_files(gui, PAGE)
 
 
 def reset(gui, do_parse=False):
