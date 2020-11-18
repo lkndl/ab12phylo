@@ -245,12 +245,14 @@ def refresh_files(gui, page=PAGE):
     has_plates_now = len(data.plate_store) > 0
     if iface.plates != has_plates_now:
         iface.plates = has_plates_now
-        # self._set_page_changed(not iface.plates or self._get_page_changed())
+
         commons.set_changed(gui, page, not iface.plates or commons.get_changed(gui, page))
-        [iface.__getattribute__(name).set_sensitive(iface.plates)
-         for name in ['plate_regex_label', 'plate_rx', 'wp_rx_desc', 'wp_lbl',
-                      'wp_rx', 'wellsplate_buttons', 'wellsplate_regex_box']]
-        # toggle radiobutton line back off
+
+        # close and inactivate the expander
+        iface.wp_expander.set_expanded(iface.plates)
+        iface.wp_expander.set_sensitive(iface.plates)
+
+        # inactivate the line for the matching single regex
         if not iface.triple_rt.get_active():
             [iface.__getattribute__(name).set_sensitive(False) for name in
              ['plate_rx', 'plate_regex_label']]

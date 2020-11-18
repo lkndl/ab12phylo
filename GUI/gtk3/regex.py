@@ -208,9 +208,7 @@ def parse_triple(widget, gui):
                 m = regex.search(file)
                 plate, gene, well = m.groups() if iface.plates else (None, m.groups())
                 if not changed:
-                    # TODO continue here
-                    changed = not bool(row == row[:2] + [well, plate, gene] + row[5:])
-                    print('what\'cha gonna do?', file=sys.stderr)
+                    changed = not bool(row[2:5] == [well, plate, gene])
                 data.trace_store[idx] = row[:2] + [well, plate, gene] + row[5:]
                 data.trace_store[idx][-1] = iface.FG
                 continue
