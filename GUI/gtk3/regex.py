@@ -80,19 +80,19 @@ def reset(gui, do_parse=False):
     if iface.plates:
         for title, column in zip(['well', 'plate', 'gene', 'file'], [2, 3, 4, 1]):
             crt = Gtk.CellRendererText(editable=True)
-            crt.connect('edited', cell_edit, iface, iface.view_trace_regex, column)
+            crt.connect('edited', cell_edit, gui, iface.view_trace_regex, column)
             iface.view_trace_regex.append_column(
                 Gtk.TreeViewColumn(title=title, cell_renderer=crt, text=column, foreground=7))
         # wellsplates:
         for title, column in zip(['plate ID', 'file'], [2, 1]):
             crm = Gtk.CellRendererText(editable=True)
-            crm.connect('edited', cell_edit, iface, iface.view_csv_regex, column)
+            crm.connect('edited', cell_edit, gui, iface.view_csv_regex, column)
             iface.view_csv_regex.append_column(
                 Gtk.TreeViewColumn(title=title, cell_renderer=crm, text=column, foreground=3))
     else:
         for title, column in zip(['sample', 'gene', 'file'], [2, 4, 1]):
             crt = Gtk.CellRendererText(editable=True)
-            crt.connect('edited', cell_edit, iface, iface.view_trace_regex, column)
+            crt.connect('edited', cell_edit, gui, iface.view_trace_regex, column)
             iface.view_trace_regex.append_column(
                 Gtk.TreeViewColumn(title=title, cell_renderer=crt, text=column, foreground=7))
         # set regex for plate_id column as already fired
@@ -119,8 +119,8 @@ def parse_single(widget, gui, entry, col, fifth=None):
     except re.error:
         commons.show_message_dialog('RegEx could not be compiled.')
         return
-    errors = commons.get_errors(iface, PAGE)
-    changed = commons.get_changed(iface, PAGE)
+    errors = commons.get_errors(gui, PAGE)
+    changed = commons.get_changed(gui, PAGE)
 
     # check if traces or plates
     if widget in [iface.wp_rx, iface.wp_apply]:
@@ -179,8 +179,8 @@ def parse_single(widget, gui, entry, col, fifth=None):
                 model[i][-1] = iface.RED
             except Exception:
                 assert False
-    commons.set_changed(iface, PAGE, changed)
-    commons.set_errors(iface, PAGE, errors)
+    commons.set_changed(gui, PAGE, changed)
+    commons.set_errors(gui, PAGE, errors)
     if entry is iface.gene_rx:
         search_genes(gui)
     re_check(gui)
@@ -195,8 +195,8 @@ def parse_triple(widget, gui):
         except re.error:
             commons.show_message_dialog('RegEx could not be compiled')
             return
-        errors = commons.get_errors(iface, PAGE)
-        changed = commons.get_changed(iface, PAGE)
+        errors = commons.get_errors(gui, PAGE)
+        changed = commons.get_changed(gui, PAGE)
 
         for idx, row in enumerate(data.trace_store):
             # skip references
@@ -222,8 +222,8 @@ def parse_triple(widget, gui):
                 data.trace_store[idx][2:5] = [ERRORS[2], '', '']
             data.trace_store[idx][-1] = iface.RED
             errors, changed = True, True
-        commons.set_changed(iface, PAGE, changed)
-        commons.set_errors(iface, PAGE, errors)
+        commons.set_changed(gui, PAGE, changed)
+        commons.set_errors(gui, PAGE, errors)
         iface.rx_fired[2:5] = [True] * 3
         search_genes(gui)
         re_check(gui)
@@ -237,13 +237,14 @@ def parse_triple(widget, gui):
     LOG.debug('parse_triple done')
 
 
-def cell_edit(cell, path, new_text, iface, tv, col):
+def cell_edit(cell, path, new_text, gui, tv, col):
+    data, iface = gui.data, gui.interface
     mo = tv.get_model()
     old_text = mo[path][col]
     if old_text == new_text:
         return
     mo[path][col] = new_text
-    commons.set_changed(iface, PAGE, True)
+    commons.set_changed(gui, PAGE, True)
     # set row to error-free. also for references
     if tv == iface.view_trace_regex:
         mo[path][-1] = iface.BLUE if mo[path][5] else iface.FG
@@ -326,11 +327,11 @@ def re_check(gui):
     if iface.RED not in commons.get_column(data.trace_store, -1) \
             and iface.AQUA not in commons.get_column(data.trace_store, - 1) \
             and iface.RED not in commons.get_column(data.plate_store, -1):
-        commons.set_errors(iface, PAGE, False)
+        commons.set_errors(gui, PAGE, False)
         LOG.debug('found no errors')
     else:
         LOG.debug('found errors')
-        assert commons.get_errors(iface, PAGE) or sum(iface.rx_fired) < 5
+        assert commons.get_errors(gui, PAGE) or sum(iface.rx_fired) < 5
 
 
 def try_online(widget, gui):
@@ -524,7 +525,7 @@ def stop(gui, errors, warnings):
     if warnings:
         commons.show_message_dialog('Additional warnings', warnings)
     # now finally flip to next page
-    commons.set_changed(iface, PAGE, False)
+    commons.set_changed(gui, PAGE, False)
     commons.proceed(None, gui)
     quality.reset(gui)
     return

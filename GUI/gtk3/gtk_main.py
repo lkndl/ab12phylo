@@ -53,10 +53,6 @@ class gui(Gtk.ApplicationWindow):
         self.cwd = Path.cwd()
         self.proj = None
 
-        # set up indicator of changes, tabs are not disabled initially
-        iface.change_indicator = [False] * iface.notebook.get_n_pages()
-        iface.errors_indicator = [False] * iface.notebook.get_n_pages()
-
         # get some colors
         iface.RED = '#FF0000'
         iface.BLUE = '#2374AF'
@@ -85,7 +81,7 @@ class gui(Gtk.ApplicationWindow):
         iface.saveas.connect('activate', self.saveas)
         commons.bind_accelerator(self.accelerators, iface.saveas, '<Control><Shift>s', 'activate')
 
-        self.data = dataset()
+        self.data = dataset(iface.notebook.get_n_pages())
         self.log.debug('vars and dataset initialized')
 
         # initialize the notebook pages
@@ -135,6 +131,7 @@ class gui(Gtk.ApplicationWindow):
                               [iface.view_trace_path, iface.view_csv_path,
                                iface.view_trace_regex, iface.view_csv_regex, iface.view_qal]):
                 tv.set_model(mo)
+            iface.notebook.set_current_page(data.page)
             # set gene chooser + plot quality
             quality.reset(self)
             dialog.destroy()
@@ -149,6 +146,7 @@ class gui(Gtk.ApplicationWindow):
         with open(self.proj, 'wb') as proj:
             self.log.info('saving to %s' % self.proj)
             try:
+                self.data.page = self.interface.notebook.get_current_page()
                 pickle.dump(self.data, proj)
                 self.log.info('finished save')
             except pickle.PicklingError as pe:
@@ -172,7 +170,7 @@ class gui(Gtk.ApplicationWindow):
 
 
 class dataset:
-    def __init__(self):
+    def __init__(self, n_pages):
         self.trace_store = commons.picklable_liststore(str,  # path
                                                        str,  # filename
                                                        str,  # well/id
@@ -195,6 +193,11 @@ class dataset:
         self.qal_model = commons.picklable_liststore(str,  # id
                                                      bool,  # has phreds
                                                      bool)  # low quality
+
+        # set up indicator of changes, tabs are not disabled initially
+        self.change_indicator = [False] * n_pages
+        self.errors_indicator = [False] * n_pages
+        self.page = 0
 
     def reset(self):
         for attr in [a for a in dir(self) if not callable(getattr(self, a))]:

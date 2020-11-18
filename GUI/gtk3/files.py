@@ -101,7 +101,7 @@ def add_folder(widget, gui, file_type, model):
                 # where to write
                 kw = 'csv' if '.csv' in file_types else 'trace'
                 # append to the ListStore
-                model, new_paths, duplicates = add_new_entries(model, new_paths, iface, kw)
+                model, new_paths, duplicates = add_new_entries(model, new_paths, gui, kw)
             except UnicodeDecodeError as ex:
                 LOG.info(ex)
         refresh_files(gui, PAGE)
@@ -161,7 +161,7 @@ def add_manually(widget, gui, model, *args):
         else:
             kw = 'trace'
         # append to ListStore
-        model, new_paths, duplicates = add_new_entries(model, new_paths, iface, kw)
+        model, new_paths, duplicates = add_new_entries(model, new_paths, gui, kw)
         refresh_files(gui, PAGE)
         LOG.info('added %d paths' % len(new_paths))
 
@@ -178,7 +178,7 @@ def add_manually(widget, gui, model, *args):
         commons.show_message_dialog('Some files already selected', duplicates)
 
 
-def add_new_entries(model, new_paths, iface, *args):
+def add_new_entries(model, new_paths, gui, *args):
     """
     Adds new entries to a list and returns the modified list
     as well as lists of both newly added entries and observed duplicates.
@@ -189,6 +189,7 @@ def add_new_entries(model, new_paths, iface, *args):
     :param iface: the namespace containing all named widgets of a gui object
     :return:
     """
+    data, iface = gui.data, gui.interface
     if 'ref' in args:
         color = iface.AQUA
         is_ref = True
@@ -212,7 +213,7 @@ def add_new_entries(model, new_paths, iface, *args):
                 model.append([path, ppath.name, '', '', '', is_ref, False, color])
             news.append(path)
     if len(news) > 0:
-        commons.set_changed(iface, PAGE, True)
+        commons.set_changed(gui, PAGE)
     return model, news, dups
 
 
@@ -245,7 +246,7 @@ def refresh_files(gui, page=PAGE):
     if iface.plates != has_plates_now:
         iface.plates = has_plates_now
         # self._set_page_changed(not iface.plates or self._get_page_changed())
-        commons.set_changed(iface, page, not iface.plates or commons.get_changed(iface, page))
+        commons.set_changed(gui, page, not iface.plates or commons.get_changed(gui, page))
         [iface.__getattribute__(name).set_sensitive(iface.plates)
          for name in ['plate_regex_label', 'plate_rx', 'wp_rx_desc', 'wp_lbl',
                       'wp_rx', 'wellsplate_buttons', 'wellsplate_regex_box']]

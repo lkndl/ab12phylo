@@ -13,36 +13,37 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 
 
-def get_changed(iface, page):
-    return iface.change_indicator[page]
+def get_changed(gui, page):
+    return gui.data.change_indicator[page]
 
 
-def get_errors(iface, page):
-    return iface.errors_indicator[page]
+def get_errors(gui, page):
+    return gui.data.errors_indicator[page]
 
 
-def set_errors(iface, page, errors):
-    iface.errors_indicator[page] = errors
+def set_errors(gui, page, errors):
+    gui.data.errors_indicator[page] = errors
 
 
-def set_changed(iface, page, changed=True):
+def set_changed(gui, page, changed=True):
     """
     Set page to changed and disable further stages; set page to unchanged and enable next page
-    :param iface: the namespace containing all named widgets of a gui object
+    :param gui:
     :param page: the index of the current page
     :param changed: toggle
     :return:
     """
+    data, iface = gui.data, gui.interface
     if changed:
         # disable later pages
         [page.set_sensitive(False) for page in iface.notebook.get_children()[page + 1: iface.notebook.get_n_pages()]]
         # set later pages to 'changed'
-        iface.change_indicator[page:] = [True] * (iface.notebook.get_n_pages() - page)
+        data.change_indicator[page:] = [True] * (iface.notebook.get_n_pages() - page)
     else:
         # enable the next page
         iface.notebook.get_children()[page + 1].set_sensitive(True)
         # set earlier pages to 'unchanged'
-        iface.change_indicator[:page + 1] = [False] * (page + 1)
+        data.change_indicator[:page + 1] = [False] * (page + 1)
 
 
 def show_message_dialog(message, list_to_print=None):
@@ -68,7 +69,7 @@ def delete_rows(widget, gui, page, selection, delete_all=False):
     else:
         model, iterator = selection.get_selected_rows()
         [model.remove(model.get_iter(row)) for row in reversed(sorted(iterator))]
-    set_changed(iface, page, True)
+    set_changed(gui, page, True)
     files.refresh_files(gui, page)
 
 
@@ -76,13 +77,13 @@ def proceed(widget, gui):
     data, iface = gui.data, gui.interface
     page = iface.notebook.get_current_page()
     # first integrate changes to the dataset
-    if get_changed(iface, page):
+    if get_changed(gui, page):
         if page == 0:
             regex.reset(gui, do_parse=True)
         elif page == 1:
             # check if everything ok
             regex.re_check(gui)
-            if get_errors(iface, page):
+            if get_errors(gui, page):
                 show_message_dialog('There are still errors on the page!')
                 return
             if 1 < sum(iface.rx_fired) < 5:
@@ -95,7 +96,7 @@ def proceed(widget, gui):
             quality.trim_all(gui)
             # TODO
             print('wohooo')
-        set_changed(iface, page, False)
+        set_changed(gui, page, False)
 
     # then proceed
     iface.notebook.next_page()
@@ -106,7 +107,7 @@ def step_back(widget, gui):
     data, iface = gui.data, gui.interface
     iface.notebook.prev_page()
     page = iface.notebook.get_current_page()
-    set_changed(iface, page, False)
+    set_changed(gui, page, False)
     LOG.debug('stepped back to page %d' % page)
 
 
