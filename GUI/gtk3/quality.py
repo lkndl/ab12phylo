@@ -23,16 +23,6 @@ from ab12phylo import filter
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 2
-KXLIN = [('C', (0.46, 1, 0.44, 1)),
-         ('G', (0.16, 0.44, 0.8, 1)),
-         ('T', (1, 0.47, 0.66, 1)),
-         ('A', (0.92, 1, 0.4, 1)),
-         ('N', (0.84, 0.84, 0.84, 0.6)),
-         ('-', (1, 1, 1, 0)),
-         ('[ ]', (1, 1, 1, 0)),
-         ('sep', (1, 1, 1, 0)),
-         ('unknown', (1, 0, 0, 1))]
-CMAP = sns.color_palette([c[1] for c in KXLIN], as_cmap=True)
 
 
 def init(gui):
@@ -197,9 +187,10 @@ def qplot(gui):
         ratio = seq_array.shape[1] / seq_array.shape[0]
         figure = Figure(dpi=72)
 
-        sns.heatmap(seq_array, ax=figure.add_subplot(111), cmap=CMAP,  # DO NOT USE annot=True,
+        cmap = sns.color_palette([c[1] for c in iface.colors], as_cmap=True)
+        sns.heatmap(seq_array, ax=figure.add_subplot(111), cmap=cmap,  # DO NOT USE annot=True,
                     yticklabels=False, xticklabels=False,  # DO NOT USE square=True
-                    vmin=-.5, vmax=len(KXLIN) - .5,  # adjust the color map to the character range
+                    vmin=-.5, vmax=len(cmap) - .5,  # adjust the color map to the character range
                     linewidth=0, cbar=False)
         figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
         canvas = FigureCanvas(figure)  # a Gtk.DrawingArea
@@ -230,7 +221,7 @@ def stop(gui):
     # del iface.thread
     gui.show_all()
     set_dims(iface.view_qal, None, iface)
-    # link and resize scrollbar
+    # link and resize scrollbar # TODO make this shut up
     iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
     iface.plot_prog.set_text('idle')
     LOG.info('idle')
@@ -291,17 +282,16 @@ def parse(widget, event, gui):
     delete_event(widget, event)
 
     # cause re-drawing if something changed
-    if pre != now:
-        iface.q_params.__setattr__(widget.get_name(), now)
-        if iface.q_params.trim_out > iface.q_params.trim_of:
-            commons.show_message_dialog('cannot draw %d from %d' %
-                                        (iface.q_params.trim_out, iface.q_params.trim_of))
-            widget.set_text('0')
-        else:
-            redraw(gui)
+    if pre == now:
+        LOG.debug('no change, skip re-draw')
+        return
+    iface.q_params.__setattr__(widget.get_name(), now)
+    if iface.q_params.trim_out > iface.q_params.trim_of:
+        commons.show_message_dialog('cannot draw %d from %d' %
+                                    (iface.q_params.trim_out, iface.q_params.trim_of))
+        widget.set_text('0')
     else:
-        LOG.debug('no change, abort re-draw')
-    return True
+        redraw(gui)
 
 
 def trim_all(gui):

@@ -98,7 +98,6 @@ def reset(gui, do_parse=False):
         # set regex for plate_id column as already fired
         iface.rx_fired[-2] = True
 
-    # reset_sort_size(gui)
     iface.reverse_rx_chk.set_active(False)
     iface.rx_fired[6] = True
 
@@ -295,10 +294,17 @@ def search_genes(gui):
     data, iface = gui.data, gui.interface
 
     data.genes = {gene for gene, is_ref, color in commons.get_column(data.trace_store, (4, 5, 7))
-                  if not is_ref and color is not iface.RED}
+                  if not is_ref and color is not iface.RED and gene != ''}
     if not data.genes or data.genes == {''}:
         return
-    single_gene = data.genes.pop() if len(data.genes) == 1 else False
+    LOG.debug('found genes %s' % ':'.join(data.genes))
+
+    if len(data.genes) == 1:
+        single_gene = data.genes.pop()
+        data.genes.add(single_gene)
+    else:
+        single_gene = False
+
     for i, row in enumerate(data.trace_store):
         if row[5] and row[-1] == iface.AQUA:
             if single_gene:
@@ -493,7 +499,8 @@ def read(gui):
                     lookup[strain] = _id
 
                 # save original id+description
-                attributes = {'file': file_path, 'accession': accession, 'is_rev': False, 'is_ref': True,
+                attributes = {'file': file_path, 'accession': accession,
+                              'is_rev': False, 'is_ref': True,
                               'reference_species': species + ' strain ' + strain}
                 record.id = _id
                 record.description = ''  # MARK do not delete deletion

@@ -4,6 +4,7 @@ import logging
 import sys
 import pickle
 import threading
+import warnings
 from argparse import Namespace
 from pathlib import Path
 
@@ -27,6 +28,16 @@ class gui(Gtk.ApplicationWindow):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
 
+    KXLIN = [('C', (0.46, 1, 0.44, 1)),
+             ('G', (0.16, 0.44, 0.8, 1)),
+             ('T', (1, 0.47, 0.66, 1)),
+             ('A', (0.92, 1, 0.4, 1)),
+             ('N', (0.84, 0.84, 0.84, 0.6)),
+             ('-', (1, 1, 1, 0)),
+             ('[ ]', (1, 1, 1, 0)),
+             ('sep', (1, 1, 1, 0)),
+             ('unknown', (1, 0, 0, 1))]
+
     def __init__(self):
         self.log = logging.getLogger(__name__)
         # super(gui, self).__init__()
@@ -45,6 +56,7 @@ class gui(Gtk.ApplicationWindow):
 
         # populate the window
         self.add(iface.toplayer)
+        self.set_hide_titlebar_when_maximized(True)
         self.log.debug('GTK Window initialized')
 
         # set up an empty thread so Gtk can get used to it
@@ -52,15 +64,35 @@ class gui(Gtk.ApplicationWindow):
         iface.running = False
         self.project_path = None
 
+        # get some CSS styling
+        mod = b'lighter', b'darker'
+        mod2 = 200  # per default, make treeview text color darker
+        if 'dark' in Gtk.Settings.get_default().get_property('gtk-theme-name'):
+            mod = mod[::-1]
+            mod2 = 255
+
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(b'''
+        .codeview text { background-color: %s(@bg_color); color: %s(@fg_color); }''' % mod)
+        # treeview {background-color: darker(@bg_color);}
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css_provider,
+                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         # get some colors
         iface.RED = '#FF0000'
         iface.BLUE = '#2374AF'
         iface.GREEN = '#23AF46'
         iface.AQUA = '#2EB398'
         sc = self.get_style_context()
-        iface.FG = '#' + ''.join([(hex(min(int(c * 256), 255))[2:]).upper()
-                                  for c in list(sc.get_color(Gtk.StateType.NORMAL))[:-1]])
-        # iface.BG = sc.get_background_color(Gtk.StateType.NORMAL)
+        iface.FG = '#' + ''.join([(hex(min(int(c * mod2), 255))[2:]).upper()
+                                  for c in list(sc.get_color(Gtk.StateFlags.ACTIVE))[:-1]])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            iface.BG = sc.get_background_color(Gtk.StateType.NORMAL)
+        # replace white as the non-color with the background color. lighten it a bit to match better
+        iface.colors = gui.KXLIN[0:5] \
+                       + list(zip([k[0] for k in gui.KXLIN[5:-1]],
+                                  [tuple(round(min(1, c * 1.2), 2) for c in iface.BG)] * 3)) \
+                       + gui.KXLIN[-1:]
 
         # prepare shortcuts / accelerators
         self.accelerators = Gtk.AccelGroup()
@@ -80,7 +112,7 @@ class gui(Gtk.ApplicationWindow):
         iface.saveas.connect('activate', self.saveas)
         commons.bind_accelerator(self.accelerators, iface.saveas, '<Control><Shift>s', 'activate')
 
-        self.data = project_dataset(iface.notebook.get_n_pages())
+        self.data = project_dataset()
         self.log.debug('vars and dataset initialized')
 
         # initialize the notebook pages
@@ -104,14 +136,12 @@ class gui(Gtk.ApplicationWindow):
             dialog.show_all()  # important
             response = dialog.run()
             dialog.destroy()
-
-            if response == Gtk.ResponseType.OK:
-                LOG.debug('new project')
-                self.data.reset()
-                files.refresh_files(self)
-        else:
-            self.data.reset()
-            files.refresh_files(self)
+            if response != Gtk.ResponseType.OK:
+                return
+        LOG.debug('new project')
+        self.data.new_project()
+        files.refresh_files(self)
+        self.interface.notebook.set_current_page(0)
 
     def open(self, event):
         """
@@ -133,27 +163,27 @@ class gui(Gtk.ApplicationWindow):
 
     def load(self, path):
         """
-        Load a project.
-        :param path: a string file path for the project file
+        Load a project from a file, overwriting previous data in-place.
+        :param path: a string file path to the project file to load
         :return:
         """
         self.project_path = Path(path)
         self.log.debug('got dataset path %s' % self.project_path)
         # read in dataset
         with open(self.project_path, 'rb') as proj:
-            self.data = pickle.load(proj)
-        # set models again. do not delete next line, otherwise data refers to old one
-        data, iface = self.data, self.interface
-        for mo, tv in zip([data.trace_store, data.plate_store,
-                           data.trace_store, data.plate_store, data.qal_model],
-                          [iface.view_trace_path, iface.view_csv_path,
-                           iface.view_trace_regex, iface.view_csv_regex, iface.view_qal]):
-            tv.set_model(mo)
-        iface.notebook.set_current_page(data.page)
+            new_data = pickle.load(proj)
+        # overwrite content in old dataset in-place rather than re-pointing everything
+        self.data.overwrite(new_data)
+        self.interface.notebook.set_current_page(self.data.page)
         # set gene chooser + plot quality
         quality.reset(self)
 
     def save(self, event):
+        """
+        Save project_dataset to file directly, unless it hasn't previously been saved.
+        :param event: To ignore, GTK+ callback requires positional argument.
+        :return:
+        """
         if not self.project_path:
             self.saveas(None)
             return
@@ -167,6 +197,11 @@ class gui(Gtk.ApplicationWindow):
                 self.log.warning('saving failed')
 
     def saveas(self, event):
+        """
+        Save with a file dialog. If previously saved, suggest old filename.
+        :param event: To ignore, GTK+ callback requires positional argument.
+        :return:
+        """
         dialog = Gtk.FileChooserDialog(title='save project', parent=None,
                                        action=Gtk.FileChooserAction.SAVE)
         if not self.project_path:
@@ -184,7 +219,7 @@ class gui(Gtk.ApplicationWindow):
 
 
 class project_dataset:
-    def __init__(self, n_pages):
+    def __init__(self):
         self.trace_store = commons.picklable_liststore(str,  # path
                                                        str,  # filename
                                                        str,  # well/id
@@ -209,16 +244,27 @@ class project_dataset:
                                                      bool)  # low quality
 
         # set up indicator of changes, tabs are not disabled initially
-        self.change_indicator = [False] * n_pages
-        self.errors_indicator = [False] * n_pages
+        self.change_indicator = [False] * 20
+        self.errors_indicator = [False] * 20
         self.page = 0
 
-    def reset(self):
-        for attr in [a for a in dir(self) if not callable(getattr(self, a))]:
-            try:
-                self.__getattribute__(attr).clear()
-            except AttributeError:
-                self.__setattr__(attr, 0)
+    def new_project(self):
+        self.overwrite(project_dataset())
+
+    def overwrite(self, new_dataset):
+        for attr in [a for a in dir(self) if not callable(getattr(self, a)) and not a.startswith('__')]:
+            old = self.__getattribute__(attr)
+            if type(old) == commons.picklable_liststore:
+                old.clear()
+                [old.append(row[:]) for row in new_dataset.__getattribute__(attr)]
+            elif type(old) == dict:
+                old.clear()
+                old.update(new_dataset.__getattribute__(attr))
+            else:
+                try:
+                    self.__setattr__(attr, new_dataset.__getattribute__(attr))
+                except (AttributeError, TypeError) as ex:
+                    LOG.exception(ex)
 
 
 def _init_log(**kwargs):
@@ -247,8 +293,7 @@ def _init_log(**kwargs):
 
 
 _init_log()  # filename='nope')
-log = logging.getLogger(__name__)
-log.info('AB12PHYLO GUI version')
+LOG.info('AB12PHYLO GUI version')
 
 win = gui()
 win.show_all()
