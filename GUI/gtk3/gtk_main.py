@@ -63,6 +63,7 @@ class gui(Gtk.ApplicationWindow):
         iface.thread = threading.Thread()
         iface.running = False
         self.project_path = None
+        self.wd = None
 
         # get some CSS styling
         mod = b'lighter', b'darker'
@@ -177,6 +178,8 @@ class gui(Gtk.ApplicationWindow):
         self.interface.notebook.set_current_page(self.data.page)
         # set gene chooser + plot quality
         quality.reset(self)
+        self.wd = self.project_path.parent / self.project_path.stem
+        Path.mkdir(self.wd, exist_ok=True)
 
     def save(self, event):
         """
@@ -195,6 +198,8 @@ class gui(Gtk.ApplicationWindow):
                 self.log.info('finished save')
             except pickle.PicklingError as pe:
                 self.log.warning('saving failed')
+        self.wd = self.project_path.parent / self.project_path.stem
+        Path.mkdir(self.wd, exist_ok=True)
 
     def saveas(self, event):
         """
@@ -247,6 +252,7 @@ class project_dataset:
         self.change_indicator = [False] * 20
         self.errors_indicator = [False] * 20
         self.page = 0
+        self.width = 0
 
     def new_project(self):
         self.overwrite(project_dataset())

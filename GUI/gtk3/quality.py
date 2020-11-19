@@ -5,25 +5,35 @@ from pathlib import Path
 import threading
 import sys
 
+import matplotlib.pyplot as plt
+
 import gi
 import numpy as np
 import seaborn as sns
 from time import sleep
+from Bio import SeqIO
 from argparse import Namespace
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)
 from matplotlib.figure import Figure
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib, GObject
+from gi.repository import Gtk, Gdk, GLib, GObject, GdkPixbuf
 
-from GUI.gtk3 import commons
+from GUI.gtk3 import commons, regex
 from ab12phylo import filter
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 2
 
+
+# TODO sortable + del entries
+# TODO palplot
+# DONE check why invisible when not on page
+
+# TODO check reversing of records!
+# TODO modify read_files for different progress bar
 
 def init(gui):
     data, iface = gui.data, gui.interface
@@ -100,12 +110,7 @@ def redraw(gui):
     LOG.debug('start-up redraw')
     data, iface = gui.data, gui.interface
     # called after files are read
-    # TODO start sth easier than this from re-sorting the treeview
-    # TODO palplot in upper half
-    # TODO check why invisible when not on page
-
-    # (gtk_main.py:5417): Gtk-CRITICAL **: 22:28:20.481: gtk_container_forall: assertion 'GTK_IS_CONTAINER (container)' failed
-    if not data.genes or iface.running:  # or iface.notebook.get_current_page() != PAGE:
+    if not data.genes or iface.running or iface.notebook.get_current_page() != PAGE:
         LOG.debug('abort re-draw')
         return
 
@@ -200,18 +205,22 @@ def qplot(gui):
         done += 1
         iface.frac = done / all_there_is_to_do
         iface.txt = 'place + resize'
-        canvas.set_size_request(width=max(4 * seq_array.shape[1], p.height * ratio // 2),
-                                height=p.height)
+        data.width = max(4 * seq_array.shape[1], p.height * ratio // 2)
+        canvas.set_size_request(width=data.width, height=p.height)
         try:
             iface.qal_win.add(canvas)
         except Gtk.Error as ex:
             LOG.error(ex)
         iface.frac = .99
-        # plt.ion()
+        plt.ion()
+        plt.show()
+
+        if gui.wd:
+            figure.savefig(gui.wd / 'trim_preview.png', dpi=600)
 
     sleep(.1)
     GObject.idle_add(stop, gui)
-    return True
+    return True  # DONE this beeps
 
 
 def stop(gui):
@@ -221,7 +230,7 @@ def stop(gui):
     # del iface.thread
     gui.show_all()
     set_dims(iface.view_qal, None, iface)
-    # link and resize scrollbar # TODO make this shut up
+    # link and resize scrollbar
     iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
     iface.plot_prog.set_text('idle')
     LOG.info('idle')
@@ -296,11 +305,55 @@ def parse(widget, event, gui):
 
 def trim_all(gui):
     """
-    Really trim all sequences and write to new data structure.
+    Trim all SeqRecords in project_dataset.seqdata to sequence strings and write collated .fasta files.
+    Deleting SeqRecords will make the project file tiny again. If necessary, re-read trace files.
+    Also place the png preview in the trim preview window.
     :param gui:
     :return:
     """
     data, iface = gui.data, gui.interface
+
+    if not data.seqdata:
+        LOG.debug('re-reading files')
+        regex.read_files(gui, proceed=False)
+        # TODO this opens a thread ... fix!
+
+    p = iface.q_params
+    for gene, genedata in data.seqdata.items():
+        LOG.debug('writing collated .fasta files')
+        Path.mkdir(gui.wd / gene, exist_ok=True)
+
+        # do actual trimming
+        for _id in list(genedata.keys()):
+            record = genedata.pop(_id)
+            try:
+                record = filter.trim_ends(record, p.min_phred, (p.trim_out, p.trim_of))
+                record = filter.mark_bad_stretches(record, p.min_phred, p.bad_stretch)
+            except ValueError:
+                continue
+            except AttributeError:
+                pass
+            genedata[_id] = record
+
+        # write to file
+        with open(str(gui.wd / gene / (gene + '.fasta')), 'w') as fasta:
+            SeqIO.write(genedata.values(), fasta, 'fasta')
+
+    # delete now bloaty data
+    data.seqdata.clear()
+
+    # place the png preview
+    [child.destroy() for child in iface.qal_win.get_children()]
+    rectangle = iface.qal_win.get_allocated_size()[0]
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+        str(gui.wd / 'trim_preview.png'),
+        width=data.width, height=rectangle.height,
+        preserve_aspect_ratio=False)
+
+    iface.qal_win.add(Gtk.Image.new_from_pixbuf(pixbuf))
+    # link and resize scrollbar
+    iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
+    gui.show_all()
 
 
 def set_dims(widget, rect, iface):

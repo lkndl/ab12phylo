@@ -373,7 +373,7 @@ def try_online(widget, gui):
         commons.show_message_dialog('online help failed')
 
 
-def read_files(gui):
+def read_files(gui, proceed=True):
     data, iface = gui.data, gui.interface
 
     # stop if there are no traces
@@ -382,6 +382,7 @@ def read_files(gui):
         # return  # TODO maybe really stop
 
     iface.thread = threading.Thread(target=read, args=[gui])
+    iface.proceed = proceed
     iface.running = True
     GObject.timeout_add(100, commons.update, iface, iface.read_prog, PAGE)
     iface.thread.start()
@@ -467,7 +468,7 @@ def read(gui):
                         errors.add('missing wellsplate %s' % box)
 
                 attributes = {'file': file_path, 'wellsplate': box, 'is_ref': False, 'is_rev': is_rev}
-                # TODO continue here
+                # DONE continue here
 
                 if is_rev:
                     record = record.reverse_complement(record.id, description='')
@@ -531,6 +532,7 @@ def stop(gui, errors, warnings):
         commons.show_message_dialog('Additional warnings', warnings)
     # now finally flip to next page
     commons.set_changed(gui, PAGE, False)
-    commons.proceed(None, gui)
-    quality.reset(gui)
+    if iface.proceed:
+        commons.proceed(None, gui)
+        quality.reset(gui)
     return

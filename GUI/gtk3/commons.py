@@ -73,9 +73,9 @@ def delete_rows(widget, gui, page, selection, delete_all=False):
     files.refresh_files(gui, page)
 
 
-def proceed(widget, gui):
+def proceed(widget, gui, page=None):
     data, iface = gui.data, gui.interface
-    page = iface.notebook.get_current_page()
+    page = iface.notebook.get_current_page() if not page else page
     # first integrate changes to the dataset
     if get_changed(gui, page):
         if page == 0:
