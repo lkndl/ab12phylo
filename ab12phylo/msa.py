@@ -21,7 +21,7 @@ from Bio import SeqIO
 class msa_build:
     """Builds a Multiple Sequence Alignment"""
 
-    def __init__(self, args, seq_counts):
+    def __init__(self, args, seq_counts, no_run=False):
         self.log = logging.getLogger(__name__)
         self.dir = args.dir
         self.genes = args.genes
@@ -35,13 +35,16 @@ class msa_build:
         # look for pre-installed version of selected algorithm
         self.binary = shutil.which(args.msa_algo)
 
+        if no_run:
+            return
+
         # build MSAs
         for gene in self.genes:
             if self.binary is not None:
                 self.build_local(gene)
             else:
                 self.build_remote(gene)
-                sleep(5)
+                sleep(1)
 
             # trim MSAs using Gblocks
             self.trim_msa(gene, seq_counts[gene], args.gblocks)
@@ -49,7 +52,7 @@ class msa_build:
         # concat MSAs
         self.concat_msa()
 
-    def build_local(self, gene):
+    def build_local(self, gene, no_run=False):
         """Build MSAs locally using a pre-installed binary."""
         log_file = path.join(self.dir, gene, self.algo + '.log')
         fasta = path.join(self.dir, gene, gene + '.fasta')
@@ -74,7 +77,9 @@ class msa_build:
         else:
             assert False
 
-        self._run(arg, log_file, 'pre-installed %s' % self.algo)
+        if no_run:
+            return arg
+        self._run(arg, log_file, 'pre-installed %s' % self.algo, no_exit=True)
 
     def build_remote(self, gene):
         """Builds an MSA online using an EBI API client"""
@@ -230,7 +235,7 @@ class msa_build:
                 fh.write('%s\t%s\n' % (gene, _collect))
                 self.log.info('samples missing from %s: %s' % (gene, _collect))
 
-    def _run(self, arg, log_file, info):
+    def _run(self, arg, log_file, info, no_exit=False):
         """Runs a command and writes output to log-file."""
         self.log.debug(arg)
         start = time()
@@ -238,7 +243,10 @@ class msa_build:
             try:
                 subprocess.run(arg, shell=True, check=True, stdout=log_handle, stderr=log_handle)
             except (OSError, subprocess.CalledProcessError) as e:
-                self.log.exception('returned: ' + str(e.returncode)
-                                   + e.output.decode('utf-8') if e.output is not None else '')
-                sys.exit(1)
+                if not no_exit:
+                    self.log.exception('returned: ' + str(e.returncode)
+                                       + e.output.decode('utf-8') if e.output is not None else '')
+                    sys.exit(1)
+                else:
+                    raise e
         self.log.debug('%.2f seconds for %s' % (time() - start, info))

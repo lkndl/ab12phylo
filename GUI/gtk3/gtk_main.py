@@ -1,5 +1,13 @@
 # 2020 Leo Kaindl
 
+
+__author__ = 'Leo Kaindl'
+__email__ = 'leo.kaindl@tum.de'
+__version__ = '0.3a.01'
+__date__ = '20 November 2020'
+__license__ = 'MIT'
+__status__ = 'Alpha'
+
 import logging
 import sys
 import pickle
@@ -29,7 +37,6 @@ class gui(Gtk.ApplicationWindow):
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
 
     def __init__(self):
-        self.log = logging.getLogger(__name__)
         # super(gui, self).__init__()
         Gtk.Window.__init__(self, title='AB12PHYLO')
         self.set_icon_from_file(str(gui.ICON))
@@ -45,15 +52,24 @@ class gui(Gtk.ApplicationWindow):
         iface = self.interface
 
         # populate the window
-        self.add(iface.toplayer)
+        self.add(iface.notebook)
+
+        tbar = Gtk.HeaderBar()
+        tbar.set_has_subtitle(False)
+        tbar.set_decoration_layout('menu:minimize,maximize,close')
+        tbar.set_show_close_button(True)
+        tbar.pack_start(iface.menu_bar)
+        self.set_titlebar(tbar)
         self.set_hide_titlebar_when_maximized(True)
-        self.log.debug('GTK Window initialized')
+        LOG.debug('GTK Window initialized')
 
         # set up an empty thread so Gtk can get used to it
         iface.thread = threading.Thread()
         iface.running = False
+        iface.frac = 0
+        iface.txt = ''
         self.project_path = None
-        self.wd = None
+        self.wd = Path.cwd()
 
         # get some CSS styling
         mod = b'lighter', b'darker'
@@ -99,7 +115,7 @@ class gui(Gtk.ApplicationWindow):
         commons.bind_accelerator(self.accelerators, iface.saveas, '<Control><Shift>s', 'activate')
 
         self.data = project_dataset()
-        self.log.debug('vars and dataset initialized')
+        LOG.debug('vars and dataset initialized')
 
         # initialize the notebook pages
         files.init(self)
@@ -155,7 +171,7 @@ class gui(Gtk.ApplicationWindow):
         :return:
         """
         self.project_path = Path(path)
-        self.log.debug('got dataset path %s' % self.project_path)
+        LOG.debug('got dataset path %s' % self.project_path)
         # read in dataset
         with open(self.project_path, 'rb') as proj:
             new_data = pickle.load(proj)
@@ -178,13 +194,13 @@ class gui(Gtk.ApplicationWindow):
             self.saveas(None)
             return
         with open(self.project_path, 'wb') as proj:
-            self.log.info('saving to %s' % self.project_path)
+            LOG.info('saving to %s' % self.project_path)
             try:
                 self.data.page = self.interface.notebook.get_current_page()
                 pickle.dump(self.data, proj)
-                self.log.info('finished save')
+                LOG.info('finished save')
             except pickle.PicklingError as pe:
-                self.log.warning('saving failed')
+                LOG.warning('saving failed')
         self.wd = self.project_path.parent / self.project_path.stem
         Path.mkdir(self.wd, exist_ok=True)
         self.set_title('AB12PHYLO [%s]' % self.project_path.stem)
@@ -206,7 +222,7 @@ class gui(Gtk.ApplicationWindow):
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             self.project_path = Path(dialog.get_filename())
-            self.log.debug('got save path to %s' % self.project_path)
+            LOG.debug('got save path to %s' % self.project_path)
             self.save(None)
         dialog.destroy()
 
@@ -242,6 +258,11 @@ class project_dataset:
         self.page = 0
         self.width = 0
 
+    def agene(self):
+        gene = self.genes.pop()
+        self.genes.add(gene)
+        return gene
+
     def new_project(self):
         self.overwrite(project_dataset())
 
@@ -264,7 +285,7 @@ class project_dataset:
 def _init_log(**kwargs):
     """Initializes logging."""
     log = logging.getLogger()
-    log.setLevel(logging.DEBUG)
+    log.setLevel(logging.INFO)
 
     if 'filename' in kwargs:
         # init verbose logging to file

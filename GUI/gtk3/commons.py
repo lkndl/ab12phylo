@@ -9,7 +9,6 @@ from gi.repository import Gtk, Gdk
 
 from GUI.gtk3 import files, regex, quality, align
 
-BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 
 bases = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S']
@@ -37,6 +36,8 @@ tohex = lambda c: '#' + ''.join([(hex(min(255, int(round(a * 256))))[2:] + '0')[
 colors = list(map(tohex, map(KXLIN.get, bases)))
 
 PAGE_REFRESHERS = [files.refresh, regex.refresh, quality.refresh, align.refresh]
+USER = 'leo.kaindl@tum.de'
+SEP = 'SSSSSSSSSS'
 
 
 def get_changed(gui, page):
@@ -78,8 +79,12 @@ def show_message_dialog(message, list_to_print=None):
     # dialog.format_secondary_text('\n'.join(not_found))  # not copyable -> not user-friendly
     if list_to_print:
         txt_buf = Gtk.TextBuffer()
-        txt_buf.set_text('\n'.join(list_to_print))
-        dialog.get_message_area().add(Gtk.TextView().new_with_buffer(txt_buf))
+        txt_buf.props.text = '\n'.join(list_to_print)
+        txv = Gtk.TextView().new_with_buffer(txt_buf)
+        txv.props.wrap_mode = Gtk.WrapMode.WORD_CHAR
+        txv.props.margin_end = 20
+        txv.props.margin_start = 20
+        dialog.get_content_area().add(txv)
     dialog.add_button('OK', 0)
     dialog.get_widget_for_response(0).grab_focus()
     dialog.show_all()  # important
@@ -124,12 +129,12 @@ def proceed(widget, gui=None, page=None):
                 print(iface.rx_fired)
                 show_message_dialog('Make sure all columns have been parsed.')
                 return
-            regex.read_files(gui, run_after=(proceed, quality.refresh))
+            regex.start_read(gui, run_after=(proceed, quality.refresh))
             return  # leave this alone
         elif page == 2:
             quality.trim_all(gui)
-            # TODO
-            print('wohooo')
+        elif page == 3:
+            print('oh noes')
         set_changed(gui, page, False)
 
     # then proceed

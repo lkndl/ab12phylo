@@ -1,13 +1,13 @@
 # 2020 Leo Kaindl
 
 import logging
-from pathlib import Path
 import threading
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 
 import gi
-import numpy as np
+import numpy as np, sys
 from time import sleep
 from Bio import SeqIO
 from argparse import Namespace
@@ -22,8 +22,8 @@ from gi.repository import Gtk, Gdk, GLib, GObject, GdkPixbuf
 from GUI.gtk3 import commons, regex
 from ab12phylo import filter
 
-BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
+plt.set_loglevel('warning')
 PAGE = 2
 
 
@@ -74,7 +74,7 @@ def init(gui):
     iface.view_qal.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
     iface.view_qal.connect('size_allocate', set_dims, iface)
     iface.view_qal.connect('key_press_event', delete_and_ignore_rows, gui, PAGE, iface.view_qal.get_selection())
-    iface.quality_refresh.connect('clicked', lambda *args: redraw(gui))
+    iface.quality_refresh.connect('clicked', lambda *args: start_trim(gui))
     iface.quality_next.connect('clicked', commons.proceed, gui)
     iface.quality_back.connect('clicked', commons.step_back, gui)
     commons.bind_accelerator(gui.accelerators, iface.quality_next, '<Alt>Right')
@@ -85,7 +85,6 @@ def refresh(gui):
     data, iface = gui.data, gui.interface
     with iface.gene_roll.handler_block(iface.gene_handler):
         iface.gene_roll.remove_all()
-
         [iface.gene_roll.append_text(gene) for gene in data.genes]
         if len(data.genes) > 1:
             iface.gene_roll.insert_text(0, 'all')
@@ -93,11 +92,10 @@ def refresh(gui):
     with iface.accept_rev.handler_block(iface.rev_handler):
         iface.accept_rev.set_active(iface.reverse_rx_chk.get_active())
         iface.accept_rev.set_sensitive(iface.reverse_rx_chk.get_active())
+    start_trim(gui)
 
-    redraw(gui)
 
-
-def redraw(gui):
+def start_trim(gui):
     """
     For non-empty gene set, start a background re-drawing thread
     and return the GUI to the main loop.
@@ -111,21 +109,21 @@ def redraw(gui):
         return
 
     if not data.seqdata:
-        regex.read_files(gui, run_after=redraw)
+        regex.start_read(gui, run_after=start_trim)
         return
 
     LOG.debug('start-up redraw')
     data.qal_model.clear()
     [child.destroy() for child in iface.qal_win.get_children()]
     sleep(.1)
-    iface.thread = threading.Thread(target=qplot, args=[gui])
+    iface.thread = threading.Thread(target=do_trim, args=[gui])
     iface.running = True
     GObject.timeout_add(20, commons.update, iface, iface.plot_prog, PAGE)
     iface.thread.start()
     # GUI thread returns to main loop
 
 
-def qplot(gui):
+def do_trim(gui):
     """
     Iterate over records and trim, create a matrix representation
     of valid characters and plot as seaborn heatmap.
@@ -229,33 +227,32 @@ def qplot(gui):
                 fig.savefig(gui.wd / 'colorbar.png', transparent=True,
                             bbox_inches='tight', pad_inches=0, dpi=600)
                 del fig
-
-            try:
-                iface.palplot_grid.get_child_at(0, 0).destroy()
-            except AttributeError:
-                pass
-
+            # loader = GdkPixbuf.PixbufLoader()
+            # with open(gui.wd / 'colorbar.svg', 'r') as svg_file:
+            #     loader.write(svg_file.read().encode())
+            #     loader.close()
+            #     pb = loader.get_pixbuf()
+            # GdkPixbuf.rsvg_pixbuf_from_file(gui.wd / 'colorbar.svg'))
             pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
                 str(gui.wd / 'colorbar.png'), 250, 100, preserve_aspect_ratio=True)
-            iface.palplot_grid.attach(Gtk.Image.new_from_pixbuf(pb), 0, 0, 1, 1)
+            iface.palplot.set_from_pixbuf(pb)
 
         iface.frac = 1
 
     sleep(.1)
-    GObject.idle_add(stop, gui)
+    GObject.idle_add(stop_trim, gui)
     return True  # DONE this beeps
 
 
-def stop(gui):
+def stop_trim(gui):
     iface = gui.interface
     iface.running = False
     iface.thread.join()
-    # del iface.thread
     gui.show_all()
     # link and resize scrollbar
     iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
     iface.plot_prog.set_text('idle')
-    LOG.info('idle')
+    LOG.info('trim preview done')
     return False
 
 
@@ -328,8 +325,6 @@ def parse(widget, event, gui):
     # getting new value depends on widget type
     if widget == iface.gene_roll:
         now = widget.get_active_text()
-        # if now == {}:
-        #     return
         now = data.genes if now == 'all' else {now}
     elif widget in [iface.accept_rev, iface.accept_nophred]:
         now = widget.get_active()
@@ -351,7 +346,7 @@ def parse(widget, event, gui):
         widget.set_text('0')
     else:
         commons.set_changed(gui, PAGE)
-        redraw(gui)
+        start_trim(gui)
 
 
 def trim_all(gui):
@@ -366,7 +361,7 @@ def trim_all(gui):
 
     if not data.seqdata:
         LOG.debug('re-reading files')
-        regex.read_files(gui, run_after=trim_all)
+        regex.start_read(gui, run_after=trim_all)
         return
 
     p = iface.q_params

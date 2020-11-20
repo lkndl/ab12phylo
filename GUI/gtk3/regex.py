@@ -21,7 +21,6 @@ from gi.repository import Gtk, GObject
 from GUI.gtk3 import commons, quality
 from ab12phylo import filter
 
-BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 1
 ERRORS = ['groups?', 'no match', 'use groups!']
@@ -324,12 +323,12 @@ def refresh(gui):
     # LOG.debug('found genes %s' % ':'.join(data.genes))
 
     if len(data.genes) == 1:
-        single_gene = data.genes.pop()
-        data.genes.add(single_gene)
+        single_gene = data.agene()
     else:
         single_gene = False
 
     for i, row in enumerate(data.trace_store):
+        # iterate over reference sequences and mark them blue if they are ok
         if row[5] and row[-1] == iface.AQUA:
             if single_gene:
                 data.trace_store[i][4] = single_gene
@@ -378,15 +377,15 @@ def try_online(widget, gui):
         commons.show_message_dialog('online help failed')
 
 
-def read_files(gui, run_after=None):
+def start_read(gui, run_after=None):
     data, iface = gui.data, gui.interface
 
     # stop if there are no traces
     if len(data.trace_store) == 0:
         commons.show_message_dialog('No sequence data!')
-        # return  # TODO maybe really stop
+        return
 
-    iface.thread = threading.Thread(target=read, args=[gui])
+    iface.thread = threading.Thread(target=do_read, args=[gui])
     iface.run_after = run_after
     iface.running = True
     GObject.timeout_add(100, commons.update, iface, iface.read_prog, PAGE)
@@ -394,7 +393,7 @@ def read_files(gui, run_after=None):
     # GUI thread returns to main loop
 
 
-def read(gui):
+def do_read(gui):
     data, iface = gui.data, gui.interface
     iface.frac = 0
     iface.txt = ''
@@ -524,11 +523,11 @@ def read(gui):
         iface.frac = done / all_there_is_to_do
 
     LOG.debug('reading done')
-    GObject.idle_add(stop, gui, errors, warnings)
+    GObject.idle_add(stop_read, gui, errors, warnings)
     return
 
 
-def stop(gui, errors, warnings):
+def stop_read(gui, errors, warnings):
     """
     Join a thread, then call one or more functions *afterwards*.
     Usually with the same args: gui. These params are stored in iface.
