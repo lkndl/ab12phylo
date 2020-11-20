@@ -227,12 +227,6 @@ def do_trim(gui):
                 fig.savefig(gui.wd / 'colorbar.png', transparent=True,
                             bbox_inches='tight', pad_inches=0, dpi=600)
                 del fig
-            # loader = GdkPixbuf.PixbufLoader()
-            # with open(gui.wd / 'colorbar.svg', 'r') as svg_file:
-            #     loader.write(svg_file.read().encode())
-            #     loader.close()
-            #     pb = loader.get_pixbuf()
-            # GdkPixbuf.rsvg_pixbuf_from_file(gui.wd / 'colorbar.svg'))
             pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
                 str(gui.wd / 'colorbar.png'), 250, 100, preserve_aspect_ratio=True)
             iface.palplot.set_from_pixbuf(pb)
@@ -241,7 +235,7 @@ def do_trim(gui):
 
     sleep(.1)
     GObject.idle_add(stop_trim, gui)
-    return True  # DONE this beeps
+    return True
 
 
 def stop_trim(gui):
@@ -252,7 +246,7 @@ def stop_trim(gui):
     # link and resize scrollbar
     iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
     iface.plot_prog.set_text('idle')
-    LOG.info('trim preview done')
+    LOG.info('trim thread idle')
     return False
 
 

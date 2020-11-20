@@ -38,6 +38,7 @@ colors = list(map(tohex, map(KXLIN.get, bases)))
 PAGE_REFRESHERS = [files.refresh, regex.refresh, quality.refresh, align.refresh]
 USER = 'leo.kaindl@tum.de'
 SEP = 'SSSSSSSSSS'
+TOOLS = Path(__file__).resolve().parents[2] / 'ab12phylo' / 'tools'
 
 
 def get_changed(gui, page):
@@ -139,6 +140,7 @@ def proceed(widget, gui=None, page=None):
 
     # then proceed
     iface.notebook.next_page()
+    PAGE_REFRESHERS[iface.notebook.get_current_page()]
     LOG.debug('proceeded to page %d' % iface.notebook.get_current_page())
 
 

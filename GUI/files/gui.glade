@@ -2,6 +2,12 @@
 <!-- Generated with glade 3.38.1 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
+  <object class="GtkFileFilter" id="fastafilter">
+    <patterns>
+      <pattern>*.fasta</pattern>
+      <pattern>*.fa</pattern>
+    </patterns>
+  </object>
   <object class="GtkMenuBar" id="menu_bar">
     <property name="name">menu_bar</property>
     <property name="visible">True</property>
@@ -2260,7 +2266,7 @@ Alternatively, a color legend would nicely fit here.</property>
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
-          <!-- n-columns=2 n-rows=2 -->
+          <!-- n-columns=2 n-rows=3 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -2274,6 +2280,49 @@ Alternatively, a color legend would nicely fit here.</property>
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">1</property>
+                <property name="height">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+                <property name="margin-bottom">14</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">False</property>
+                    <property name="vexpand">False</property>
+                    <property name="label" translatable="yes">AB12PHYLO creates per-gene multiple sequence alignments, which are then concatenated for ML tree inference. You can construct these MSAs locally on this machine, use the &lt;a href="https://www.ebi.ac.uk/Tools/msa/"&gt;EMBL-EBI&lt;/a&gt; API or import previously created data.</property>
+                    <property name="use-markup">True</property>
+                    <property name="wrap">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+                <property name="width">2</property>
               </packing>
             </child>
             <child>
@@ -2284,7 +2333,7 @@ Alternatively, a color legend would nicely fit here.</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
                 <child>
-                  <!-- n-columns=4 n-rows=7 -->
+                  <!-- n-columns=4 n-rows=6 -->
                   <object class="GtkGrid" id="local">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -2346,7 +2395,7 @@ Alternatively, a color legend would nicely fit here.</property>
                         <property name="halign">end</property>
                         <property name="hexpand">False</property>
                         <property name="vexpand">False</property>
-                        <property name="label" translatable="yes">e_xecutable:</property>
+                        <property name="label" translatable="yes">executable:</property>
                         <property name="use-underline">True</property>
                       </object>
                       <packing>
@@ -2402,6 +2451,7 @@ Alternatively, a color legend would nicely fit here.</property>
                         <property name="can-focus">True</property>
                         <property name="hexpand">True</property>
                         <property name="vexpand">True</property>
+                        <property name="hscrollbar-policy">never</property>
                         <property name="shadow-type">in</property>
                         <child>
                           <object class="GtkTextView" id="msa_help">
@@ -2411,7 +2461,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="hexpand">False</property>
                             <property name="pixels-below-lines">2</property>
                             <property name="editable">False</property>
-                            <property name="wrap-mode">word</property>
+                            <property name="wrap-mode">word-char</property>
                             <property name="left-margin">10</property>
                             <property name="right-margin">10</property>
                             <property name="top-margin">10</property>
@@ -2521,20 +2571,6 @@ Alternatively, a color legend would nicely fit here.</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkProgressBar" id="align_prog">
-                        <property name="name">align_prog</property>
-                        <property name="can-focus">False</property>
-                        <property name="no-show-all">True</property>
-                        <property name="vexpand">False</property>
-                        <property name="show-text">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">6</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -2553,15 +2589,82 @@ Alternatively, a color legend would nicely fit here.</property>
                   </packing>
                 </child>
                 <child>
-                  <!-- n-columns=3 n-rows=3 -->
+                  <!-- n-columns=4 n-rows=5 -->
                   <object class="GtkGrid" id="remote">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-start">10</property>
+                    <property name="margin-end">10</property>
+                    <property name="row-spacing">10</property>
+                    <property name="column-spacing">10</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">remote</property>
+                        <property name="halign">end</property>
+                        <property name="hexpand">False</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">MSA algorithm:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="remote_algo">
+                        <property name="name">remote_algo</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="hexpand">False</property>
+                        <property name="vexpand">False</property>
+                        <property name="active">0</property>
+                        <items>
+                          <item translatable="yes">MAFFT</item>
+                          <item translatable="yes">Clustal Omega</item>
+                          <item translatable="yes">MUSCLE</item>
+                          <item translatable="yes">T-Coffee</item>
+                        </items>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSeparator">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="hexpand">False</property>
+                        <property name="orientation">vertical</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                        <property name="height">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="hexpand">False</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">_commandline:</property>
+                        <property name="use-underline">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="hexpand">False</property>
+                        <property name="vexpand">False</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -2569,28 +2672,140 @@ Alternatively, a color legend would nicely fit here.</property>
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkScrolledWindow">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <property name="hscrollbar-policy">never</property>
+                        <property name="shadow-type">in</property>
+                        <child>
+                          <object class="GtkTextView" id="remote_help">
+                            <property name="name">remote_help</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="hexpand">False</property>
+                            <property name="pixels-below-lines">2</property>
+                            <property name="editable">False</property>
+                            <property name="wrap-mode">word-char</property>
+                            <property name="left-margin">10</property>
+                            <property name="right-margin">10</property>
+                            <property name="top-margin">10</property>
+                            <property name="bottom-margin">10</property>
+                            <property name="indent">-12</property>
+                            <property name="monospace">True</property>
+                            <style>
+                              <class name="codeview"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                        <property name="height">5</property>
+                      </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkButton" id="remote_build">
+                        <property name="name">remote_build</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">center</property>
+                            <property name="spacing">10</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="icon-name">media-playback-start-symbolic</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label" translatable="yes">Submit</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="pack-type">end</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">3</property>
+                      </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                      </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkScrolledWindow">
+                        <property name="height-request">100</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="hscrollbar-policy">never</property>
+                        <property name="shadow-type">in</property>
+                        <child>
+                          <object class="GtkTextView" id="remote_cmd">
+                            <property name="name">remote_cmd</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="wrap-mode">word</property>
+                            <property name="left-margin">10</property>
+                            <property name="right-margin">10</property>
+                            <property name="top-margin">10</property>
+                            <property name="bottom-margin">10</property>
+                            <property name="indent">-24</property>
+                            <property name="monospace">True</property>
+                            <style>
+                              <class name="codeview"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                        <property name="width">2</property>
+                      </packing>
                     </child>
                     <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                        <property name="width">2</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>
@@ -2604,40 +2819,77 @@ Alternatively, a color legend would nicely fit here.</property>
                   <object class="GtkGrid" id="import">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-start">10</property>
+                    <property name="margin-end">10</property>
+                    <property name="column-spacing">10</property>
+                    <child>
+                      <object class="GtkFileChooserButton" id="msa_import">
+                        <property name="name">msa_import</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="hexpand">False</property>
+                        <property name="vexpand">False</property>
+                        <property name="create-folders">False</property>
+                        <property name="filter">fastafilter</property>
+                        <property name="title" translatable="yes"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">import</property>
+                        <property name="hexpand">False</property>
+                        <property name="vexpand">False</property>
+                        <property name="label" translatable="yes">existing file:</property>
+                        <property name="use-underline">True</property>
                       </object>
                       <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">1</property>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                        <property name="width">3</property>
+                      </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="hexpand">False</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                        <property name="width">2</property>
+                      </packing>
                     </child>
                     <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                        <property name="height">2</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>
@@ -2653,45 +2905,17 @@ Alternatively, a color legend would nicely fit here.</property>
               </packing>
             </child>
             <child>
-              <object class="GtkBox">
-                <property name="visible">True</property>
+              <object class="GtkProgressBar" id="align_prog">
+                <property name="name">align_prog</property>
                 <property name="can-focus">False</property>
-                <property name="margin-start">10</property>
-                <property name="margin-end">10</property>
-                <property name="margin-bottom">14</property>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="halign">start</property>
-                    <property name="hexpand">False</property>
-                    <property name="vexpand">False</property>
-                    <property name="label" translatable="yes">AB12PHYLO creates per-gene multiple sequence alignments, which are then concatenated for ML tree inference. You can construct these MSAs locally on this machine, use the &lt;a href="https://www.ebi.ac.uk/Tools/msa/"&gt;EMBL-EBI&lt;/a&gt; API or import previously created data.</property>
-                    <property name="use-markup">True</property>
-                    <property name="wrap">True</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
+                <property name="no-show-all">True</property>
+                <property name="margin-top">4</property>
+                <property name="vexpand">False</property>
+                <property name="show-text">True</property>
               </object>
               <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
-                <property name="width">2</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
           </object>
@@ -2713,7 +2937,6 @@ Alternatively, a color legend would nicely fit here.</property>
               <object class="GtkComboBoxText" id="gene_roll_align">
                 <property name="name">gene_roll_align</property>
                 <property name="width-request">10</property>
-                <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">end</property>
                 <property name="hexpand">False</property>
@@ -2729,7 +2952,6 @@ Alternatively, a color legend would nicely fit here.</property>
             <child>
               <object class="GtkButton" id="align_refresh">
                 <property name="name">align_refresh</property>
-                <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <child>

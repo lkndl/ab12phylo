@@ -159,7 +159,7 @@ def parse_single(widget, gui, entry, col, fifth=None):
             model[i][-1] = iface.RED
             errors, changed = True, True
         else:
-            # MARK reverse reads, save boolean values
+            # reverse reads, save boolean values # TODO ?
             try:
                 m = regex.search(file).groups()[0]
                 # reverse read
@@ -511,7 +511,7 @@ def do_read(gui):
                               'is_rev': is_rev, 'is_ref': True,
                               'reference_species': species + ' strain ' + strain}
                 record.id = _id
-                record.description = ''  # MARK do not delete deletion
+                record.description = ''  # do not delete deletion
 
             # save SeqRecord
             data.seqdata[gene][record.id] = record
@@ -540,7 +540,7 @@ def stop_read(gui, errors, warnings):
     iface.running = False
     iface.thread.join()
     iface.read_prog.set_text('idle')
-    LOG.info('idle')
+    LOG.info('regex thread idle')
     if errors:
         commons.show_message_dialog('There were errors reading some files', errors)
     if warnings:

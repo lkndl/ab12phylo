@@ -723,6 +723,7 @@ class tree_build:
 
         # copy cgi-bin directory to output directory
         _dst = path.join(self.args.dir, 'cgi-bin')
+        # MARK to keep compatibility with python3.6, don't use shutil.copytree(dirs_exist_ok)
         try:
             # delete old directory
             shutil.rmtree(path=_dst)

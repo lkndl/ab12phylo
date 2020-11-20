@@ -19,7 +19,7 @@ FILETYPES = ['.ab1', '.seq', '.fasta', '.fa']
 def init(gui):
     data, iface = gui.data, gui.interface
 
-    # MARK trace file types
+    # trace file types
     # create a TreeView model
     iface.file_type_model = commons.picklable_liststore(str, bool)
     [iface.file_type_model.append([file_type, False]) for file_type in FILETYPES]
@@ -37,7 +37,7 @@ def init(gui):
     iface.view_filetypes.append_column(
         Gtk.TreeViewColumn(title='Selected', cell_renderer=crt, active=1))
 
-    # MARK trace files
+    # trace files
     iface.add_refs.connect('clicked', add_manually, gui, data.trace_store, 'references')
 
     # initial or old number of entries in model used for scrolling to end after adding

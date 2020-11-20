@@ -81,7 +81,7 @@ class msa_build:
             return arg
         self._run(arg, log_file, 'pre-installed %s' % self.algo, no_exit=True)
 
-    def build_remote(self, gene):
+    def build_remote(self, gene, no_run=False):
         """Builds an MSA online using an EBI API client"""
         log_file = path.join(self.dir, gene, self.algo + '.log')
         fasta = path.join(self.dir, gene, gene + '.fasta')
@@ -107,9 +107,14 @@ class msa_build:
         elif self.algo == 'tcoffee':
             arg += '--stype dna --format fasta_aln'
 
+        if no_run:
+            return arg
         # build an MSA for each gene
         self._run(arg, log_file, 'online %s' % self.algo)
-        shutil.move(path.join(self.dir, gene, 'msa.aln-fasta.fasta'), raw_msa)
+        try:
+            shutil.move(path.join(self.dir, gene, 'msa.aln-fasta.fasta'), raw_msa)
+        except FileNotFoundError:
+            shutil.move(path.join(self.dir, gene, '%s_raw_msa.fasta' % gene), raw_msa)
 
     def trim_msa(self, gene, seq_count, gblocks_mode):
         """
@@ -175,12 +180,13 @@ class msa_build:
             self._run(arg, log_file, 'pre-installed Gblocks' if local else 'out-of-the-box Gblocks')
             shutil.move(raw_msa + '.txt', path.join(self.dir, gene, gene + '_msa.fasta'))
 
-    def concat_msa(self):
+    def concat_msa(self, raw=False):
         """Reads all trimmed MSAs to memory, then iterates over samples, writes concatenated MSA."""
         self.log.debug('concatenating per-gene MSAs')
+        insert = '_raw' if raw else ''
         # read in all MSAs using SeqIO
         all_records = {gene: {record.id: record.upper() for record in SeqIO.parse(
-            path.join(self.dir, gene, gene + '_msa.fasta'), 'fasta')} for gene in self.genes}
+            path.join(self.dir, gene, gene + '%s_msa.fasta' % insert), 'fasta')} for gene in self.genes}
 
         # get the length of the trimmed concat MSA
         msa_len = 0

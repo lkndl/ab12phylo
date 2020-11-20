@@ -13,6 +13,7 @@ import sys
 import pickle
 import threading
 import warnings
+import shutil
 from argparse import Namespace
 from pathlib import Path
 
@@ -69,7 +70,8 @@ class gui(Gtk.ApplicationWindow):
         iface.frac = 0
         iface.txt = ''
         self.project_path = None
-        self.wd = Path.cwd()
+        self.wd = Path.cwd() / 'untitled'
+        Path.mkdir(self.wd, exist_ok=True)
 
         # get some CSS styling
         mod = b'lighter', b'darker'
@@ -178,13 +180,13 @@ class gui(Gtk.ApplicationWindow):
         # overwrite content in old dataset in-place rather than re-pointing everything
         self.data.overwrite(new_data)
         self.interface.notebook.set_current_page(self.data.page)
-        # set gene chooser + plot quality
-        quality.refresh(self)
         self.wd = self.project_path.parent / self.project_path.stem
         Path.mkdir(self.wd, exist_ok=True)
         self.set_title('AB12PHYLO [%s]' % self.project_path.stem)
 
-    def save(self, event):
+        commons.PAGE_REFRESHERS[self.data.page](self)
+
+    def save(self, event, copy_from=None):
         """
         Save project_dataset to file directly, unless it hasn't previously been saved.
         :param event: To ignore, GTK+ callback requires positional argument.
@@ -201,8 +203,23 @@ class gui(Gtk.ApplicationWindow):
                 LOG.info('finished save')
             except pickle.PicklingError as pe:
                 LOG.warning('saving failed')
+
+        new_wd = self.project_path.parent / self.project_path.stem
+        if new_wd != self.wd:
+            # in fact saving inside a saveas. -> copy from previous dir
+            # clear new location, would be overwritten anyway;
+            # doing it this roundabout way to keep compatibility with python3.6
+            try:
+                shutil.rmtree(path=new_wd)
+            except FileNotFoundError:
+                pass
+            shutil.copytree(src=self.wd, dst=new_wd)  # not dirs_exist_ok=True
+
+            # delete old data if it was in the prelim directory
+            if self.wd == Path.cwd() / 'untitled':
+                shutil.rmtree(path=self.wd)
+
         self.wd = self.project_path.parent / self.project_path.stem
-        Path.mkdir(self.wd, exist_ok=True)
         self.set_title('AB12PHYLO [%s]' % self.project_path.stem)
 
     def saveas(self, event):
