@@ -1703,12 +1703,11 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <child>
-                              <!-- n-columns=2 n-rows=1 -->
+                              <!-- n-columns=2 n-rows=3 -->
                               <object class="GtkGrid" id="qal_grid">
                                 <property name="name">qal_grid</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">10</property>
                                 <property name="column-spacing">10</property>
                                 <child>
                                   <object class="GtkScrolledWindow">
@@ -1735,6 +1734,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <packing>
                                     <property name="left-attach">0</property>
                                     <property name="top-attach">0</property>
+                                    <property name="height">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -1743,7 +1743,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hexpand">True</property>
-                                    <property name="vexpand">True</property>
                                     <property name="hscrollbar-policy">external</property>
                                     <property name="vscrollbar-policy">never</property>
                                     <property name="window-placement">bottom-right</property>
@@ -1755,6 +1754,27 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <packing>
                                     <property name="left-attach">1</property>
                                     <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
+                                    <property name="height">2</property>
                                   </packing>
                                 </child>
                               </object>
@@ -2047,10 +2067,28 @@ Alternatively, a color legend would nicely fit here.</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkTextView">
+                          <!-- n-columns=1 n-rows=2 -->
+                          <object class="GtkGrid" id="palplot_grid">
+                            <property name="name">palplot_grid</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="buffer">trim_help</property>
+                            <property name="margin-end">10</property>
+                            <property name="hexpand">False</property>
+                            <property name="row-spacing">10</property>
+                            <child>
+                              <object class="GtkTextView">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="buffer">trim_help</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>

@@ -3,19 +3,18 @@
 import logging
 from pathlib import Path
 import threading
-import sys
 
 import matplotlib.pyplot as plt
 
 import gi
 import numpy as np
-import seaborn as sns
 from time import sleep
 from Bio import SeqIO
 from argparse import Namespace
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)
 from matplotlib.figure import Figure
+from matplotlib.colors import ListedColormap
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject, GdkPixbuf
@@ -28,12 +27,8 @@ LOG = logging.getLogger(__name__)
 PAGE = 2
 
 
-# TODO sortable + del entries
-# TODO palplot
-# DONE check why invisible when not on page
+# todo do not re-read if some were removed
 
-# TODO check reversing of records!
-# TODO modify read_files for different progress bar
 
 def init(gui):
     data, iface = gui.data, gui.interface
@@ -75,16 +70,18 @@ def init(gui):
     iface.view_qal.append_column(Gtk.TreeViewColumn(
         title='has phreds', active=1,
         cell_renderer=Gtk.CellRendererToggle(radio=False)))
-    iface.view_qal.connect('size_allocate', set_dims, iface)
-    iface.quality_refresh.connect('clicked', lambda *args: redraw(gui))
 
+    iface.view_qal.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
+    iface.view_qal.connect('size_allocate', set_dims, iface)
+    iface.view_qal.connect('key_press_event', delete_and_ignore_rows, gui, PAGE, iface.view_qal.get_selection())
+    iface.quality_refresh.connect('clicked', lambda *args: redraw(gui))
     iface.quality_next.connect('clicked', commons.proceed, gui)
     iface.quality_back.connect('clicked', commons.step_back, gui)
     commons.bind_accelerator(gui.accelerators, iface.quality_next, '<Alt>Right')
     commons.bind_accelerator(gui.accelerators, iface.quality_back, '<Alt>Left')
 
 
-def reset(gui):
+def refresh(gui):
     data, iface = gui.data, gui.interface
     with iface.gene_roll.handler_block(iface.gene_handler):
         iface.gene_roll.remove_all()
@@ -107,13 +104,17 @@ def redraw(gui):
     :param gui:
     :return:
     """
-    LOG.debug('start-up redraw')
     data, iface = gui.data, gui.interface
     # called after files are read
     if not data.genes or iface.running or iface.notebook.get_current_page() != PAGE:
         LOG.debug('abort re-draw')
         return
 
+    if not data.seqdata:
+        regex.read_files(gui, run_after=redraw)
+        return
+
+    LOG.debug('start-up redraw')
     data.qal_model.clear()
     [child.destroy() for child in iface.qal_win.get_children()]
     sleep(.1)
@@ -141,11 +142,12 @@ def qplot(gui):
     p.gene_roll = data.genes if p.gene_roll == 'all' else p.gene_roll
     done = 0
     all_there_is_to_do = sum([len(data.seqdata[gene]) for gene in p.gene_roll]) + 3
+    ignore_ids = iface.ignore_set if 'ignore_set' in iface else set()
 
     try:
         for record_id, gene in data.record_order:
             # skip records from other genes for the trimming preview
-            if gene not in p.gene_roll:
+            if gene not in p.gene_roll or record_id in ignore_ids:
                 continue
 
             done += 1
@@ -159,16 +161,16 @@ def qplot(gui):
                 record = filter.trim_ends(record, p.min_phred, (p.trim_out, p.trim_of), trim_preview=True)
                 record = filter.mark_bad_stretches(record, p.min_phred, p.bad_stretch)
                 has_qal, is_bad = True, False
-                row = filter.seq2ints(record)
+                row = commons.seqtoint(record)
             except AttributeError:
                 # accept references anyway, but maybe skip no-phred ones
                 if not data.metadata[gene][record_id]['is_ref'] and not p.accept_nophred:
                     continue
                 has_qal, is_bad = False, False
-                row = filter.seq2ints(record)
+                row = commons.seqtoint(record)
             except ValueError:
                 has_qal, is_bad = True, True
-                row = filter.seq2gray(record)
+                row = commons.seqtogray(record)
             rows.append(row)
             data.qal_model.append([record.id, has_qal, is_bad])
 
@@ -176,47 +178,68 @@ def qplot(gui):
         exit(ke)
 
     if not rows:
-        exit('no sequence data remains')
+        LOG.warning('no sequence data remains')
     else:
-        set_dims(iface.view_qal, None, iface)
-
         iface.txt = 'tabularize'
         max_len = max(map(len, rows))
-        seq_array = np.array([row + [5] * (max_len - len(row)) for row in rows])  # MARK 5 is the gap character
+        seq_array = np.array([row + commons.seqtoint(' ') * (max_len - len(row)) for row in rows])
         done += 1
         iface.frac = done / all_there_is_to_do
 
         iface.txt = 'plot'
-        sns.set(style='white')
-        sns.despine(offset=0, trim=True)
         ratio = seq_array.shape[1] / seq_array.shape[0]
-        figure = Figure(dpi=72)
+        masked = np.ma.masked_where(seq_array > commons.toint('N'), seq_array)
+        f = Figure()  # figsize=(scale // 10 * ratio * 5, scale // 10), dpi=300)
+        ax = f.add_subplot(111)
+        mat = ax.matshow(masked, alpha=1, cmap=ListedColormap(commons.colors),
+                         vmin=-.5, vmax=len(commons.colors) - .5, aspect='auto')
+        ax.axis('off')
+        f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+        f.set_facecolor('none')
 
-        cmap = sns.color_palette([c[1] for c in iface.colors], as_cmap=True)
-        sns.heatmap(seq_array, ax=figure.add_subplot(111), cmap=cmap,  # DO NOT USE annot=True,
-                    yticklabels=False, xticklabels=False,  # DO NOT USE square=True
-                    vmin=-.5, vmax=len(cmap) - .5,  # adjust the color map to the character range
-                    linewidth=0, cbar=False)
-        figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-        canvas = FigureCanvas(figure)  # a Gtk.DrawingArea
+        # place on GTK
+        canvas = FigureCanvas(f)  # a Gtk.DrawingArea
         # canvas.mpl_connect('pick_event', onpick)
         # canvas.mpl_connect('button_press_event', onclick)
 
         done += 1
         iface.frac = done / all_there_is_to_do
         iface.txt = 'place + resize'
-        data.width = max(4 * seq_array.shape[1], p.height * ratio // 2)
-        canvas.set_size_request(width=data.width, height=p.height)
+        data.width = seq_array.shape[1] * 4
+        canvas.set_size_request(data.width, set_dims(iface.view_qal, None, iface)[1])
+        # canvas.set_vexpand(False)
         try:
             iface.qal_win.add(canvas)
         except Gtk.Error as ex:
             LOG.error(ex)
-        iface.frac = .99
-        plt.ion()
-        plt.show()
 
         if gui.wd:
-            figure.savefig(gui.wd / 'trim_preview.png', dpi=600)
+            if gui.wd:
+                LOG.debug('saving plot')
+                f.savefig(gui.wd / 'trim_preview.png', transparent=True,
+                          dpi=600, bbox_inches='tight', pad_inches=0)
+
+            with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
+                LOG.debug('saving colorbar')
+                fig = plt.figure(figsize=(4, 2))
+                cax = fig.add_subplot(111)
+                cbar = plt.colorbar(mat, ax=cax, ticks=range(len(commons.colors)), orientation='horizontal')
+                cbar.ax.set_xticklabels(commons.bases)
+                cax.remove()
+                fig.savefig(gui.wd / 'colorbar.png', transparent=True,
+                            bbox_inches='tight', pad_inches=0, dpi=600)
+                del fig
+
+            try:
+                iface.palplot_grid.get_child_at(0, 0).destroy()
+            except AttributeError:
+                pass
+
+            pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                str(gui.wd / 'colorbar.png'), 250, 100, preserve_aspect_ratio=True)
+            iface.palplot_grid.attach(Gtk.Image.new_from_pixbuf(pb), 0, 0, 1, 1)
+
+        iface.frac = 1
 
     sleep(.1)
     GObject.idle_add(stop, gui)
@@ -229,7 +252,6 @@ def stop(gui):
     iface.thread.join()
     # del iface.thread
     gui.show_all()
-    set_dims(iface.view_qal, None, iface)
     # link and resize scrollbar
     iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
     iface.plot_prog.set_text('idle')
@@ -252,10 +274,40 @@ def keypress(widget, event, data, iface):
 
 
 def edit(widget, data, iface):
-    LOG.debug('editing ...')
+    """
+    Edit a treeview cell in-place and save the result
+    :param widget:
+    :param data:
+    :param iface:
+    :return:
+    """
+    LOG.debug('editing')
     # filter for numbers only
     value = ''.join([c for c in widget.get_text() if c.isdigit()])
     widget.set_text(value if value else '')  # entering 0 is annoying
+
+
+def delete_and_ignore_rows(widget, event, gui, page, selection):
+    """
+    Keep track of the rows that will not be written to the fasta and delete them from the treeview
+    :param widget: 
+    :param event: 
+    :param gui: 
+    :param page: 
+    :param selection: 
+    :return: 
+    """
+    data, iface = gui.data, gui.interface
+    if Gdk.keyval_name(event.keyval) == 'Delete':
+        model, iterator = selection.get_selected_rows()
+        if 'ignore_set' not in iface:
+            iface.ignore_set = set()
+        for row in reversed(sorted(iterator)):
+            iface.ignore_set.add(model[row[:]][0])
+            model.remove(model.get_iter(row))
+
+        commons.set_changed(gui, page, True)
+        refresh(gui)
 
 
 def parse(widget, event, gui):
@@ -267,8 +319,6 @@ def parse(widget, event, gui):
     :return:
     """
     data, iface = gui.data, gui.interface
-    print(event, file=sys.stderr)
-    print(widget, file=sys.stderr)
     LOG.debug('parsing for re-draw')
     pre = None
     try:
@@ -300,6 +350,7 @@ def parse(widget, event, gui):
                                     (iface.q_params.trim_out, iface.q_params.trim_of))
         widget.set_text('0')
     else:
+        commons.set_changed(gui, PAGE)
         redraw(gui)
 
 
@@ -315,12 +366,12 @@ def trim_all(gui):
 
     if not data.seqdata:
         LOG.debug('re-reading files')
-        regex.read_files(gui, proceed=False)
-        # TODO this opens a thread ... fix!
+        regex.read_files(gui, run_after=trim_all)
+        return
 
     p = iface.q_params
+    LOG.debug('writing collated .fasta files')
     for gene, genedata in data.seqdata.items():
-        LOG.debug('writing collated .fasta files')
         Path.mkdir(gui.wd / gene, exist_ok=True)
 
         # do actual trimming
@@ -342,24 +393,29 @@ def trim_all(gui):
     # delete now bloaty data
     data.seqdata.clear()
 
+    set_dims(iface.view_qal, None, iface)
     # place the png preview
-    [child.destroy() for child in iface.qal_win.get_children()]
     rectangle = iface.qal_win.get_allocated_size()[0]
+    [child.destroy() for child in iface.qal_win.get_children()]
     pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
         str(gui.wd / 'trim_preview.png'),
         width=data.width, height=rectangle.height,
         preserve_aspect_ratio=False)
-
     iface.qal_win.add(Gtk.Image.new_from_pixbuf(pixbuf))
     # link and resize scrollbar
     iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
     gui.show_all()
 
 
-def set_dims(widget, rect, iface):
-    iface.q_params.height = min(20, widget.get_allocated_height())
-    iface.qal_spacer.set_size_request(widget.get_allocated_width(), -1)
-    return True
+def set_dims(view_qal, event, iface):
+    w, h = view_qal.get_allocated_width(), view_qal.get_allocated_height()
+    iface.qal_spacer.set_size_request(w, -1)
+    iface.qal_win.set_max_content_height(h)
+    try:
+        iface.qal_win.get_children()[0].set_size_request(w, h)
+    except IndexError:
+        pass
+    return w, h
 
 
 def onpick(event):

@@ -28,16 +28,6 @@ class gui(Gtk.ApplicationWindow):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
 
-    KXLIN = [('C', (0.46, 1, 0.44, 1)),
-             ('G', (0.16, 0.44, 0.8, 1)),
-             ('T', (1, 0.47, 0.66, 1)),
-             ('A', (0.92, 1, 0.4, 1)),
-             ('N', (0.84, 0.84, 0.84, 0.6)),
-             ('-', (1, 1, 1, 0)),
-             ('[ ]', (1, 1, 1, 0)),
-             ('sep', (1, 1, 1, 0)),
-             ('unknown', (1, 0, 0, 1))]
-
     def __init__(self):
         self.log = logging.getLogger(__name__)
         # super(gui, self).__init__()
@@ -89,11 +79,6 @@ class gui(Gtk.ApplicationWindow):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             iface.BG = sc.get_background_color(Gtk.StateType.NORMAL)
-        # replace white as the non-color with the background color. lighten it a bit to match better
-        iface.colors = gui.KXLIN[0:5] \
-                       + list(zip([k[0] for k in gui.KXLIN[5:-1]],
-                                  [tuple(round(min(1, c * 1.2), 2) for c in iface.BG)] * 3)) \
-                       + gui.KXLIN[-1:]
 
         # prepare shortcuts / accelerators
         self.accelerators = Gtk.AccelGroup()
@@ -141,8 +126,9 @@ class gui(Gtk.ApplicationWindow):
                 return
         LOG.debug('new project')
         self.data.new_project()
-        files.refresh_files(self)
+        files.refresh(self)
         self.interface.notebook.set_current_page(0)
+        self.set_title('AB12PHYLO [untitled]')
 
     def open(self, event):
         """
@@ -177,9 +163,10 @@ class gui(Gtk.ApplicationWindow):
         self.data.overwrite(new_data)
         self.interface.notebook.set_current_page(self.data.page)
         # set gene chooser + plot quality
-        quality.reset(self)
+        quality.refresh(self)
         self.wd = self.project_path.parent / self.project_path.stem
         Path.mkdir(self.wd, exist_ok=True)
+        self.set_title('AB12PHYLO [%s]' % self.project_path.stem)
 
     def save(self, event):
         """
@@ -200,6 +187,7 @@ class gui(Gtk.ApplicationWindow):
                 self.log.warning('saving failed')
         self.wd = self.project_path.parent / self.project_path.stem
         Path.mkdir(self.wd, exist_ok=True)
+        self.set_title('AB12PHYLO [%s]' % self.project_path.stem)
 
     def saveas(self, event):
         """

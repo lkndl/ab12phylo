@@ -7,10 +7,36 @@ import logging
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
 
-from GUI.gtk3 import files, regex, quality
+from GUI.gtk3 import files, regex, quality, align
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
+
+bases = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S']
+toint_map = dict(zip(bases, range(len(bases))))
+toint = lambda c: toint_map.get(c, 5)
+seqtoint = lambda s: list(map(toint, s))
+
+# seqs = np.array([list(map(toint, records[_id].seq)) for _id in records.keys()])
+togray_map = dict(zip(bases, seqtoint('N') * 5 + list(range(5, 9))))
+togray = lambda c: togray_map.get(c, 5)
+seqtogray = lambda s: list(map(togray, s))
+
+KXLIN = {
+    'A': (0.92, 1, 0.4, 1),
+    'C': (0.46, 1, 0.44, 1),
+    'G': (0.16, 0.44, 0.8, 1),
+    'T': (1, 0.47, 0.66, 1),
+    'N': (0.84, 0.84, 0.84, 0.6),
+    'else': (1, 0, 0, 1),
+    '-': (1, 1, 1, 0),
+    ' ': (1, 1, 1, 0),
+    'S': (1, 1, 1, 0)}
+
+tohex = lambda c: '#' + ''.join([(hex(min(255, int(round(a * 256))))[2:] + '0')[:2].upper() for a in c])
+colors = list(map(tohex, map(KXLIN.get, bases)))
+
+PAGE_REFRESHERS = [files.refresh, regex.refresh, quality.refresh, align.refresh]
 
 
 def get_changed(gui, page):
@@ -62,6 +88,12 @@ def show_message_dialog(message, list_to_print=None):
     LOG.debug('showed a message')
 
 
+def tv_keypress(widget, event, gui, page, selection):
+    if Gdk.keyval_name(event.keyval) == 'Delete':
+        LOG.debug('delete selected row')
+        delete_rows(widget, gui, page, selection)
+
+
 def delete_rows(widget, gui, page, selection, delete_all=False):
     data, iface = gui.data, gui.interface
     if delete_all:
@@ -70,10 +102,12 @@ def delete_rows(widget, gui, page, selection, delete_all=False):
         model, iterator = selection.get_selected_rows()
         [model.remove(model.get_iter(row)) for row in reversed(sorted(iterator))]
     set_changed(gui, page, True)
-    files.refresh_files(gui, page)
+    PAGE_REFRESHERS[page](gui)
 
 
-def proceed(widget, gui, page=None):
+def proceed(widget, gui=None, page=None):
+    if gui is None:
+        gui = widget
     data, iface = gui.data, gui.interface
     page = iface.notebook.get_current_page() if not page else page
     # first integrate changes to the dataset
@@ -82,7 +116,7 @@ def proceed(widget, gui, page=None):
             regex.reset(gui, do_parse=True)
         elif page == 1:
             # check if everything ok
-            regex.re_check(gui)
+            regex.refresh(gui)
             if get_errors(gui, page):
                 show_message_dialog('There are still errors on the page!')
                 return
@@ -90,7 +124,7 @@ def proceed(widget, gui, page=None):
                 print(iface.rx_fired)
                 show_message_dialog('Make sure all columns have been parsed.')
                 return
-            regex.read_files(gui)
+            regex.read_files(gui, run_after=(proceed, quality.refresh))
             return  # leave this alone
         elif page == 2:
             quality.trim_all(gui)
@@ -106,9 +140,10 @@ def proceed(widget, gui, page=None):
 def step_back(widget, gui):
     data, iface = gui.data, gui.interface
     iface.notebook.prev_page()
-    page = iface.notebook.get_current_page()
-    set_changed(gui, page, False)
-    LOG.debug('stepped back to page %d' % page)
+    data.page = iface.notebook.get_current_page()
+    set_changed(gui, data.page, False)
+    PAGE_REFRESHERS[data.page](gui)
+    LOG.debug('stepped back to page %d' % data.page)
 
 
 def get_column(list_store, col_idx):
@@ -153,6 +188,17 @@ class picklable_liststore(Gtk.ListStore):
         try:
             rows = [list(row) for row in self]
             coltypes = [type(c) for c in rows[0]]
+            return _unpickle_liststore, (self.__class__, coltypes, rows)
+        except IndexError as ex:
+            cols = self.get_n_columns()
+            if cols == 4:
+                coltypes = [str, str, str, str]
+            elif cols == 3:
+                coltypes = [str, bool, bool]
+            elif cols == 7:
+                coltypes = [str, str, str, str, str, bool, bool, str]
+            else:
+                assert False
             return _unpickle_liststore, (self.__class__, coltypes, rows)
         except Exception as ex:
             LOG.exception(ex)

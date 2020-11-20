@@ -50,11 +50,12 @@ def init(gui):
     iface.regex_try_online.connect('clicked', try_online, gui)
 
     # allow deletion
-    for widget, sel in zip([iface.remove_path_regex, iface.remove_csv_regex],
-                           [iface.view_trace_regex.get_selection,
-                            iface.view_csv_regex.get_selection]):
-        sel().set_mode(Gtk.SelectionMode.MULTIPLE)
-        widget.connect('clicked', commons.delete_rows, gui, PAGE, sel())
+    for widget, tv in zip([iface.remove_path_regex, iface.remove_csv_regex],
+                          [iface.view_trace_regex, iface.view_csv_regex]):
+        sel = tv.get_selection()
+        sel.set_mode(Gtk.SelectionMode.MULTIPLE)
+        widget.connect('clicked', commons.delete_rows, gui, PAGE, )
+        tv.connect('key-press-event', commons.tv_keypress, gui, PAGE, sel)
 
     # connect buttons
     iface.regex_next.connect('clicked', commons.proceed, gui)
@@ -180,9 +181,7 @@ def parse_single(widget, gui, entry, col, fifth=None):
                 assert False
     commons.set_changed(gui, PAGE, changed)
     commons.set_errors(gui, PAGE, errors)
-    if entry is iface.gene_rx:
-        search_genes(gui)
-    re_check(gui)
+    refresh(gui)
 
 
 def parse_triple(widget, gui):
@@ -222,8 +221,7 @@ def parse_triple(widget, gui):
         commons.set_changed(gui, PAGE, changed)
         commons.set_errors(gui, PAGE, errors)
         iface.rx_fired[2:5] = [True] * 3
-        search_genes(gui)
-        re_check(gui)
+        refresh(gui)
     else:
         parse_single(None, gui, iface.well_rx, 2)
         parse_single(None, gui, iface.gene_rx, 4)
@@ -274,8 +272,10 @@ def rev_adjust(widget, gui):
         # enable entry field
         iface.reverse_rx.set_sensitive(True)
         # create new column
+        crt = Gtk.CellRendererToggle(radio=False)
+        crt.connect('toggled', rev_toggled, gui)
         iface.view_trace_regex.insert_column(
-            Gtk.TreeViewColumn(title='rev', cell_renderer=Gtk.CellRendererToggle(radio=False), active=6), n_cols - 1)
+            Gtk.TreeViewColumn(title='rev', cell_renderer=crt, active=6), n_cols - 1)
         # set regex as not yet fired
         iface.rx_fired[6] = False
         # cause parsing
@@ -289,7 +289,31 @@ def rev_adjust(widget, gui):
         iface.rx_fired[6] = True
 
 
-def search_genes(gui):
+def rev_toggled(widget, path, gui):
+    data, iface = gui.data, gui.interface
+    data.trace_store.set(data.trace_store.get_iter(path), [6], [not data.trace_store[path][6]])
+    commons.set_changed(gui, PAGE)
+
+
+def refresh(gui):
+    data, iface = gui.data, gui.interface
+    # make all columns sortable
+    for tree_view in [iface.view_trace_regex, iface.view_csv_regex]:
+        tree_view.columns_autosize()
+        for col_index in range(tree_view.get_n_columns()):
+            tree_view.get_column(col_index).set_sort_column_id(col_index)
+
+    # check the dataset for red lines
+    if iface.RED not in commons.get_column(data.trace_store, -1) \
+            and iface.AQUA not in commons.get_column(data.trace_store, - 1) \
+            and iface.RED not in commons.get_column(data.plate_store, -1):
+        commons.set_errors(gui, PAGE, False)
+        # LOG.debug('found no errors')
+    else:
+        LOG.debug('found errors')
+        assert commons.get_errors(gui, PAGE) or sum(iface.rx_fired) < 5
+
+    # search genes
     # try matching reference files to genes
     data, iface = gui.data, gui.interface
 
@@ -297,7 +321,7 @@ def search_genes(gui):
                   if not is_ref and color is not iface.RED and gene != ''}
     if not data.genes or data.genes == {''}:
         return
-    LOG.debug('found genes %s' % ':'.join(data.genes))
+    # LOG.debug('found genes %s' % ':'.join(data.genes))
 
     if len(data.genes) == 1:
         single_gene = data.genes.pop()
@@ -317,25 +341,6 @@ def search_genes(gui):
                         data.trace_store[i][4] = gene
                         data.trace_store[i][7] = iface.BLUE
                         break
-
-
-def re_check(gui):
-    data, iface = gui.data, gui.interface
-    # make all columns sortable
-    for tree_view in [iface.view_trace_regex, iface.view_csv_regex]:
-        tree_view.columns_autosize()
-        for col_index in range(tree_view.get_n_columns()):
-            tree_view.get_column(col_index).set_sort_column_id(col_index)
-
-    # check the dataset for red lines
-    if iface.RED not in commons.get_column(data.trace_store, -1) \
-            and iface.AQUA not in commons.get_column(data.trace_store, - 1) \
-            and iface.RED not in commons.get_column(data.plate_store, -1):
-        commons.set_errors(gui, PAGE, False)
-        LOG.debug('found no errors')
-    else:
-        LOG.debug('found errors')
-        assert commons.get_errors(gui, PAGE) or sum(iface.rx_fired) < 5
 
 
 def try_online(widget, gui):
@@ -373,7 +378,7 @@ def try_online(widget, gui):
         commons.show_message_dialog('online help failed')
 
 
-def read_files(gui, proceed=True):
+def read_files(gui, run_after=None):
     data, iface = gui.data, gui.interface
 
     # stop if there are no traces
@@ -382,7 +387,7 @@ def read_files(gui, proceed=True):
         # return  # TODO maybe really stop
 
     iface.thread = threading.Thread(target=read, args=[gui])
-    iface.proceed = proceed
+    iface.run_after = run_after
     iface.running = True
     GObject.timeout_add(100, commons.update, iface, iface.read_prog, PAGE)
     iface.thread.start()
@@ -499,9 +504,12 @@ def read(gui):
                     _id = 'REF_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
                     lookup[strain] = _id
 
+                if is_rev:  # strange but possible
+                    record = record.reverse_complement(record.id)
+
                 # save original id+description
                 attributes = {'file': file_path, 'accession': accession,
-                              'is_rev': False, 'is_ref': True,
+                              'is_rev': is_rev, 'is_ref': True,
                               'reference_species': species + ' strain ' + strain}
                 record.id = _id
                 record.description = ''  # MARK do not delete deletion
@@ -521,6 +529,14 @@ def read(gui):
 
 
 def stop(gui, errors, warnings):
+    """
+    Join a thread, then call one or more functions *afterwards*.
+    Usually with the same args: gui. These params are stored in iface.
+    :param gui:
+    :param errors:
+    :param warnings:
+    :return:
+    """
     data, iface = gui.data, gui.interface
     iface.running = False
     iface.thread.join()
@@ -532,7 +548,12 @@ def stop(gui, errors, warnings):
         commons.show_message_dialog('Additional warnings', warnings)
     # now finally flip to next page
     commons.set_changed(gui, PAGE, False)
-    if iface.proceed:
-        commons.proceed(None, gui)
-        quality.reset(gui)
+
+    # *Now* go back to where you came from
+    if iface.run_after:
+        if callable(iface.run_after):
+            iface.run_after(gui)
+        else:
+            for run in iface.run_after:
+                run(gui)
     return

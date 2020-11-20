@@ -106,57 +106,6 @@ def new_version(seqrecord, keys):
     return seqrecord
 
 
-def seq2ints(seqrecord):
-    """
-    For the trimming preview, return an integer list representation of the sequence.
-    :param seqrecord: an object of class SeqRecord to iterate.
-    :return: a list of integers
-    """
-    ints = []
-    for nt in seqrecord:
-        if nt == 'A':
-            ints.append(0)
-        elif nt == 'C':
-            ints.append(1)
-        elif nt == 'G':
-            ints.append(2)
-        elif nt == 'T':
-            ints.append(3)
-        elif nt == 'N':
-            ints.append(4)
-        elif nt == '-':
-            ints.append(5)
-        elif nt == ' ':
-            ints.append(6)
-        elif nt == 'S':
-            ints.append(7)
-        else:
-            ints.append(8)
-    return ints
-
-
-def seq2gray(seqrecord):
-    """
-    For the trimming preview, return an equal-length list of ints representing N.
-    :param seqrecord: an object of class SeqRecord to iterate.
-    :return: a list of integers
-    """
-    ints = []
-    shift = {'A', 'C', 'G', 'T', 'N'}
-    for nt in seqrecord:
-        if nt in shift:
-            ints.append(4)
-        elif nt == '-':
-            ints.append(5)
-        elif nt == ' ':
-            ints.append(6)
-        elif nt == 'S':
-            ints.append(7)
-        else:
-            ints.append(8)
-    return ints
-
-
 def mark_bad_bases(seqrecord, min_phred):
     """
     unused: mark *all* non-confident bases as N

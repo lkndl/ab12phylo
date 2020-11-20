@@ -69,6 +69,7 @@ def init(gui):
 
         iface.__getattribute__('remove_%s' % file_type) \
             .connect('clicked', commons.delete_rows, gui, PAGE, sel)
+        tv.connect('key-press-event', commons.tv_keypress, gui, PAGE, sel)
         iface.__getattribute__('delete_all_%s' % file_type) \
             .connect('clicked', commons.delete_rows, gui, PAGE, sel, mo)
 
@@ -104,7 +105,7 @@ def add_folder(widget, gui, file_type, model):
                 model, new_paths, duplicates = add_new_entries(model, new_paths, gui, kw)
             except UnicodeDecodeError as ex:
                 LOG.info(ex)
-        refresh_files(gui, PAGE)
+        refresh(gui)
         LOG.debug('found %d new paths in folder(s)' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -162,7 +163,7 @@ def add_manually(widget, gui, model, *args):
             kw = 'trace'
         # append to ListStore
         model, new_paths, duplicates = add_new_entries(model, new_paths, gui, kw)
-        refresh_files(gui, PAGE)
+        refresh(gui)
         LOG.info('added %d paths' % len(new_paths))
 
     elif response == Gtk.ResponseType.CANCEL:
@@ -226,7 +227,7 @@ def scroll_to_end(widget, rectangle, iface, tv, mo):
     iface.file_nums[mo] = len(mo)
 
 
-def refresh_files(gui, page=PAGE):
+def refresh(gui, page=PAGE):
     """
     Adjusts the display of the number of selected trace files on the files page
     and toggles reading wellsplates or not, inactivating respective GUI elements.
