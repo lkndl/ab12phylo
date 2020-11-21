@@ -27,7 +27,7 @@ ERRORS = ['groups?', 'no match', 'use groups!']
 
 
 def init(gui):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     iface.plates = True
 
     iface.single_rt.connect('toggled', rx_toggle, gui)
@@ -56,16 +56,11 @@ def init(gui):
         widget.connect('clicked', commons.delete_rows, gui, PAGE, )
         tv.connect('key-press-event', commons.tv_keypress, gui, PAGE, sel)
 
-    # connect buttons
-    iface.regex_next.connect('clicked', commons.proceed, gui)
-    iface.regex_back.connect('clicked', commons.step_back, gui)
-    commons.bind_accelerator(gui.accelerators, iface.regex_next, '<Alt>Right')
-    commons.bind_accelerator(gui.accelerators, iface.regex_back, '<Alt>Left')
     reset(gui)
 
 
 def reset(gui, do_parse=False):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     iface.view_trace_regex.set_model(data.trace_store)
     iface.view_csv_regex.set_model(data.plate_store)
     # remove old columns:
@@ -111,12 +106,12 @@ def parse_single(widget, gui, entry, col, fifth=None):
     if fifth:  # caught a focus_out_event, therefore shifted arguments
         gui, entry, col = entry, col, fifth
 
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     LOG.debug('parsing from %s' % entry.get_name())
     try:
         regex = re.compile(entry.get_text())
     except re.error:
-        commons.show_message_dialog('RegEx could not be compiled.')
+        commons.show_notification(gui, 'RegEx could not be compiled.')
         return
     errors = commons.get_errors(gui, PAGE)
     changed = commons.get_changed(gui, PAGE)
@@ -184,13 +179,13 @@ def parse_single(widget, gui, entry, col, fifth=None):
 
 
 def parse_triple(widget, gui):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     if iface.single_rt.get_active():
         LOG.debug('parsing with single regex')
         try:
             regex = re.compile(iface.single_rx.get_text())
         except re.error:
-            commons.show_message_dialog('RegEx could not be compiled')
+            commons.show_notification(gui, 'RegEx could not be compiled')
             return
         errors = commons.get_errors(gui, PAGE)
         changed = commons.get_changed(gui, PAGE)
@@ -232,7 +227,7 @@ def parse_triple(widget, gui):
 
 
 def cell_edit(cell, path, new_text, gui, tv, col):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     mo = tv.get_model()
     old_text = mo[path][col]
     if old_text == new_text:
@@ -245,7 +240,7 @@ def cell_edit(cell, path, new_text, gui, tv, col):
 
 
 def rx_toggle(widget, gui):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     # (In)activates the Entry fields and causes a parse event
     if widget.get_active():
         three = ['plate_rx', 'gene_rx', 'well_rx', 'plate_regex_label', 'gene_regex_label', 'well_regex_label']
@@ -265,7 +260,7 @@ def rx_toggle(widget, gui):
 
 
 def rev_adjust(widget, gui):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     n_cols = iface.view_trace_regex.get_n_columns()
     if widget.get_active():
         # enable entry field
@@ -289,13 +284,13 @@ def rev_adjust(widget, gui):
 
 
 def rev_toggled(widget, path, gui):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     data.trace_store.set(data.trace_store.get_iter(path), [6], [not data.trace_store[path][6]])
     commons.set_changed(gui, PAGE)
 
 
 def refresh(gui):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     # make all columns sortable
     for tree_view in [iface.view_trace_regex, iface.view_csv_regex]:
         tree_view.columns_autosize()
@@ -314,7 +309,7 @@ def refresh(gui):
 
     # search genes
     # try matching reference files to genes
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
 
     data.genes = {gene for gene, is_ref, color in commons.get_column(data.trace_store, (4, 5, 7))
                   if not is_ref and color is not iface.RED and gene != ''}
@@ -343,7 +338,7 @@ def refresh(gui):
 
 
 def try_online(widget, gui):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     LOG.debug('generating online help')
     url = 'https://regex101.com/api/regex/'
     headers = {'content-type': 'application/json'}
@@ -374,27 +369,27 @@ def try_online(widget, gui):
         payload = json.dumps(dict(deleteCode=result['deleteCode']), indent=2)
         response = requests.request("DELETE", url, data=payload, headers=headers)
     except Exception:
-        commons.show_message_dialog('online help failed')
+        commons.show_notification('online help failed')
 
 
 def start_read(gui, run_after=None):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
 
     # stop if there are no traces
     if len(data.trace_store) == 0:
-        commons.show_message_dialog('No sequence data!')
+        commons.show_notification('No sequence data!')
         return
 
     iface.thread = threading.Thread(target=do_read, args=[gui])
     iface.run_after = run_after
     iface.running = True
-    GObject.timeout_add(100, commons.update, iface, iface.read_prog, PAGE)
+    GObject.timeout_add(100, commons.update, iface, PAGE)
     iface.thread.start()
-    # GUI thread returns to main loop
+    # return to main loop
 
 
 def do_read(gui):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     iface.frac = 0
     iface.txt = ''
     data.csvs.clear()
@@ -536,15 +531,14 @@ def stop_read(gui, errors, warnings):
     :param warnings:
     :return:
     """
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     iface.running = False
     iface.thread.join()
-    iface.read_prog.set_text('idle')
+    iface.prog_bar.set_text('idle')
     LOG.info('regex thread idle')
-    if errors:
-        commons.show_message_dialog('There were errors reading some files', errors)
-    if warnings:
-        commons.show_message_dialog('Additional warnings', warnings)
+    if errors or warnings:
+        commons.show_notification('File troubles', ['error:%s' % f for f in errors] +
+                                  ['warning:%s' % f for f in warnings])
     # now finally flip to next page
     commons.set_changed(gui, PAGE, False)
 

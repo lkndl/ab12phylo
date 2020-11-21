@@ -33,35 +33,34 @@ Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Mai
 Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
 
 
-class gui(Gtk.ApplicationWindow):
+class app(Gtk.Application):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
 
+    def do_activate(self):
+        self.add_window(self.win)
+        self.win.show_all()
+
     def __init__(self):
-        # super(gui, self).__init__()
-        Gtk.Window.__init__(self, title='AB12PHYLO')
-        self.set_icon_from_file(str(gui.ICON))
-        self.set_default_size(900, 600)
-        # self.set_size_request(1000, 800)
+        Gtk.Application.__init__(self)
 
         # fetch all named objects from the .glade XML
         iface = dict()
-        for widget in Gtk.Builder().new_from_file(str(gui.TEMPLATE)).get_objects():
+        for widget in Gtk.Builder().new_from_file(str(app.TEMPLATE)).get_objects():
             if widget.find_property('name') and not widget.get_name().startswith('Gtk'):
                 iface[widget.get_name()] = widget
-        self.interface = Namespace(**iface)
-        iface = self.interface
-
-        # populate the window
-        self.add(iface.notebook)
+        iface = Namespace(**iface)
+        self.iface = iface
+        self.win = iface.win
+        self.win.set_icon_from_file(str(app.ICON))
 
         tbar = Gtk.HeaderBar()
         tbar.set_has_subtitle(False)
         tbar.set_decoration_layout('menu:minimize,maximize,close')
         tbar.set_show_close_button(True)
         tbar.pack_start(iface.menu_bar)
-        self.set_titlebar(tbar)
-        self.set_hide_titlebar_when_maximized(True)
+        self.win.set_titlebar(tbar)
+        self.win.set_hide_titlebar_when_maximized(True)
         LOG.debug('GTK Window initialized')
 
         # set up an empty thread so Gtk can get used to it
@@ -91,7 +90,7 @@ class gui(Gtk.ApplicationWindow):
         iface.BLUE = '#2374AF'
         iface.GREEN = '#23AF46'
         iface.AQUA = '#2EB398'
-        sc = self.get_style_context()
+        sc = self.win.get_style_context()
         iface.FG = '#' + ''.join([(hex(min(int(c * mod2), 255))[2:]).upper()
                                   for c in list(sc.get_color(Gtk.StateFlags.ACTIVE))[:-1]])
         with warnings.catch_warnings():
@@ -100,10 +99,10 @@ class gui(Gtk.ApplicationWindow):
 
         # prepare shortcuts / accelerators
         self.accelerators = Gtk.AccelGroup()
-        self.add_accel_group(self.accelerators)
+        self.win.add_accel_group(self.accelerators)
 
         # connect to the window's delete event to close on x click
-        self.connect('destroy', Gtk.main_quit)
+        self.win.connect('destroy', Gtk.main_quit)
         # connect menu events and shortcuts
         iface.quit.connect('activate', Gtk.main_quit)
         commons.bind_accelerator(self.accelerators, iface.quit, '<Control>q', 'activate')
@@ -116,8 +115,24 @@ class gui(Gtk.ApplicationWindow):
         iface.saveas.connect('activate', self.saveas)
         commons.bind_accelerator(self.accelerators, iface.saveas, '<Control><Shift>s', 'activate')
 
+        # connect buttons
+        iface.next.connect('clicked', commons.proceed, self)
+        commons.bind_accelerator(self.accelerators, iface.next, '<Alt>Right')
+        iface.back.connect('clicked', commons.step_back, self)
+        commons.bind_accelerator(self.accelerators, iface.back, '<Alt>Left')
+        iface.refresh.connect('clicked', commons.re_run, self)
+        commons.bind_accelerator(self.accelerators, iface.back, '<Control>r')
+        # connect gene switcher
+        iface.gene_handler = iface.gene_roll.connect('changed', commons.select, self)
+        # any page change
+        iface.notebook.connect_after('switch-page', commons.refresh, self)
+
+        iface.dismiss.connect('clicked', lambda *args: iface.revealer.set_reveal_child(False))
+        commons.bind_accelerator(self.accelerators, iface.dismiss, 'Escape')
+        commons.bind_accelerator(self.accelerators, iface.dismiss, 'Return')
+
         self.data = project_dataset()
-        LOG.debug('vars and dataset initialized')
+        LOG.debug('interface and dataset initialized')
 
         # initialize the notebook pages
         files.init(self)
@@ -125,7 +140,7 @@ class gui(Gtk.ApplicationWindow):
         quality.init(self)
         align.init(self)
 
-        self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
+        # self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
 
     def new(self, confirm=True):
         """
@@ -133,7 +148,7 @@ class gui(Gtk.ApplicationWindow):
         :return:
         """
         if confirm:
-            message = 'Create new project, discard unsaved changes?'
+            message = 'New project, discard changes?'
             dialog = Gtk.MessageDialog(transient_for=None, flags=0, text=message,
                                        buttons=Gtk.ButtonsType.OK_CANCEL,
                                        message_type=Gtk.MessageType.QUESTION)
@@ -144,9 +159,10 @@ class gui(Gtk.ApplicationWindow):
                 return
         LOG.debug('new project')
         self.data.new_project()
-        files.refresh(self)
-        self.interface.notebook.set_current_page(0)
-        self.set_title('AB12PHYLO [untitled]')
+        self.wd = Path.cwd() / 'untitled'
+        self.project_path = None
+        self.iface.notebook.set_current_page(0)
+        self.win.set_title('AB12PHYLO [untitled]')
 
     def open(self, event):
         """
@@ -179,12 +195,10 @@ class gui(Gtk.ApplicationWindow):
             new_data = pickle.load(proj)
         # overwrite content in old dataset in-place rather than re-pointing everything
         self.data.overwrite(new_data)
-        self.interface.notebook.set_current_page(self.data.page)
+        self.iface.notebook.set_current_page(self.data.page)
         self.wd = self.project_path.parent / self.project_path.stem
         Path.mkdir(self.wd, exist_ok=True)
-        self.set_title('AB12PHYLO [%s]' % self.project_path.stem)
-
-        commons.PAGE_REFRESHERS[self.data.page](self)
+        self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
 
     def save(self, event, copy_from=None):
         """
@@ -198,7 +212,7 @@ class gui(Gtk.ApplicationWindow):
         with open(self.project_path, 'wb') as proj:
             LOG.info('saving to %s' % self.project_path)
             try:
-                self.data.page = self.interface.notebook.get_current_page()
+                self.data.page = self.iface.notebook.get_current_page()
                 pickle.dump(self.data, proj)
                 LOG.info('finished save')
             except pickle.PicklingError as pe:
@@ -220,7 +234,7 @@ class gui(Gtk.ApplicationWindow):
                 shutil.rmtree(path=self.wd)
 
         self.wd = self.project_path.parent / self.project_path.stem
-        self.set_title('AB12PHYLO [%s]' % self.project_path.stem)
+        self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
 
     def saveas(self, event):
         """
@@ -274,6 +288,8 @@ class project_dataset:
         self.errors_indicator = [False] * 20
         self.page = 0
         self.width = 0
+        self.height = 0
+        self.msa_hash = ''
 
     def agene(self):
         gene = self.genes.pop()
@@ -296,7 +312,7 @@ class project_dataset:
                 try:
                     self.__setattr__(attr, new_dataset.__getattribute__(attr))
                 except (AttributeError, TypeError) as ex:
-                    LOG.exception(ex)
+                    LOG.error(ex)
 
 
 def _init_log(**kwargs):
@@ -327,6 +343,6 @@ def _init_log(**kwargs):
 _init_log()  # filename='nope')
 LOG.info('AB12PHYLO GUI version')
 
-win = gui()
-win.show_all()
-Gtk.main()
+app = app()
+exit_status = app.run(sys.argv)
+sys.exit(exit_status)

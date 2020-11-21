@@ -31,10 +31,10 @@ PAGE = 2
 
 
 def init(gui):
-    data, iface = gui.data, gui.interface
-    iface.read_prog.set_visible(False)
+    # iface.gene_handler = iface.gene_roll.connect('changed', parse, None, gui)
+    # iface.quality_refresh.connect('clicked', lambda *args: start_trim(gui))
+    data, iface = gui.data, gui.iface
     iface.gene_roll.set_entry_text_column(0)
-    iface.gene_handler = iface.gene_roll.connect('changed', parse, None, gui)
     iface.rev_handler = iface.accept_rev.connect('toggled', parse, None, gui)
     iface.accept_nophred.set_active(True)
     iface.accept_nophred.connect('toggled', parse, None, gui)
@@ -74,25 +74,24 @@ def init(gui):
     iface.view_qal.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
     iface.view_qal.connect('size_allocate', set_dims, iface)
     iface.view_qal.connect('key_press_event', delete_and_ignore_rows, gui, PAGE, iface.view_qal.get_selection())
-    iface.quality_refresh.connect('clicked', lambda *args: start_trim(gui))
-    iface.quality_next.connect('clicked', commons.proceed, gui)
-    iface.quality_back.connect('clicked', commons.step_back, gui)
-    commons.bind_accelerator(gui.accelerators, iface.quality_next, '<Alt>Right')
-    commons.bind_accelerator(gui.accelerators, iface.quality_back, '<Alt>Left')
 
 
 def refresh(gui):
-    data, iface = gui.data, gui.interface
-    with iface.gene_roll.handler_block(iface.gene_handler):
-        iface.gene_roll.remove_all()
-        [iface.gene_roll.append_text(gene) for gene in data.genes]
-        if len(data.genes) > 1:
-            iface.gene_roll.insert_text(0, 'all')
-        iface.gene_roll.set_active(0)
-    with iface.accept_rev.handler_block(iface.rev_handler):
-        iface.accept_rev.set_active(iface.reverse_rx_chk.get_active())
-        iface.accept_rev.set_sensitive(iface.reverse_rx_chk.get_active())
-    start_trim(gui)
+    data, iface = gui.data, gui.iface
+    if not (gui.wd / 'trim_preview.png').exists() or data.width + data.height == 0:
+        start_trim(gui)
+        return
+
+    # place the png preview
+    [child.destroy() for child in iface.qal_win.get_children()]
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+        str(gui.wd / 'trim_preview.png'),
+        width=data.width, height=data.height,
+        preserve_aspect_ratio=False)
+    iface.qal_win.add(Gtk.Image.new_from_pixbuf(pixbuf))
+    # link and resize scrollbar
+    iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
+    gui.win.show_all()
 
 
 def start_trim(gui):
@@ -102,7 +101,7 @@ def start_trim(gui):
     :param gui:
     :return:
     """
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     # called after files are read
     if not data.genes or iface.running or iface.notebook.get_current_page() != PAGE:
         LOG.debug('abort re-draw')
@@ -112,15 +111,25 @@ def start_trim(gui):
         regex.start_read(gui, run_after=start_trim)
         return
 
+    with iface.gene_roll.handler_block(iface.gene_handler):
+        iface.gene_roll.remove_all()
+        [iface.gene_roll.append_text(gene) for gene in data.genes]
+        if len(data.genes) > 1:
+            iface.gene_roll.insert_text(0, 'all')
+        iface.gene_roll.set_active(0)
+    with iface.accept_rev.handler_block(iface.rev_handler):
+        iface.accept_rev.set_active(iface.reverse_rx_chk.get_active())
+        iface.accept_rev.set_sensitive(iface.reverse_rx_chk.get_active())
+
     LOG.debug('start-up redraw')
     data.qal_model.clear()
     [child.destroy() for child in iface.qal_win.get_children()]
     sleep(.1)
     iface.thread = threading.Thread(target=do_trim, args=[gui])
     iface.running = True
-    GObject.timeout_add(20, commons.update, iface, iface.plot_prog, PAGE)
+    GObject.timeout_add(20, commons.update, iface, PAGE)
     iface.thread.start()
-    # GUI thread returns to main loop
+    # return to main loop
 
 
 def do_trim(gui):
@@ -130,7 +139,7 @@ def do_trim(gui):
     :param gui:
     :return:
     """
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     # parameters are up-to-date
     LOG.debug('re-draw with %s' % str(iface.q_params))
     iface.frac = 0
@@ -204,7 +213,8 @@ def do_trim(gui):
         iface.frac = done / all_there_is_to_do
         iface.txt = 'place + resize'
         data.width = seq_array.shape[1] * 4
-        canvas.set_size_request(data.width, set_dims(iface.view_qal, None, iface)[1])
+        data.height = set_dims(iface.view_qal, None, iface)[1]
+        canvas.set_size_request(data.width, data.height)
         # canvas.set_vexpand(False)
         try:
             iface.qal_win.add(canvas)
@@ -222,7 +232,7 @@ def do_trim(gui):
                 fig = plt.figure(figsize=(4, 2))
                 cax = fig.add_subplot(111)
                 cbar = plt.colorbar(mat, ax=cax, ticks=range(len(commons.colors)), orientation='horizontal')
-                cbar.ax.set_xticklabels(commons.bases)
+                cbar.ax.set_xticklabels(commons.NUCLEOTIDES)
                 cax.remove()
                 fig.savefig(gui.wd / 'colorbar.png', transparent=True,
                             bbox_inches='tight', pad_inches=0, dpi=600)
@@ -239,13 +249,13 @@ def do_trim(gui):
 
 
 def stop_trim(gui):
-    iface = gui.interface
+    iface = gui.iface
     iface.running = False
     iface.thread.join()
-    gui.show_all()
+    gui.win.show_all()
     # link and resize scrollbar
     iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
-    iface.plot_prog.set_text('idle')
+    iface.prog_bar.set_text('idle')
     LOG.info('trim thread idle')
     return False
 
@@ -288,7 +298,7 @@ def delete_and_ignore_rows(widget, event, gui, page, selection):
     :param selection: 
     :return: 
     """
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     if Gdk.keyval_name(event.keyval) == 'Delete':
         model, iterator = selection.get_selected_rows()
         if 'ignore_set' not in iface:
@@ -309,7 +319,7 @@ def parse(widget, event, gui):
     :param gui:
     :return:
     """
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     LOG.debug('parsing for re-draw')
     pre = None
     try:
@@ -335,7 +345,7 @@ def parse(widget, event, gui):
         return
     iface.q_params.__setattr__(widget.get_name(), now)
     if iface.q_params.trim_out > iface.q_params.trim_of:
-        commons.show_message_dialog('cannot draw %d from %d' %
+        commons.show_notification(gui, 'cannot draw %d from %d' %
                                     (iface.q_params.trim_out, iface.q_params.trim_of))
         widget.set_text('0')
     else:
@@ -351,7 +361,7 @@ def trim_all(gui):
     :param gui:
     :return:
     """
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
 
     if not data.seqdata:
         LOG.debug('re-reading files')
@@ -381,19 +391,6 @@ def trim_all(gui):
 
     # delete now bloaty data
     data.seqdata.clear()
-
-    set_dims(iface.view_qal, None, iface)
-    # place the png preview
-    rectangle = iface.qal_win.get_allocated_size()[0]
-    [child.destroy() for child in iface.qal_win.get_children()]
-    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-        str(gui.wd / 'trim_preview.png'),
-        width=data.width, height=rectangle.height,
-        preserve_aspect_ratio=False)
-    iface.qal_win.add(Gtk.Image.new_from_pixbuf(pixbuf))
-    # link and resize scrollbar
-    iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
-    gui.show_all()
 
 
 def set_dims(view_qal, event, iface):

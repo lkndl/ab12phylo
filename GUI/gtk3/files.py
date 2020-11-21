@@ -17,7 +17,7 @@ FILETYPES = ['.ab1', '.seq', '.fasta', '.fa']
 
 
 def init(gui):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
 
     # trace file types
     # create a TreeView model
@@ -73,12 +73,9 @@ def init(gui):
         iface.__getattribute__('delete_all_%s' % file_type) \
             .connect('clicked', commons.delete_rows, gui, PAGE, sel, mo)
 
-    iface.files_next.connect('clicked', commons.proceed, gui)
-    commons.bind_accelerator(gui.accelerators, iface.files_next, '<Alt>Right')
-
 
 def add_folder(widget, gui, file_type, model):
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
 
     if file_type == 'trace':
         file_types = {a[0] for a in commons.get_column(iface.file_type_model, (0, 1)) if a[1]}
@@ -107,16 +104,10 @@ def add_folder(widget, gui, file_type, model):
                 LOG.info(ex)
         refresh(gui)
         LOG.debug('found %d new paths in folder(s)' % len(new_paths))
-
-    elif response == Gtk.ResponseType.CANCEL:
-        LOG.debug('cancel')
-    elif response == Gtk.ResponseType.DELETE_EVENT:
-        LOG.debug('escape')
-
     dialog.destroy()
 
     if duplicates:
-        commons.show_message_dialog('Some files already selected', duplicates)
+        commons.show_notification(gui, 'Files already selected:', duplicates)
 
 
 def add_manually(widget, gui, model, *args):
@@ -124,7 +115,7 @@ def add_manually(widget, gui, model, *args):
     Load trace, wellsplate or reference paths into the appropriate GtkListStore,
     also remembering if this is a reference.
     """
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     args = ['nope'] if not args else args
     dialog = Gtk.FileChooserDialog(title='select files', parent=None,
                                    action=Gtk.FileChooserAction.OPEN, select_multiple=True)
@@ -165,18 +156,11 @@ def add_manually(widget, gui, model, *args):
         model, new_paths, duplicates = add_new_entries(model, new_paths, gui, kw)
         refresh(gui)
         LOG.info('added %d paths' % len(new_paths))
-
-    elif response == Gtk.ResponseType.CANCEL:
-        LOG.info('cancel')
-    elif response == Gtk.ResponseType.DELETE_EVENT:
-        LOG.info('escape')
-
     dialog.destroy()
 
-    if not_found:
-        commons.show_message_dialog('Some file paths were invalid', not_found)
-    if duplicates:
-        commons.show_message_dialog('Some files already selected', duplicates)
+    if not_found or duplicates:
+        commons.show_notification(gui, 'File troubles', ['not found:%s' % f for f in not_found] +
+                                  ['duplicate:%s' % f for f in duplicates])
 
 
 def add_new_entries(model, new_paths, gui, *args):
@@ -190,7 +174,7 @@ def add_new_entries(model, new_paths, gui, *args):
     :param iface: the namespace containing all named widgets of a gui object
     :return:
     """
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     if 'ref' in args:
         color = iface.AQUA
         is_ref = True
@@ -233,7 +217,7 @@ def refresh(gui, page=PAGE):
     and toggles reading wellsplates or not, inactivating respective GUI elements.
     :return:
     """
-    data, iface = gui.data, gui.interface
+    data, iface = gui.data, gui.iface
     num_traces = len(data.trace_store)
     if num_traces > 0:
         iface.trace_number.set_label('%d files' % num_traces)
