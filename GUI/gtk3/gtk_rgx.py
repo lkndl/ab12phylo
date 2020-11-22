@@ -18,7 +18,7 @@ from Bio import SeqIO
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from GUI.gtk3 import shared, quality
+from GUI.gtk3 import shared, gtk_qal
 from ab12phylo import filter
 
 LOG = logging.getLogger(__name__)

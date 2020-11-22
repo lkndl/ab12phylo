@@ -110,24 +110,29 @@ def get_cmd(algo, gui, remote=False):
 
 
 def start_align(widget, gui, remote=False, proceed=True):
+    """
+    Starts an MSA building thread unless one of the following conditions is met:
+    a) another thread is running -> abort + forbid proceeding.
+    b) this function was called from the _Next button and an MSA already exists
+    -> accept + allow proceeding.
+    c) there were no changes registered for this page and no proceeding (not
+    called by _Next) -> accept + show notification.
+
+    :param widget: required for callback, ignored
+    :param gui:
+    :param remote: if the MSA should be constructed using the EMBL-EBI API
+    :param proceed:
+    :return:
+    """
     data, iface = gui.data, gui.iface
     if iface.running:
         shared.show_notification(gui, 'Thread running')
-        return
-    if not shared.get_changed(gui, PAGE) or \
-            proceed and (gui.wd / shared.RAW_MSA).exists():
+        return False
+    elif proceed and (gui.wd / shared.RAW_MSA).exists():
+        return True
+    elif not shared.get_changed(gui, PAGE):
         shared.show_notification(gui, 'MSA already generated, please proceed')
-        return
-    # args = Namespace(**{
-    #     'dir': gui.wd,
-    #     'genes': list(data.genes),
-    #     'msa_algo': shared.toalgo(iface.msa_algo.get_active_text()),
-    #     'user': shared.USER,
-    #     'msa': gui.wd / shared.RAW_MSA,
-    #     'sep': shared.SEP,
-    #     'missing_samples': gui.wd / 'missing_samples.tsv'
-    # })
-    # iface.aligner = msa.msa_build(args, None, no_run=True)
+        return True
     if 'aligner' not in iface:
         get_help(None, gui, remote)
     iface.align_stack.props.sensitive = False
@@ -136,6 +141,7 @@ def start_align(widget, gui, remote=False, proceed=True):
     iface.running = True
     GObject.timeout_add(1000, shared.update, iface, PAGE)
     iface.thread.start()
+    return True
     # return to main loop
 
 

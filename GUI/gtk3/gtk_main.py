@@ -19,7 +19,7 @@ from pathlib import Path
 
 import gi
 
-from GUI.gtk3 import shared, files, regex, quality, align, trim
+from GUI.gtk3 import shared, gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject
@@ -135,11 +135,11 @@ class app(Gtk.Application):
         LOG.debug('interface and dataset initialized')
 
         # initialize the notebook pages
-        files.init(self)
-        regex.init(self)
-        quality.init(self)
-        align.init(self)
-        trim.init(self)
+        gtk_io.init(self)
+        gtk_rgx.init(self)
+        gtk_qal.init(self)
+        gtk_msa.init(self)
+        gtk_gbl.init(self)
 
         self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
 

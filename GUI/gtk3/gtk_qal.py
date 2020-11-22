@@ -19,7 +19,7 @@ from matplotlib.colors import ListedColormap
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject, GdkPixbuf
 
-from GUI.gtk3 import shared, regex
+from GUI.gtk3 import shared, gtk_rgx
 from ab12phylo import filter
 
 LOG = logging.getLogger(__name__)
@@ -109,7 +109,7 @@ def start_trim(gui):
         return
 
     if not data.seqdata:
-        regex.start_read(gui, run_after=start_trim)
+        gtk_rgx.start_read(gui, run_after=start_trim)
         return
 
     with iface.gene_roll.handler_block(iface.gene_handler):
@@ -365,7 +365,7 @@ def trim_all(gui):
 
     if not data.seqdata:
         LOG.debug('re-reading files')
-        regex.start_read(gui, run_after=trim_all)
+        gtk_rgx.start_read(gui, run_after=trim_all)
         return
 
     p = iface.q_params

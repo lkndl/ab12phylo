@@ -18,15 +18,14 @@ from Bio import SeqIO
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from GUI.gtk3 import shared, quality
+from GUI.gtk3 import shared, gtk_qal
 from ab12phylo import raxml
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
-PAGE = 6
+PAGE = 5
 
 
-# TODO layout like align?
 
 
 def init(gui):
@@ -37,26 +36,19 @@ def init(gui):
 
 def refresh(gui):
     """Re-view the page. Get suggested commands for RAxML-NG and IQ-Tree."""
-    data, iface = gui.data, gui.iface
-    algo = shared.toalgo(iface.ml_stack.get_visible_child_name())
-    check_MSA(None, gui, algo)
     pass
 
 
-def check_MSA(widget, gui, ):
+def start_BLAST(widget, gui):
+    """Set-up the BLAST thread."""
     pass
 
 
-def start_ML(widget, gui):
-    """Set-up the Gblocks thread."""
+def do_BLAST(gui):
+    """Run BLAST thread."""
     pass
 
 
-def do_ML(gui):
-    """Run the Gblocks thread."""
-    pass
-
-
-def stop_ML(gui):
+def stop_BLAST(gui):
     """Finish the Gblocks thread"""
     pass

@@ -9,7 +9,7 @@ import hashlib
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
 
-from GUI.gtk3 import files, regex, quality, align, trim
+from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
 
 LOG = logging.getLogger(__name__)
 TOOLS = Path(__file__).resolve().parents[2] / 'ab12phylo' / 'tools'
@@ -36,9 +36,9 @@ KXLIN = {
 
 # TODO continue
 # re-fresh page content. automatically called
-REFRESH = [files.refresh, regex.refresh, quality.refresh, align.refresh, trim.refresh]
+REFRESH = [gtk_io.refresh, gtk_rgx.refresh, gtk_qal.refresh, gtk_msa.refresh, gtk_gbl.refresh]
 # re-run background threads. -> "REFRESH" button
-RERUN = {1: regex.start_read, 2: quality.start_trim, 4: trim.start_gbl}
+RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim, 4: gtk_gbl.start_gbl}
 # where the gene selector is visible
 SELECT = {2, 4}
 algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
@@ -113,7 +113,7 @@ def show_message_dialog(message, list_to_print=None):
 
 def show_notification(gui, msg, items=None):
     gui.iface.reveal_title.set_text(msg)
-    gui.iface.reveal_list.props.visible = items
+    gui.iface.reveal_list.props.parent.props.visible = items
     if items:
         gui.iface.reveal_list.props.buffer.props.text = '\n'.join(items)
     gui.iface.revealer.set_reveal_child(True)
@@ -155,7 +155,7 @@ def proceed(widget, gui=None, page=None):
     # first integrate changes to the dataset
     if get_changed(gui, page):
         if page == 0:
-            regex.reset(gui, do_parse=True)
+            gtk_rgx.reset(gui, do_parse=True)
         elif page == 1:
             if get_errors(gui, page):
                 show_message_dialog('There are still errors on the page!')
@@ -163,14 +163,15 @@ def proceed(widget, gui=None, page=None):
             if 1 < sum(iface.rx_fired) < 5:
                 show_message_dialog('Make sure all columns have been parsed.')
                 return
-            regex.start_read(gui, run_after=proceed)
+            gtk_rgx.start_read(gui, run_after=proceed)
             return  # leave this alone
         elif page == 2:
-            quality.trim_all(gui)
+            gtk_qal.trim_all(gui)
         elif page == 3:
-            align.start_align(None, gui, proceed=True)
+            if not gtk_msa.start_align(None, gui, proceed=True):
+                return
         elif page == 4:
-            trim.start_gbl(None, gui)
+            gtk_gbl.start_gbl(None, gui)
         set_changed(gui, page, False)
 
     # then proceed
@@ -210,7 +211,7 @@ def select(gui, *args):
         gui = args[-1]
     page = gui.iface.notebook.get_current_page()
     if page == 2:  # trim preview
-        quality.parse(gui.iface.gene_roll, None, gui)
+        gtk_qal.parse(gui.iface.gene_roll, None, gui)
     # TODO continue
 
 
