@@ -152,30 +152,34 @@ def proceed(widget, gui=None, page=None):
         gui = widget
     data, iface = gui.data, gui.iface
     page = iface.notebook.get_current_page() if not page else page
-    # first integrate changes to the dataset
+
+    if get_errors(gui, page):
+        show_notification(gui, 'There are still errors on the page!')
+        return
+
     if get_changed(gui, page):
         if page == 0:
             gtk_rgx.reset(gui, do_parse=True)
         elif page == 1:
-            if get_errors(gui, page):
-                show_message_dialog('There are still errors on the page!')
-                return
             if 1 < sum(iface.rx_fired) < 5:
-                show_message_dialog('Make sure all columns have been parsed.')
+                show_notification(gui, 'Make sure all columns have been parsed.')
                 return
-            gtk_rgx.start_read(gui, run_after=proceed)
+            gtk_rgx.start_read(gui, run_after=[proceed])
             return  # leave this alone
         elif page == 2:
-            gtk_qal.trim_all(gui)
+            gtk_qal.trim_all(gui, run_after=[proceed])
+            return
         elif page == 3:
-            if not gtk_msa.start_align(None, gui, proceed=True):
-                return
+            gtk_msa.start_align(None, gui, run_after=[proceed])
+            return
         elif page == 4:
             gtk_gbl.start_gbl(None, gui)
         set_changed(gui, page, False)
 
     # then proceed
     iface.notebook.next_page()
+    # hide old notifications
+    gui.iface.revealer.set_reveal_child(True)
     LOG.debug('proceeded to page %d' % iface.notebook.get_current_page())
 
 

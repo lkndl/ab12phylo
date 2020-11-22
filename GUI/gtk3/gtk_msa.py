@@ -109,7 +109,7 @@ def get_cmd(algo, gui, remote=False):
     return cmd
 
 
-def start_align(widget, gui, remote=False, proceed=True):
+def start_align(widget, gui, remote=False, run_after=None):
     """
     Starts an MSA building thread unless one of the following conditions is met:
     a) another thread is running -> abort + forbid proceeding.
@@ -121,27 +121,29 @@ def start_align(widget, gui, remote=False, proceed=True):
     :param widget: required for callback, ignored
     :param gui:
     :param remote: if the MSA should be constructed using the EMBL-EBI API
-    :param proceed:
+    :param run_after: the function to run afterwards; usually flip to next page
     :return:
     """
     data, iface = gui.data, gui.iface
-    if iface.running:
+    if iface.running:  # a)
         shared.show_notification(gui, 'Thread running')
-        return False
-    elif proceed and (gui.wd / shared.RAW_MSA).exists():
-        return True
-    elif not shared.get_changed(gui, PAGE):
+        return
+    elif run_after and (gui.wd / shared.RAW_MSA).exists() \
+            and not shared.get_errors(gui, PAGE):  # b)
+        [run(gui) for run in iface.run_after]
+        return
+    elif not shared.get_changed(gui, PAGE):  # c)
         shared.show_notification(gui, 'MSA already generated, please proceed')
-        return True
+        return
     if 'aligner' not in iface:
         get_help(None, gui, remote)
     iface.align_stack.props.sensitive = False
     iface.thread = threading.Thread(target=do_align, args=[gui, remote])
-    iface.run_after = None
+    iface.run_after = run_after
     iface.running = True
-    GObject.timeout_add(1000, shared.update, iface, PAGE)
+    GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
-    return True
+    return
     # return to main loop
 
 
@@ -152,7 +154,7 @@ def do_align(gui, remote=False):
     k = len(data.genes) + 2
     i = 0
     for gene in data.genes:
-        iface.txt = 'aligning %s [%d/%d]' % (gene, i + 1, k - 1)
+        iface.txt = 'aligning %s [%d/%d]' % (gene, i + 1, k - 2)
         try:
             if remote:
                 iface.aligner.build_remote(gene)
@@ -169,6 +171,7 @@ def do_align(gui, remote=False):
     iface.frac = i / k
     iface.txt = 'comparing SHA256 hashes'
     compare_hashes(gui)
+    iface.frac = 1
     GObject.idle_add(stop_align, gui, exceptions)
 
 
@@ -180,8 +183,15 @@ def stop_align(gui, errors):
     gui.win.show_all()
     iface.prog_bar.props.text = 'idle'
     LOG.info('align thread idle')
+    shared.set_errors(gui, PAGE, bool(errors))
+    shared.set_changed(gui, PAGE, False)
     if errors:
         shared.show_notification(gui, 'Errors during MSA building', errors)
+        return
+    if iface.run_after:
+        [run(gui) for run in iface.run_after]
+    else:
+        shared.show_notification(gui, 'MSA building finished')
     return
 
 

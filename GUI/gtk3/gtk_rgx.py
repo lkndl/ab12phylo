@@ -544,9 +544,5 @@ def stop_read(gui, errors, warnings):
 
     # *Now* go back to where you came from
     if iface.run_after:
-        if callable(iface.run_after):
-            iface.run_after(gui)
-        else:
-            for run in iface.run_after:
-                run(gui)
+        [run(gui)for run in iface.run_after]
     return

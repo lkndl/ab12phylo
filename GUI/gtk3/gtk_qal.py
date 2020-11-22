@@ -128,7 +128,7 @@ def start_trim(gui):
     sleep(.1)
     iface.thread = threading.Thread(target=do_trim, args=[gui])
     iface.running = True
-    GObject.timeout_add(20, shared.update, iface, PAGE)
+    GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
     # return to main loop
 
@@ -353,19 +353,20 @@ def parse(widget, event, gui):
         start_trim(gui)
 
 
-def trim_all(gui):
+def trim_all(gui, run_after=None):
     """
     Trim all SeqRecords in project_dataset.seqdata to sequence strings and write collated .fasta files.
     Deleting SeqRecords will make the project file tiny again. If necessary, re-read trace files.
     Also place the png preview in the trim preview window.
     :param gui:
+    :param run_after: the function to run after finishing. usually flip to next page.
     :return:
     """
     data, iface = gui.data, gui.iface
 
     if not data.seqdata:
         LOG.debug('re-reading files')
-        gtk_rgx.start_read(gui, run_after=trim_all)
+        gtk_rgx.start_read(gui, run_after=[trim_all])
         return
 
     p = iface.q_params
@@ -391,6 +392,10 @@ def trim_all(gui):
 
     # delete now bloaty data
     data.seqdata.clear()
+
+    shared.set_changed(gui, PAGE, False)
+    if run_after:
+        [run(gui)for run in run_after]
 
 
 def get_dims(view_qal, event, gui):
