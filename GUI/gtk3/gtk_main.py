@@ -19,7 +19,7 @@ from pathlib import Path
 
 import gi
 
-from GUI.gtk3 import commons, files, regex, quality, align
+from GUI.gtk3 import shared, files, regex, quality, align, trim
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject
@@ -29,8 +29,8 @@ LOG = logging.getLogger(__name__)
 __verbose__, __info__ = 1, 0
 
 # set the icon theme
-Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
-Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
+Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Maia')
+Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
 
 
 class app(Gtk.Application):
@@ -105,31 +105,31 @@ class app(Gtk.Application):
         self.win.connect('destroy', Gtk.main_quit)
         # connect menu events and shortcuts
         iface.quit.connect('activate', Gtk.main_quit)
-        commons.bind_accelerator(self.accelerators, iface.quit, '<Control>q', 'activate')
+        shared.bind_accelerator(self.accelerators, iface.quit, '<Control>q', 'activate')
         iface.new.connect('activate', self.new)
-        commons.bind_accelerator(self.accelerators, iface.new, '<Control>n', 'activate')
+        shared.bind_accelerator(self.accelerators, iface.new, '<Control>n', 'activate')
         iface.open.connect('activate', self.open)
-        commons.bind_accelerator(self.accelerators, iface.open, '<Control>o', 'activate')
+        shared.bind_accelerator(self.accelerators, iface.open, '<Control>o', 'activate')
         iface.save.connect('activate', self.save)
-        commons.bind_accelerator(self.accelerators, iface.save, '<Control>s', 'activate')
+        shared.bind_accelerator(self.accelerators, iface.save, '<Control>s', 'activate')
         iface.saveas.connect('activate', self.saveas)
-        commons.bind_accelerator(self.accelerators, iface.saveas, '<Control><Shift>s', 'activate')
+        shared.bind_accelerator(self.accelerators, iface.saveas, '<Control><Shift>s', 'activate')
 
         # connect buttons
-        iface.next.connect('clicked', commons.proceed, self)
-        commons.bind_accelerator(self.accelerators, iface.next, '<Alt>Right')
-        iface.back.connect('clicked', commons.step_back, self)
-        commons.bind_accelerator(self.accelerators, iface.back, '<Alt>Left')
-        iface.refresh.connect('clicked', commons.re_run, self)
-        commons.bind_accelerator(self.accelerators, iface.back, '<Control>r')
+        iface.next.connect('clicked', shared.proceed, self)
+        shared.bind_accelerator(self.accelerators, iface.next, '<Alt>Right')
+        iface.back.connect('clicked', shared.step_back, self)
+        shared.bind_accelerator(self.accelerators, iface.back, '<Alt>Left')
+        iface.refresh.connect('clicked', shared.re_run, self)
+        shared.bind_accelerator(self.accelerators, iface.back, '<Control>r')
         # connect gene switcher
-        iface.gene_handler = iface.gene_roll.connect('changed', commons.select, self)
+        iface.gene_handler = iface.gene_roll.connect('changed', shared.select, self)
         # any page change
-        iface.notebook.connect_after('switch-page', commons.refresh, self)
+        iface.notebook.connect_after('switch-page', shared.refresh, self)
 
         iface.dismiss.connect('clicked', lambda *args: iface.revealer.set_reveal_child(False))
-        commons.bind_accelerator(self.accelerators, iface.dismiss, 'Escape')
-        commons.bind_accelerator(self.accelerators, iface.dismiss, 'Return')
+        shared.bind_accelerator(self.accelerators, iface.dismiss, 'Escape')
+        shared.bind_accelerator(self.accelerators, iface.dismiss, 'Return')
 
         self.data = project_dataset()
         LOG.debug('interface and dataset initialized')
@@ -139,8 +139,9 @@ class app(Gtk.Application):
         regex.init(self)
         quality.init(self)
         align.init(self)
+        trim.init(self)
 
-        # self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
+        self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
 
     def new(self, confirm=True):
         """
@@ -161,8 +162,8 @@ class app(Gtk.Application):
         self.data.new_project()
         self.wd = Path.cwd() / 'untitled'
         self.project_path = None
-        self.iface.notebook.set_current_page(0)
         self.win.set_title('AB12PHYLO [untitled]')
+        self.iface.notebook.set_current_page(0)
 
     def open(self, event):
         """
@@ -195,10 +196,10 @@ class app(Gtk.Application):
             new_data = pickle.load(proj)
         # overwrite content in old dataset in-place rather than re-pointing everything
         self.data.overwrite(new_data)
-        self.iface.notebook.set_current_page(self.data.page)
         self.wd = self.project_path.parent / self.project_path.stem
         Path.mkdir(self.wd, exist_ok=True)
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
+        self.iface.notebook.set_current_page(self.data.page)
 
     def save(self, event, copy_from=None):
         """
@@ -260,35 +261,35 @@ class app(Gtk.Application):
 
 class project_dataset:
     def __init__(self):
-        self.trace_store = commons.picklable_liststore(str,  # path
-                                                       str,  # filename
-                                                       str,  # well/id
-                                                       str,  # plate
-                                                       str,  # gene
-                                                       bool,  # reference
-                                                       bool,  # reversed
-                                                       str)  # color
+        self.trace_store = shared.picklable_liststore(str,  # path
+                                                      str,  # filename
+                                                      str,  # well/id
+                                                      str,  # plate
+                                                      str,  # gene
+                                                      bool,  # reference
+                                                      bool,  # reversed
+                                                      str)  # color
 
-        self.plate_store = commons.picklable_liststore(str,  # path
-                                                       str,  # filename
-                                                       str,  # plate ID
-                                                       str)  # errors
+        self.plate_store = shared.picklable_liststore(str,  # path
+                                                      str,  # filename
+                                                      str,  # plate ID
+                                                      str)  # errors
         self.genes = set()  # used *before* seqdata exists
         self.csvs = dict()
         self.seqdata = dict()
         self.metadata = dict()
         self.seed = 0
         self.record_order = list()
-        self.qal_model = commons.picklable_liststore(str,  # id
-                                                     bool,  # has phreds
-                                                     bool)  # low quality
+        self.qal_model = shared.picklable_liststore(str,  # id
+                                                    bool,  # has phreds
+                                                    bool)  # low quality
 
         # set up indicator of changes, tabs are not disabled initially
         self.change_indicator = [False] * 20
         self.errors_indicator = [False] * 20
         self.page = 0
-        self.width = 0
-        self.height = 0
+        self.qal_shape = [0, 0]
+        self.gbl_shape = [0, 0, 0, 0]  # width-height before and after trimming
         self.msa_hash = ''
 
     def agene(self):
@@ -302,7 +303,7 @@ class project_dataset:
     def overwrite(self, new_dataset):
         for attr in [a for a in dir(self) if not callable(getattr(self, a)) and not a.startswith('__')]:
             old = self.__getattribute__(attr)
-            if type(old) == commons.picklable_liststore:
+            if type(old) == shared.picklable_liststore:
                 old.clear()
                 [old.append(row[:]) for row in new_dataset.__getattribute__(attr)]
             elif type(old) == dict:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import gi
 
-from GUI.gtk3 import commons
+from GUI.gtk3 import shared
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
@@ -21,7 +21,7 @@ def init(gui):
 
     # trace file types
     # create a TreeView model
-    iface.file_type_model = commons.picklable_liststore(str, bool)
+    iface.file_type_model = shared.picklable_liststore(str, bool)
     [iface.file_type_model.append([file_type, False]) for file_type in FILETYPES]
 
     # check ABI traces by default
@@ -68,17 +68,17 @@ def init(gui):
             pass  # wellsplate whitelist not planned
 
         iface.__getattribute__('remove_%s' % file_type) \
-            .connect('clicked', commons.delete_rows, gui, PAGE, sel)
-        tv.connect('key-press-event', commons.tv_keypress, gui, PAGE, sel)
+            .connect('clicked', shared.delete_rows, gui, PAGE, sel)
+        tv.connect('key-press-event', shared.tv_keypress, gui, PAGE, sel)
         iface.__getattribute__('delete_all_%s' % file_type) \
-            .connect('clicked', commons.delete_rows, gui, PAGE, sel, mo)
+            .connect('clicked', shared.delete_rows, gui, PAGE, sel, mo)
 
 
 def add_folder(widget, gui, file_type, model):
     data, iface = gui.data, gui.iface
 
     if file_type == 'trace':
-        file_types = {a[0] for a in commons.get_column(iface.file_type_model, (0, 1)) if a[1]}
+        file_types = {a[0] for a in shared.get_column(iface.file_type_model, (0, 1)) if a[1]}
     else:
         file_types = {'.csv'}
 
@@ -107,7 +107,7 @@ def add_folder(widget, gui, file_type, model):
     dialog.destroy()
 
     if duplicates:
-        commons.show_notification(gui, 'Files already selected:', duplicates)
+        shared.show_notification(gui, 'Files already selected:', duplicates)
 
 
 def add_manually(widget, gui, model, *args):
@@ -159,8 +159,8 @@ def add_manually(widget, gui, model, *args):
     dialog.destroy()
 
     if not_found or duplicates:
-        commons.show_notification(gui, 'File troubles', ['not found:%s' % f for f in not_found] +
-                                  ['duplicate:%s' % f for f in duplicates])
+        shared.show_notification(gui, 'File troubles', ['not found:%s' % f for f in not_found] +
+                                 ['duplicate:%s' % f for f in duplicates])
 
 
 def add_new_entries(model, new_paths, gui, *args):
@@ -198,7 +198,7 @@ def add_new_entries(model, new_paths, gui, *args):
                 model.append([path, ppath.name, '', '', '', is_ref, False, color])
             news.append(path)
     if len(news) > 0:
-        commons.set_changed(gui, PAGE)
+        shared.set_changed(gui, PAGE)
     return model, news, dups
 
 
@@ -231,7 +231,7 @@ def refresh(gui, page=PAGE):
     if iface.plates != has_plates_now:
         iface.plates = has_plates_now
 
-        commons.set_changed(gui, page, not iface.plates or commons.get_changed(gui, page))
+        shared.set_changed(gui, page, not iface.plates or shared.get_changed(gui, page))
 
         # close and inactivate the expander
         iface.wp_expander.set_expanded(iface.plates)

@@ -9,13 +9,18 @@ import hashlib
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
 
-from GUI.gtk3 import files, regex, quality, align
+from GUI.gtk3 import files, regex, quality, align, trim
 
 LOG = logging.getLogger(__name__)
 TOOLS = Path(__file__).resolve().parents[2] / 'ab12phylo' / 'tools'
 USER = 'leo.kaindl@tum.de'
 SEP = 'SSSSSSSSSS'
-RAW_MSA = 'raw_msa.fasta'
+RAW_MSA = Path('Trim') / 'raw_msa.fasta'
+MSA = 'msa.fasta'
+PREVIEW = Path('Trim') / 'trim_preview.png'
+CBAR = Path('Trim') / 'colorbar.png'
+LEFT = Path('Trim') / 'msa_pretrim.png'
+RIGHT = Path('Trim') / 'msa_posttrim.png'
 BUF_SIZE = 128 * 1024
 NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S']
 KXLIN = {
@@ -31,13 +36,16 @@ KXLIN = {
 
 # TODO continue
 # re-fresh page content. automatically called
-REFRESH = [files.refresh, regex.refresh, quality.refresh, align.refresh]
+REFRESH = [files.refresh, regex.refresh, quality.refresh, align.refresh, trim.refresh]
 # re-run background threads. -> "REFRESH" button
-RERUN = {1: regex.start_read, 2: quality.start_trim}
+RERUN = {1: regex.start_read, 2: quality.start_trim, 4: trim.start_gbl}
 # where the gene selector is visible
 SELECT = {2, 4}
+algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
+         'RAxML-NG': 'raxml-ng', 'IQ-Tree': 'iqtree', 'FastTree': 'FastTree'}
 
 # LAMBDAS
+toalgo = lambda c: algos[c]
 toint_map = dict(zip(NUCLEOTIDES, range(len(NUCLEOTIDES))))
 toint = lambda c: toint_map.get(c, 5)
 seqtoint = lambda s: list(map(toint, s))
@@ -106,10 +114,9 @@ def show_message_dialog(message, list_to_print=None):
 def show_notification(gui, msg, items=None):
     gui.iface.reveal_title.set_text(msg)
     gui.iface.reveal_list.props.visible = items
-    gui.iface.reveal_list.props.buffer.props.text = '\n'.join(items)
+    if items:
+        gui.iface.reveal_list.props.buffer.props.text = '\n'.join(items)
     gui.iface.revealer.set_reveal_child(True)
-
-
 
 
 def tv_keypress(widget, event, gui, page, selection):
@@ -161,7 +168,9 @@ def proceed(widget, gui=None, page=None):
         elif page == 2:
             quality.trim_all(gui)
         elif page == 3:
-            print('oh noes')
+            align.start_align(None, gui, proceed=True)
+        elif page == 4:
+            trim.start_gbl(None, gui)
         set_changed(gui, page, False)
 
     # then proceed

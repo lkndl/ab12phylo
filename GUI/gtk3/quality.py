@@ -19,7 +19,7 @@ from matplotlib.colors import ListedColormap
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject, GdkPixbuf
 
-from GUI.gtk3 import commons, regex
+from GUI.gtk3 import shared, regex
 from ab12phylo import filter
 
 LOG = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def init(gui):
     # iface.gene_handler = iface.gene_roll.connect('changed', parse, None, gui)
     # iface.quality_refresh.connect('clicked', lambda *args: start_trim(gui))
     data, iface = gui.data, gui.iface
-    iface.gene_roll.set_entry_text_column(0)
+
     iface.rev_handler = iface.accept_rev.connect('toggled', parse, None, gui)
     iface.accept_nophred.set_active(True)
     iface.accept_nophred.connect('toggled', parse, None, gui)
@@ -72,21 +72,22 @@ def init(gui):
         cell_renderer=Gtk.CellRendererToggle(radio=False)))
 
     iface.view_qal.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
-    iface.view_qal.connect('size_allocate', set_dims, iface)
+    iface.view_qal.connect('size_allocate', get_dims, gui)
     iface.view_qal.connect('key_press_event', delete_and_ignore_rows, gui, PAGE, iface.view_qal.get_selection())
 
 
 def refresh(gui):
     data, iface = gui.data, gui.iface
-    if not (gui.wd / 'trim_preview.png').exists() or data.width + data.height == 0:
+    if not (gui.wd / shared.PREVIEW).exists() or 0 in data.qal_shape:
         start_trim(gui)
         return
+    get_dims(iface.view_qal, None, gui)
 
     # place the png preview
     [child.destroy() for child in iface.qal_win.get_children()]
     pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-        str(gui.wd / 'trim_preview.png'),
-        width=data.width, height=data.height,
+        str(gui.wd / shared.PREVIEW),
+        width=data.qal_shape[0], height=data.qal_shape[1],
         preserve_aspect_ratio=False)
     iface.qal_win.add(Gtk.Image.new_from_pixbuf(pixbuf))
     # link and resize scrollbar
@@ -127,7 +128,7 @@ def start_trim(gui):
     sleep(.1)
     iface.thread = threading.Thread(target=do_trim, args=[gui])
     iface.running = True
-    GObject.timeout_add(20, commons.update, iface, PAGE)
+    GObject.timeout_add(20, shared.update, iface, PAGE)
     iface.thread.start()
     # return to main loop
 
@@ -147,8 +148,8 @@ def do_trim(gui):
     rows = list()
     p = iface.q_params
     p.gene_roll = data.genes if p.gene_roll == 'all' else p.gene_roll
-    done = 0
-    all_there_is_to_do = sum([len(data.seqdata[gene]) for gene in p.gene_roll]) + 3
+    i = 0
+    k = sum([len(data.seqdata[gene]) for gene in p.gene_roll]) + 3
     ignore_ids = iface.ignore_set if 'ignore_set' in iface else set()
 
     try:
@@ -157,8 +158,8 @@ def do_trim(gui):
             if gene not in p.gene_roll or record_id in ignore_ids:
                 continue
 
-            done += 1
-            iface.frac = done / all_there_is_to_do
+            i += 1
+            iface.frac = i / k
             # maybe skip reversed seqs
             if not p.accept_rev and data.metadata[gene][record_id]['is_rev']:
                 continue
@@ -168,16 +169,16 @@ def do_trim(gui):
                 record = filter.trim_ends(record, p.min_phred, (p.trim_out, p.trim_of), trim_preview=True)
                 record = filter.mark_bad_stretches(record, p.min_phred, p.bad_stretch)
                 has_qal, is_bad = True, False
-                row = commons.seqtoint(record)
+                row = shared.seqtoint(record)
             except AttributeError:
                 # accept references anyway, but maybe skip no-phred ones
                 if not data.metadata[gene][record_id]['is_ref'] and not p.accept_nophred:
                     continue
                 has_qal, is_bad = False, False
-                row = commons.seqtoint(record)
+                row = shared.seqtoint(record)
             except ValueError:
                 has_qal, is_bad = True, True
-                row = commons.seqtogray(record)
+                row = shared.seqtogray(record)
             rows.append(row)
             data.qal_model.append([record.id, has_qal, is_bad])
 
@@ -189,17 +190,17 @@ def do_trim(gui):
     else:
         iface.txt = 'tabularize'
         max_len = max(map(len, rows))
-        seq_array = np.array([row + commons.seqtoint(' ') * (max_len - len(row)) for row in rows])
-        done += 1
-        iface.frac = done / all_there_is_to_do
+        seq_array = np.array([row + shared.seqtoint(' ') * (max_len - len(row)) for row in rows])
+        i += 1
+        iface.frac = i / k
 
         iface.txt = 'plot'
         ratio = seq_array.shape[1] / seq_array.shape[0]
-        masked = np.ma.masked_where(seq_array > commons.toint('N'), seq_array)
+        masked = np.ma.masked_where(seq_array > shared.toint('N'), seq_array)
         f = Figure()  # figsize=(scale // 10 * ratio * 5, scale // 10), dpi=300)
         ax = f.add_subplot(111)
-        mat = ax.matshow(masked, alpha=1, cmap=ListedColormap(commons.colors),
-                         vmin=-.5, vmax=len(commons.colors) - .5, aspect='auto')
+        mat = ax.matshow(masked, alpha=1, cmap=ListedColormap(shared.colors),
+                         vmin=-.5, vmax=len(shared.colors) - .5, aspect='auto')
         ax.axis('off')
         f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
         f.set_facecolor('none')
@@ -209,37 +210,36 @@ def do_trim(gui):
         # canvas.mpl_connect('pick_event', onpick)
         # canvas.mpl_connect('button_press_event', onclick)
 
-        done += 1
-        iface.frac = done / all_there_is_to_do
+        i += 1
+        iface.frac = i / k
         iface.txt = 'place + resize'
-        data.width = seq_array.shape[1] * 4
-        data.height = set_dims(iface.view_qal, None, iface)[1]
-        canvas.set_size_request(data.width, data.height)
-        # canvas.set_vexpand(False)
+        data.qal_shape[0] = seq_array.shape[1] * 4
+        data.qal_shape[1] = get_dims(iface.view_qal, None, gui)[1]
+        canvas.set_size_request(data.qal_shape[0], data.qal_shape[1])
         try:
             iface.qal_win.add(canvas)
         except Gtk.Error as ex:
             LOG.error(ex)
 
         if gui.wd:
-            if gui.wd:
-                LOG.debug('saving plot')
-                f.savefig(gui.wd / 'trim_preview.png', transparent=True,
-                          dpi=600, bbox_inches='tight', pad_inches=0)
+            LOG.debug('saving plot')
+            Path.mkdir(gui.wd / shared.PREVIEW.parent, exist_ok=True)
+            f.savefig(gui.wd / shared.PREVIEW, transparent=True,
+                      dpi=600, bbox_inches='tight', pad_inches=0)
 
-            with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
-                LOG.debug('saving colorbar')
-                fig = plt.figure(figsize=(4, 2))
-                cax = fig.add_subplot(111)
-                cbar = plt.colorbar(mat, ax=cax, ticks=range(len(commons.colors)), orientation='horizontal')
-                cbar.ax.set_xticklabels(commons.NUCLEOTIDES)
-                cax.remove()
-                fig.savefig(gui.wd / 'colorbar.png', transparent=True,
-                            bbox_inches='tight', pad_inches=0, dpi=600)
-                del fig
-            pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                str(gui.wd / 'colorbar.png'), 250, 100, preserve_aspect_ratio=True)
-            iface.palplot.set_from_pixbuf(pb)
+        with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
+            LOG.debug('saving colorbar')
+            fig = plt.figure(figsize=(4, 2))
+            cax = fig.add_subplot(111)
+            cbar = plt.colorbar(mat, ax=cax, ticks=range(len(shared.colors)), orientation='horizontal')
+            cbar.ax.set_xticklabels(shared.NUCLEOTIDES)
+            cax.remove()
+            fig.savefig(gui.wd / shared.CBAR, transparent=True,
+                        bbox_inches='tight', pad_inches=0, dpi=600)
+            del fig
+        pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            str(gui.wd / shared.CBAR), 250, 100, preserve_aspect_ratio=True)
+        iface.palplot.set_from_pixbuf(pb)
 
         iface.frac = 1
 
@@ -307,7 +307,7 @@ def delete_and_ignore_rows(widget, event, gui, page, selection):
             iface.ignore_set.add(model[row[:]][0])
             model.remove(model.get_iter(row))
 
-        commons.set_changed(gui, page, True)
+        shared.set_changed(gui, page, True)
         refresh(gui)
 
 
@@ -345,11 +345,11 @@ def parse(widget, event, gui):
         return
     iface.q_params.__setattr__(widget.get_name(), now)
     if iface.q_params.trim_out > iface.q_params.trim_of:
-        commons.show_notification(gui, 'cannot draw %d from %d' %
-                                    (iface.q_params.trim_out, iface.q_params.trim_of))
+        shared.show_notification(gui, 'cannot draw %d from %d' %
+                                 (iface.q_params.trim_out, iface.q_params.trim_of))
         widget.set_text('0')
     else:
-        commons.set_changed(gui, PAGE)
+        shared.set_changed(gui, PAGE)
         start_trim(gui)
 
 
@@ -393,7 +393,8 @@ def trim_all(gui):
     data.seqdata.clear()
 
 
-def set_dims(view_qal, event, iface):
+def get_dims(view_qal, event, gui):
+    data, iface = gui.data, gui.iface
     w, h = view_qal.get_allocated_width(), view_qal.get_allocated_height()
     iface.qal_spacer.set_size_request(w, -1)
     iface.qal_win.set_max_content_height(h)
@@ -401,6 +402,7 @@ def set_dims(view_qal, event, iface):
         iface.qal_win.get_children()[0].set_size_request(w, h)
     except IndexError:
         pass
+    data.qal_shape[1] = h
     return w, h
 
 

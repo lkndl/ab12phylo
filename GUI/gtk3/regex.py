@@ -18,7 +18,7 @@ from Bio import SeqIO
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from GUI.gtk3 import commons, quality
+from GUI.gtk3 import shared, quality
 from ab12phylo import filter
 
 LOG = logging.getLogger(__name__)
@@ -53,8 +53,8 @@ def init(gui):
                           [iface.view_trace_regex, iface.view_csv_regex]):
         sel = tv.get_selection()
         sel.set_mode(Gtk.SelectionMode.MULTIPLE)
-        widget.connect('clicked', commons.delete_rows, gui, PAGE, )
-        tv.connect('key-press-event', commons.tv_keypress, gui, PAGE, sel)
+        widget.connect('clicked', shared.delete_rows, gui, PAGE, sel)
+        tv.connect('key-press-event', shared.tv_keypress, gui, PAGE, sel)
 
     reset(gui)
 
@@ -111,10 +111,10 @@ def parse_single(widget, gui, entry, col, fifth=None):
     try:
         regex = re.compile(entry.get_text())
     except re.error:
-        commons.show_notification(gui, 'RegEx could not be compiled.')
+        shared.show_notification(gui, 'RegEx could not be compiled.')
         return
-    errors = commons.get_errors(gui, PAGE)
-    changed = commons.get_changed(gui, PAGE)
+    errors = shared.get_errors(gui, PAGE)
+    changed = shared.get_changed(gui, PAGE)
 
     # check if traces or plates
     if widget in [iface.wp_rx, iface.wp_apply]:
@@ -173,8 +173,8 @@ def parse_single(widget, gui, entry, col, fifth=None):
                 model[i][-1] = iface.RED
             except Exception:
                 assert False
-    commons.set_changed(gui, PAGE, changed)
-    commons.set_errors(gui, PAGE, errors)
+    shared.set_changed(gui, PAGE, changed)
+    shared.set_errors(gui, PAGE, errors)
     refresh(gui)
 
 
@@ -185,10 +185,10 @@ def parse_triple(widget, gui):
         try:
             regex = re.compile(iface.single_rx.get_text())
         except re.error:
-            commons.show_notification(gui, 'RegEx could not be compiled')
+            shared.show_notification(gui, 'RegEx could not be compiled')
             return
-        errors = commons.get_errors(gui, PAGE)
-        changed = commons.get_changed(gui, PAGE)
+        errors = shared.get_errors(gui, PAGE)
+        changed = shared.get_changed(gui, PAGE)
 
         for idx, row in enumerate(data.trace_store):
             # skip references
@@ -212,8 +212,8 @@ def parse_triple(widget, gui):
                 data.trace_store[idx][2:5] = [ERRORS[2], '', '']
             data.trace_store[idx][-1] = iface.RED
             errors, changed = True, True
-        commons.set_changed(gui, PAGE, changed)
-        commons.set_errors(gui, PAGE, errors)
+        shared.set_changed(gui, PAGE, changed)
+        shared.set_errors(gui, PAGE, errors)
         iface.rx_fired[2:5] = [True] * 3
         refresh(gui)
     else:
@@ -233,7 +233,7 @@ def cell_edit(cell, path, new_text, gui, tv, col):
     if old_text == new_text:
         return
     mo[path][col] = new_text
-    commons.set_changed(gui, PAGE, True)
+    shared.set_changed(gui, PAGE, True)
     # set row to error-free. also for references
     if tv == iface.view_trace_regex:
         mo[path][-1] = iface.BLUE if mo[path][5] else iface.FG
@@ -286,7 +286,7 @@ def rev_adjust(widget, gui):
 def rev_toggled(widget, path, gui):
     data, iface = gui.data, gui.iface
     data.trace_store.set(data.trace_store.get_iter(path), [6], [not data.trace_store[path][6]])
-    commons.set_changed(gui, PAGE)
+    shared.set_changed(gui, PAGE)
 
 
 def refresh(gui):
@@ -298,20 +298,20 @@ def refresh(gui):
             tree_view.get_column(col_index).set_sort_column_id(col_index)
 
     # check the dataset for red lines
-    if iface.RED not in commons.get_column(data.trace_store, -1) \
-            and iface.AQUA not in commons.get_column(data.trace_store, - 1) \
-            and iface.RED not in commons.get_column(data.plate_store, -1):
-        commons.set_errors(gui, PAGE, False)
+    if iface.RED not in shared.get_column(data.trace_store, -1) \
+            and iface.AQUA not in shared.get_column(data.trace_store, - 1) \
+            and iface.RED not in shared.get_column(data.plate_store, -1):
+        shared.set_errors(gui, PAGE, False)
         # LOG.debug('found no errors')
     else:
         LOG.debug('found errors')
-        assert commons.get_errors(gui, PAGE) or sum(iface.rx_fired) < 5
+        assert shared.get_errors(gui, PAGE) or sum(iface.rx_fired) < 5
 
     # search genes
     # try matching reference files to genes
     data, iface = gui.data, gui.iface
 
-    data.genes = {gene for gene, is_ref, color in commons.get_column(data.trace_store, (4, 5, 7))
+    data.genes = {gene for gene, is_ref, color in shared.get_column(data.trace_store, (4, 5, 7))
                   if not is_ref and color is not iface.RED and gene != ''}
     if not data.genes or data.genes == {''}:
         return
@@ -369,7 +369,7 @@ def try_online(widget, gui):
         payload = json.dumps(dict(deleteCode=result['deleteCode']), indent=2)
         response = requests.request("DELETE", url, data=payload, headers=headers)
     except Exception:
-        commons.show_notification('online help failed')
+        shared.show_notification('online help failed')
 
 
 def start_read(gui, run_after=None):
@@ -377,13 +377,13 @@ def start_read(gui, run_after=None):
 
     # stop if there are no traces
     if len(data.trace_store) == 0:
-        commons.show_notification('No sequence data!')
+        shared.show_notification('No sequence data!')
         return
 
     iface.thread = threading.Thread(target=do_read, args=[gui])
     iface.run_after = run_after
     iface.running = True
-    GObject.timeout_add(100, commons.update, iface, PAGE)
+    GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
     # return to main loop
 
@@ -537,10 +537,10 @@ def stop_read(gui, errors, warnings):
     iface.prog_bar.set_text('idle')
     LOG.info('regex thread idle')
     if errors or warnings:
-        commons.show_notification('File troubles', ['error:%s' % f for f in errors] +
-                                  ['warning:%s' % f for f in warnings])
+        shared.show_notification(gui, 'File troubles', ['error:%s' % f for f in errors] +
+                                 ['warning:%s' % f for f in warnings])
     # now finally flip to next page
-    commons.set_changed(gui, PAGE, False)
+    shared.set_changed(gui, PAGE, False)
 
     # *Now* go back to where you came from
     if iface.run_after:
