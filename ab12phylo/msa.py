@@ -64,7 +64,10 @@ class msa_build:
         raw_msa = path.join(self.dir, gene, gene + '_raw_msa.fasta')
         self.log.debug('preparing %s MSA run' % self.algo)
 
-        if self.algo == 'mafft':
+        if new_arg:
+            arg = new_arg
+
+        elif self.algo == 'mafft':
             arg = '%s --thread %d --auto  %s > %s' \
                   % (self.binary, os.cpu_count(), fasta, raw_msa)
 
@@ -84,8 +87,6 @@ class msa_build:
 
         if no_run:
             return arg
-        if new_arg:
-            arg = new_arg
         self._run(arg, log_file, 'pre-installed %s' % self.algo, no_exit=True)
 
     def build_remote(self, gene, no_run=False, new_arg=False):
@@ -96,28 +97,30 @@ class msa_build:
 
         self.log.warning('running %s online' % self.algo.upper())
 
-        if self.algo == 't_coffee':
-            self.algo = 'tcoffee'
+        if new_arg:
+            arg = new_arg
+        else:
+            if self.algo == 't_coffee':
+                self.algo = 'tcoffee'
 
-        # create base call
-        arg = 'python3 %s --email %s --outfile %s/msa --sequence %s ' \
-              % (path.join(self.tools_path, 'MSA_clients', self.algo + '.py'),
-                 self.email, path.join(self.dir, gene), fasta)
+            # create base call
+            arg = 'python3 %s --email %s --outfile %s/msa --sequence %s ' \
+                  % (path.join(self.tools_path, 'MSA_clients', self.algo + '.py'),
+                     self.email, path.join(self.dir, gene), fasta)
 
-        # adapt for specific algorithm
-        if self.algo == 'mafft':
-            arg += '--stype dna'
-        elif self.algo == 'clustalo':
-            arg += '--stype dna --outfmt fa'
-        elif self.algo == 'muscle':
-            arg += '--format fasta'
-        elif self.algo == 'tcoffee':
-            arg += '--stype dna --format fasta_aln'
+            # adapt for specific algorithm
+            if self.algo == 'mafft':
+                arg += '--stype dna'
+            elif self.algo == 'clustalo':
+                arg += '--stype dna --outfmt fa'
+            elif self.algo == 'muscle':
+                arg += '--format fasta'
+            elif self.algo == 'tcoffee':
+                arg += '--stype dna --format fasta_aln'
 
         if no_run:
             return arg
-        if new_arg:
-            arg = new_arg
+
         # build an MSA for each gene
         self._run(arg, log_file, 'online %s' % self.algo)
         try:
@@ -185,7 +188,7 @@ class msa_build:
             # create base call  # TODO -p=s for GUI version
             arg = '%s %s -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=.txt -d=n -s=y -p=n; exit 0' \
                   % (binary, raw_msa, flank, cons, b4, gaps)  # don't swap order!
-            # MARK the -d=n sets the mode to nucleotides ... adapt?
+            # MARK -t=d sets the mode to nucleotides ... adapt?
             self._run(arg, log_file, 'pre-installed Gblocks' if local else 'out-of-the-box Gblocks')
             shutil.move(raw_msa + '.txt', path.join(self.dir, gene, gene + '_msa.fasta'))
 

@@ -4,6 +4,7 @@ import gi
 from pathlib import Path
 import logging
 import sys
+import copy
 import hashlib
 
 gi.require_version('Gtk', '3.0')
@@ -17,10 +18,13 @@ USER = 'leo.kaindl@tum.de'
 SEP = 'SSSSSSSSSS'
 RAW_MSA = Path('Trim') / 'raw_msa.fasta'
 MSA = 'msa.fasta'
+MISSING = 'missing_samples.tsv'
 PREVIEW = Path('Trim') / 'trim_preview.png'
 CBAR = Path('Trim') / 'colorbar.png'
 LEFT = Path('Trim') / 'msa_pretrim.png'
 RIGHT = Path('Trim') / 'msa_posttrim.png'
+ALPHA = .25
+H_SCALER = 5
 BUF_SIZE = 128 * 1024
 NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S']
 KXLIN = {
@@ -34,13 +38,13 @@ KXLIN = {
     ' ': (1, 1, 1, 0),
     'S': (1, 1, 1, 0)}
 
-# TODO continue
+# TODO continue project variables
 # re-fresh page content. automatically called
 REFRESH = [gtk_io.refresh, gtk_rgx.refresh, gtk_qal.refresh, gtk_msa.refresh, gtk_gbl.refresh]
 # re-run background threads. -> "REFRESH" button
 RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim, 4: gtk_gbl.start_gbl}
 # where the gene selector is visible
-SELECT = {2, 4}
+SELECT = {2}
 algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
          'RAxML-NG': 'raxml-ng', 'IQ-Tree': 'iqtree', 'FastTree': 'FastTree'}
 
@@ -148,6 +152,16 @@ def file_hash(file_path):
 
 
 def proceed(widget, gui=None, page=None):
+    """
+    The function connected to the _Next button. For pages with a background thread,
+    this will start it and instruct it to re-run this function afterwards; to make the
+    application proceed only upon thread completion.
+    # MARK gtk_blast.py will be different and gtk_io.py also is
+    :param widget:
+    :param gui:
+    :param page:
+    :return:
+    """
     if gui is None:
         gui = widget
     data, iface = gui.data, gui.iface
@@ -216,7 +230,7 @@ def select(gui, *args):
     page = gui.iface.notebook.get_current_page()
     if page == 2:  # trim preview
         gtk_qal.parse(gui.iface.gene_roll, None, gui)
-    # TODO continue
+    # TODO continue for new pages
 
 
 def get_column(list_store, col_idx):
@@ -227,7 +241,7 @@ def get_column(list_store, col_idx):
     return col
 
 
-def get_dims(widget, event, spacer, scroll_wins):
+def get_dims(widget, event, spacer, scroll_wins, lower=0):
     """
     Adjust the height of a plot in a GtkScrolledWindow depending on the height of the
     associated labeling column. Adjust the width of the spacer below the labels so that
@@ -239,19 +253,20 @@ def get_dims(widget, event, spacer, scroll_wins):
     """
     w, h = widget.get_allocated_width(), widget.get_allocated_height()
     spacer.set_size_request(w, -1)
+    if lower:
+        h = min(lower, h)
     for sw in scroll_wins:
         sw.set_max_content_height(h)
         try:
-            sw.get_children()[0].set_size_request(w,h)
+            sw.get_children()[0].set_size_request(w, h)
         except IndexError:
-            print('yup')  # TODO that just re-sized but ok
             pass
     return h
 
 
 def update(iface, page):
     """
-    Keep the progress bar up-to-date. TODO freeze the action bar?
+    Keep the progress bar up-to-date.
     :param page: the index of the current page, which will be frozen
     """
     if iface.running:
@@ -283,7 +298,10 @@ class picklable_liststore(Gtk.ListStore):
             return _unpickle_liststore, (self.__class__, coltypes, rows)
         except IndexError as ex:
             cols = self.get_n_columns()
-            if cols == 4:
+            # allow saving of emptry data stores
+            if cols == 2:
+                coltypes = [str, str]
+            elif cols == 4:
                 coltypes = [str, str, str, str]
             elif cols == 3:
                 coltypes = [str, bool, bool]

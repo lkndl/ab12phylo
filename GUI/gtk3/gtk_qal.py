@@ -30,7 +30,7 @@ PAGE = 2
 
 
 # todo do not re-read if some were removed
-
+# todo not accepting reverse doesn't work
 
 def init(gui):
     data, iface = gui.data, gui.iface
@@ -43,8 +43,6 @@ def init(gui):
                                                   step_increment=1, page_increment=1))
     iface.min_phred.set_numeric(True)
     iface.min_phred.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
-    iface.qal_scroll.connect('change_value', lambda *args: iface.
-                             qal_win.set_hadjustment(args[0].get_adjustment()))
 
     # this is kept up-to-date by the signals below
     iface.qal = Namespace(gene_roll='all')
@@ -53,7 +51,7 @@ def init(gui):
         wi = iface.__getattribute__(w_name)
         iface.qal.__setattr__(w_name, int(wi.get_text()))
         wi.connect('changed', edit, data, iface)
-        wi.connect('focus_out_event', parse, gui)
+        # wi.connect('focus_out_event', parse, gui)
         wi.connect('activate', parse, None, gui)
 
     for w_name in ['accept_rev', 'accept_nophred']:
@@ -90,8 +88,6 @@ def refresh(gui):
         width=data.qal_shape[0], height=data.qal_shape[1],
         preserve_aspect_ratio=False)
     iface.qal_win.add(Gtk.Image.new_from_pixbuf(pixbuf))
-    # link and resize scrollbar
-    iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
     gui.win.show_all()
 
 
@@ -190,16 +186,15 @@ def do_trim(gui):
     else:
         iface.txt = 'tabularize'
         max_len = max(map(len, rows))
-        seq_array = np.array([row + shared.seqtoint(' ') * (max_len - len(row)) for row in rows])
+        array = np.array([row + shared.seqtoint(' ') * (max_len - len(row)) for row in rows])
+        # make everything beyond N completely transparent
+        array = np.ma.masked_where(array > shared.toint('N'), array)
         i += 1
         iface.frac = i / k
-
         iface.txt = 'plot'
-        ratio = seq_array.shape[1] / seq_array.shape[0]
-        masked = np.ma.masked_where(seq_array > shared.toint('N'), seq_array)
         f = Figure()  # figsize=(scale // 10 * ratio * 5, scale // 10), dpi=300)
         ax = f.add_subplot(111)
-        mat = ax.matshow(masked, alpha=1, cmap=ListedColormap(shared.colors),
+        mat = ax.matshow(array, alpha=1, cmap=ListedColormap(shared.colors),
                          vmin=-.5, vmax=len(shared.colors) - .5, aspect='auto')
         ax.axis('off')
         f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
@@ -213,7 +208,7 @@ def do_trim(gui):
         i += 1
         iface.frac = i / k
         iface.txt = 'place + resize'
-        data.qal_shape[0] = seq_array.shape[1] * 4
+        data.qal_shape[0] = array.shape[1] * shared.H_SCALER
         data.qal_shape[1] = shared.get_dims(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
         canvas.set_size_request(data.qal_shape[0], data.qal_shape[1])
         try:
@@ -226,6 +221,8 @@ def do_trim(gui):
             Path.mkdir(gui.wd / shared.PREVIEW.parent, exist_ok=True)
             f.savefig(gui.wd / shared.PREVIEW, transparent=True,
                       dpi=600, bbox_inches='tight', pad_inches=0)
+        else:
+            assert False
 
         with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
             LOG.debug('saving colorbar')
@@ -253,10 +250,8 @@ def stop_trim(gui):
     iface.running = False
     iface.thread.join()
     gui.win.show_all()
-    # link and resize scrollbar
-    iface.qal_scroll.do_move_slider(iface.qal_scroll, Gtk.ScrollType.STEP_RIGHT)
     iface.prog_bar.set_text('idle')
-    LOG.info('trim thread idle')
+    LOG.info('qal thread idle')
     return False
 
 

@@ -57,6 +57,21 @@ def do_ML(gui):
     pass
 
 
-def stop_ML(gui):
-    """Finish the Gblocks thread"""
-    pass
+
+def stop_ML(gui, errors):
+    """Finish the ML inference thread"""
+    iface = gui.iface
+    iface.running = False
+    iface.thread.join()
+    # TODO sensitivize a container?
+    gui.win.show_all()
+    iface.prog_bar.props.text = 'idle'
+    LOG.info('ml thread idle')
+    shared.set_errors(gui, PAGE, bool(errors))
+    shared.set_changed(gui, PAGE, False)
+    if errors:
+        shared.show_notification(gui, 'Errors during ML inference', errors)
+        return
+    if iface.run_after:
+        [do_func(gui) for do_func in iface.run_after]
+    return

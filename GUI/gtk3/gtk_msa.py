@@ -51,10 +51,11 @@ def get_help(widget, gui, remote=False, try_path=False):
 
     if not data.genes:
         return
+    shared.set_changed(gui, PAGE, True)
 
     iface.msa.algo = shared.toalgo(iface.msa_algo.get_active_text())
     if remote:
-        client = shared.TOOLS / 'MSA_clients' / (iface.msa.algo + '.py')
+        client = shared.TOOLS / 'M  SA_clients' / (iface.msa.algo + '.py')
         set_helpers(gui, 'python3 %s ' % client, iface.remote_help,
                     iface.msa.remote_cmd, iface.msa.algo, True, iface.remote_cmd)
     else:
@@ -69,7 +70,7 @@ def get_help(widget, gui, remote=False, try_path=False):
             # no executable found; unselect in path box
             iface.msa_exe.unselect_all()
             txt = iface.msa.algo + ' was not found on your system $PATH. You can try ' \
-                               'manually specifying the path to the executable.'
+                                   'manually specifying the path to the executable.'
             iface.msa_help.get_buffer().props.text = txt  # show this snarky line
             iface.msa_cmd.get_buffer().props.text = ''  # no cmd suggestion
 
@@ -99,13 +100,13 @@ def get_cmd(algo, gui, remote=False):
         'user': shared.USER,
         'msa': gui.wd / shared.RAW_MSA,
         'sep': shared.SEP,
-        'missing_samples': gui.wd / 'missing_samples.tsv'
+        'missing_samples': gui.wd / shared.MISSING
     })
     iface.aligner = msa.msa_build(args, None, no_run=True)
     if remote:
-        cmd = iface.aligner.build_remote(data.agene(), no_run=True)
+        cmd = iface.aligner.build_remote('%s', no_run=True)
     else:
-        cmd = iface.aligner.build_local(data.agene(), no_run=True)
+        cmd = iface.aligner.build_local('%s', no_run=True)
     return cmd
 
 
@@ -134,7 +135,7 @@ def start_align(widget, gui, remote=False, run_after=None):
     elif run_after and (gui.wd / shared.RAW_MSA).exists() \
             and not shared.get_errors(gui, PAGE):  # b)
         shared.set_changed(gui, PAGE, False)
-        [do_func(gui) for do_func in iface.run_after]
+        [do_func(gui) for do_func in run_after]
         return
     if 'aligner' not in iface:
         get_help(None, gui, remote)
@@ -150,38 +151,42 @@ def start_align(widget, gui, remote=False, run_after=None):
 
 def do_align(gui, remote=False):
     data, iface = gui.data, gui.iface
-    exceptions = list()
+    errors = list()
     iface.frac = .05
-    k = len(data.genes) + 2
     i = 0
+    k = len(data.genes) + 2
+    funcs, arg_dicts = [iface.aligner.build_local, iface.aligner.build_remote], \
+                       [iface.msa.cmd, iface.msa.remote_cmd]
     for gene in data.genes:
         iface.txt = 'aligning %s [%d/%d]' % (gene, i + 1, k - 2)
         try:
-            # TODO filenotfounderror
-            if remote:
-                iface.aligner.build_remote(gene, new_arg=iface.msa.cmd[iface.msa.algo])
-            else:
-                iface.aligner.build_local(gene, new_arg=iface.msa.remote_cmd[iface.msa.algo])
-        except (OSError, subprocess.CalledProcessError) as e:
-            exceptions.append(str(e))
+            funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
+                                        % tuple([gene] * 4))  # interpreting bool as int here
+        except FileNotFoundError:
+            iface.aligner.reset_paths(gui.wd, gui.wd / shared.RAW_MSA, gui.wd / shared.MISSING)
+            # try again once more
+            funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
+                                        % tuple([gene] * 4))
         i += 1
         iface.frac = i / k
     LOG.info('built MSAs')
     iface.txt = 'concatenating MSAs'
     try:
-        # TODO filenotfounderror
-        # try:
-        iface.aligner.concat_msa(gui=True)
-        # except FileNotFoundError as fe:
-        #     exceptions.append('MSA file not found. Please re-select the MSA')
+        try:
+            iface.aligner.concat_msa(gui=True)
+        except FileNotFoundError:
+            iface.aligner.reset_paths(gui.wd, gui.wd / shared.RAW_MSA, gui.wd / shared.MISSING)
+            iface.aligner.concat_msa(gui=True)
         i += 1
         iface.frac = i / k
         iface.txt = 'comparing SHA256 hashes'
         compare_hashes(gui)
         iface.frac = 1
-    except ValueError as e:
-        exceptions.append(str(e))
-    GObject.idle_add(stop_align, gui, exceptions)
+    except (OSError, subprocess.CalledProcessError) as e:
+        errors.append(str(e))
+    except FileNotFoundError:
+        errors.append('MSA/sequences file not found. Did you just save somewhere new?')
+    GObject.idle_add(stop_align, gui, errors)
 
 
 def stop_align(gui, errors):
@@ -191,14 +196,14 @@ def stop_align(gui, errors):
     iface.align_stack.props.sensitive = True
     gui.win.show_all()
     iface.prog_bar.props.text = 'idle'
-    LOG.info('align thread idle')
+    LOG.info('msa thread idle')
     shared.set_errors(gui, PAGE, bool(errors))
     shared.set_changed(gui, PAGE, False)
     if errors:
         shared.show_notification(gui, 'Errors during MSA building', errors)
         return
     if iface.run_after:
-        [run(gui) for run in iface.run_after]
+        [do_func(gui) for do_func in iface.run_after]
     else:
         shared.show_notification(gui, 'MSA building finished')
     return

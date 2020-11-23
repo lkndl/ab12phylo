@@ -4,21 +4,20 @@ import json
 import logging
 import re
 import string
-import sys
 import threading
 import webbrowser
-from pathlib import Path
 from time import sleep
 
 import gi
 import pandas as pd
-import requests, random
+import random
+import requests
 from Bio import SeqIO
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from GUI.gtk3 import shared, gtk_qal
+from GUI.gtk3 import shared
 from ab12phylo import filter
 
 LOG = logging.getLogger(__name__)
@@ -535,7 +534,7 @@ def stop_read(gui, errors, warnings):
     iface.running = False
     iface.thread.join()
     iface.prog_bar.set_text('idle')
-    LOG.info('regex thread idle')
+    LOG.info('rgx thread idle')
     if errors or warnings:
         shared.show_notification(gui, 'File troubles', ['error: %s' % f for f in errors] +
                                  ['warning: %s' % f for f in warnings])

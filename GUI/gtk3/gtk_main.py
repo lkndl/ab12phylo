@@ -26,7 +26,7 @@ from gi.repository import Gtk, Gdk, GLib, GObject
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
-__verbose__, __info__ = 1, 0
+__verbose__, __info__ = 0, 1
 
 # set the icon theme
 Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Maia')
@@ -34,6 +34,8 @@ Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
 
 
 # TODO write in a tempdir?
+# TODO refactor changed into unfinished?
+# TODO freeze actionbar?
 
 class app(Gtk.Application):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
@@ -70,7 +72,7 @@ class app(Gtk.Application):
         iface.running = False
         iface.frac = 0
         iface.txt = ''
-        iface.run_after = None
+        iface.run_after = []
 
         # set up preliminary working directory
         self.project_path = None
@@ -146,7 +148,7 @@ class app(Gtk.Application):
         gtk_msa.init(self)
         gtk_gbl.init(self)
 
-        # self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
+        self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
 
     def new(self, confirm=True):
         """
@@ -197,14 +199,18 @@ class app(Gtk.Application):
         self.project_path = Path(path)
         LOG.debug('got dataset path %s' % self.project_path)
         # read in dataset
-        with open(self.project_path, 'rb') as proj:
-            new_data = pickle.load(proj)
-        # overwrite content in old dataset in-place rather than re-pointing everything
-        self.data.overwrite(new_data)
-        self.wd = self.project_path.parent / self.project_path.stem
-        Path.mkdir(self.wd, exist_ok=True)
-        self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
-        self.iface.notebook.set_current_page(self.data.page)
+        try:
+            with open(self.project_path, 'rb') as proj:
+                new_data = pickle.load(proj)
+            # overwrite content in old dataset in-place rather than re-pointing everything
+            self.data.overwrite(new_data)
+            self.wd = self.project_path.parent / self.project_path.stem
+            Path.mkdir(self.wd, exist_ok=True)
+            self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
+            self.iface.notebook.set_current_page(self.data.page)
+            shared.refresh(self)
+        except Exception as e:
+            shared.show_notification(self, 'Project could not be loaded')
 
     def save(self, event, copy_from=None):
         """
@@ -238,6 +244,10 @@ class app(Gtk.Application):
             # delete old data if it was in the prelim directory
             if self.wd == Path.cwd() / 'untitled':
                 shutil.rmtree(path=self.wd)
+
+            # tell the MSA pre-set about it
+            if 'aligner' in self.iface:
+                self.iface.aligner.reset_paths(self.wd, self.wd / shared.RAW_MSA, self.wd / shared.MISSING)
 
         self.wd = self.project_path.parent / self.project_path.stem
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
@@ -288,7 +298,8 @@ class project_dataset:
         self.qal_model = shared.picklable_liststore(str,  # id
                                                     bool,  # has phreds
                                                     bool)  # low quality
-
+        self.gbl_model = shared.picklable_liststore(str,  # id
+                                                    str)  # seq
         # set up indicator of changes, tabs are not disabled initially
         self.change_indicator = [False] * 20
         self.errors_indicator = [False] * 20
@@ -339,11 +350,13 @@ def _init_log(**kwargs):
     sh = logging.StreamHandler(sys.stdout)
     if __verbose__:
         sh.setLevel(logging.DEBUG)
+        sh.setFormatter(logging.Formatter('%(levelname)s -- %(message)s'))
     elif __info__:
         sh.setLevel(logging.INFO)
+        sh.setFormatter(logging.Formatter('%(message)s'))
     else:
         sh.setLevel(logging.WARNING)
-    sh.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+
     log.addHandler(sh)
 
 

@@ -8,6 +8,11 @@
       <pattern>*.fa</pattern>
     </patterns>
   </object>
+  <object class="GtkAdjustment" id="gbl_scroll_adj">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkMenuBar" id="menu_bar">
     <property name="name">menu_bar</property>
     <property name="visible">True</property>
@@ -160,6 +165,11 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkAdjustment" id="qal_scroll_adj">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkTextBuffer" id="trim_help_buf">
     <property name="text" translatable="yes">This is a trimming help text. I'll have to write it at some point!
@@ -605,7 +615,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Add files with reference data. These will be highlighted in blue on the right.</property>
+                            <property name="tooltip-text" translatable="yes">Add files with reference data. These will be highlighted in color on the right.</property>
                             <property name="halign">start</property>
                             <property name="valign">start</property>
                             <property name="vexpand">False</property>
@@ -1512,6 +1522,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="hexpand">True</property>
+                                        <property name="hadjustment">qal_scroll_adj</property>
                                         <property name="hscrollbar-policy">external</property>
                                         <property name="vscrollbar-policy">never</property>
                                         <property name="window-placement">bottom-right</property>
@@ -1520,6 +1531,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                           <object class="GtkViewport">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="hadjustment">qal_scroll_adj</property>
                                             <child>
                                               <object class="GtkLabel">
                                                 <property name="height-request">470</property>
@@ -1575,6 +1587,10 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="can-focus">False</property>
                             <property name="hexpand">True</property>
                             <property name="vexpand">False</property>
+                            <property name="adjustment">qal_scroll_adj</property>
+                            <property name="inverted">True</property>
+                            <property name="show-fill-level">True</property>
+                            <property name="fill-level">12312213223453490596948756970244500517</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -2213,6 +2229,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="name">msa_cmd</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">You can run this command externally of course, but you will have to replace the &lt;b&gt;%s&lt;/b&gt; with the gene you run it for!</property>
                                         <property name="wrap-mode">word</property>
                                         <property name="left-margin">10</property>
                                         <property name="right-margin">10</property>
@@ -2647,6 +2664,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="name">view_gbl</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
+                                            <property name="headers-visible">False</property>
                                             <property name="show-expanders">False</property>
                                             <property name="rubber-banding">True</property>
                                             <child internal-child="selection">
@@ -2696,6 +2714,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="hexpand">True</property>
+                                            <property name="hadjustment">gbl_scroll_adj</property>
                                             <property name="hscrollbar-policy">external</property>
                                             <property name="vscrollbar-policy">never</property>
                                             <property name="window-placement">bottom-right</property>
@@ -2704,6 +2723,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                               <object class="GtkViewport">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
+                                                <property name="hadjustment">gbl_scroll_adj</property>
                                                 <child>
                                                   <object class="GtkLabel">
                                                     <property name="height-request">470</property>
@@ -2726,6 +2746,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="hexpand">True</property>
+                                            <property name="hadjustment">gbl_scroll_adj</property>
                                             <property name="hscrollbar-policy">external</property>
                                             <property name="vscrollbar-policy">never</property>
                                             <property name="window-placement">bottom-right</property>
@@ -2734,6 +2755,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                               <object class="GtkViewport">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
+                                                <property name="hadjustment">gbl_scroll_adj</property>
                                                 <child>
                                                   <object class="GtkLabel">
                                                     <property name="height-request">470</property>
@@ -2786,6 +2808,9 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="can-focus">False</property>
                             <property name="hexpand">True</property>
                             <property name="vexpand">False</property>
+                            <property name="adjustment">gbl_scroll_adj</property>
+                            <property name="inverted">True</property>
+                            <property name="show-fill-level">True</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -3119,8 +3144,8 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="hexpand">True</property>
                                 <property name="row-spacing">10</property>
                                 <child>
-                                  <object class="GtkImage" id="palplot1">
-                                    <property name="name">palplot</property>
+                                  <object class="GtkImage" id="palplot2">
+                                    <property name="name">palplot2</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="stock">gtk-missing-image</property>
@@ -3134,7 +3159,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <object class="GtkTextView" id="gbl_cmd">
                                     <property name="name">gbl_cmd</property>
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
+                                    <property name="can-focus">False</property>
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
                                     <property name="editable">False</property>
@@ -3869,6 +3894,7 @@ Alternatively, a color legend would nicely fit here.</property>
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="row-spacing">12</property>
                     <property name="column-spacing">6</property>
                     <child>
                       <object class="GtkLabel" id="reveal_title">
@@ -3880,38 +3906,6 @@ Alternatively, a color legend would nicely fit here.</property>
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkScrolledWindow">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">True</property>
-                        <property name="shadow-type">in</property>
-                        <property name="max-content-width">600</property>
-                        <property name="max-content-height">200</property>
-                        <property name="propagate-natural-width">True</property>
-                        <property name="propagate-natural-height">True</property>
-                        <child>
-                          <object class="GtkTextView" id="reveal_list">
-                            <property name="name">reveal_list</property>
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="margin-top">12</property>
-                            <property name="hexpand">True</property>
-                            <property name="vexpand">True</property>
-                            <property name="left-margin">12</property>
-                            <property name="right-margin">12</property>
-                            <property name="top-margin">12</property>
-                            <property name="bottom-margin">12</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
-                        <property name="width">3</property>
                       </packing>
                     </child>
                     <child>
@@ -3968,6 +3962,37 @@ Alternatively, a color legend would nicely fit here.</property>
                       <packing>
                         <property name="left-attach">3</property>
                         <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <property name="shadow-type">in</property>
+                        <property name="max-content-width">600</property>
+                        <property name="max-content-height">200</property>
+                        <property name="propagate-natural-width">True</property>
+                        <property name="propagate-natural-height">True</property>
+                        <child>
+                          <object class="GtkTextView" id="reveal_list">
+                            <property name="name">reveal_list</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
+                            <property name="left-margin">12</property>
+                            <property name="right-margin">12</property>
+                            <property name="top-margin">12</property>
+                            <property name="bottom-margin">12</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                        <property name="width">3</property>
                       </packing>
                     </child>
                   </object>
