@@ -88,7 +88,11 @@ class app(Gtk.Application):
 
         css_provider = Gtk.CssProvider()
         css_provider.load_from_data(b'''
-        .codeview text { background-color: %s(@bg_color); color: %s(@fg_color); }''' % mod)
+        .codeview text { background-color: %s(@bg_color); color: %s(@fg_color); }
+        .seqid { font-size: xx-small; }
+        button:active { background-color: #17f }
+        ''' % mod)
+        # TODO CSS also supports key bindings ... zoom?
         # treeview {background-color: darker(@bg_color);}
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css_provider,
                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)

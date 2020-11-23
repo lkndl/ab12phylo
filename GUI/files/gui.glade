@@ -171,10 +171,6 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkTextBuffer" id="trim_help_buf">
-    <property name="text" translatable="yes">This is a trimming help text. I'll have to write it at some point!
-Alternatively, a color legend would nicely fit here.</property>
-  </object>
   <object class="GtkApplicationWindow" id="win">
     <property name="name">win</property>
     <property name="width-request">800</property>
@@ -1507,6 +1503,9 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <child internal-child="selection">
                                               <object class="GtkTreeSelection"/>
                                             </child>
+                                            <style>
+                                              <class name="seqid"/>
+                                            </style>
                                           </object>
                                         </child>
                                       </object>
@@ -1590,7 +1589,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="adjustment">qal_scroll_adj</property>
                             <property name="inverted">True</property>
                             <property name="show-fill-level">True</property>
-                            <property name="fill-level">12312213223453490596948756970244500517</property>
+                            <property name="fill-level">12312213223453491004045080303836856320</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -1879,22 +1878,12 @@ Alternatively, a color legend would nicely fit here.</property>
                             </child>
                             <child>
                               <!-- n-columns=1 n-rows=2 -->
-                              <object class="GtkGrid">
+                              <object class="GtkGrid" id="qal_tools">
+                                <property name="name">qal_tools</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="hexpand">False</property>
                                 <property name="row-spacing">10</property>
-                                <child>
-                                  <object class="GtkTextView">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="buffer">trim_help_buf</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
                                 <child>
                                   <object class="GtkImage" id="palplot">
                                     <property name="name">palplot</property>
@@ -1904,8 +1893,11 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
+                                    <property name="top-attach">1</property>
                                   </packing>
+                                </child>
+                                <child>
+                                  <placeholder/>
                                 </child>
                               </object>
                               <packing>
@@ -3799,6 +3791,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="name">next</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="has-focus">True</property>
                             <property name="receives-default">True</property>
                             <child>
                               <object class="GtkBox">
@@ -4011,5 +4004,9 @@ Alternatively, a color legend would nicely fit here.</property>
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkTextBuffer" id="trim_help_buf">
+    <property name="text" translatable="yes">This is a trimming help text. I'll have to write it at some point!
+Alternatively, a color legend would nicely fit here.</property>
   </object>
 </interface>

@@ -323,7 +323,6 @@ def stop_gbl(gui, errors):
     iface = gui.iface
     iface.running = False
     iface.thread.join()
-    # iface.gbl_expander.props.sensitive = True
     gui.win.show_all()
     iface.prog_bar.props.text = 'idle'
     LOG.info('gbl thread idle')

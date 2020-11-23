@@ -11,8 +11,8 @@ import numpy as np, sys
 from time import sleep
 from Bio import SeqIO
 from argparse import Namespace
-from matplotlib.backends.backend_gtk3agg import (
-    FigureCanvasGTK3Agg as FigureCanvas)
+from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from matplotlib.figure import Figure
 from matplotlib.colors import ListedColormap
 
@@ -65,9 +65,9 @@ def init(gui):
     iface.view_qal.set_headers_visible(False)
     iface.view_qal.append_column(Gtk.TreeViewColumn(
         title='id', cell_renderer=Gtk.CellRendererText(), text=0))
-    iface.view_qal.append_column(Gtk.TreeViewColumn(
-        title='has phreds', active=1,
-        cell_renderer=Gtk.CellRendererToggle(radio=False)))
+    # iface.view_qal.append_column(Gtk.TreeViewColumn(
+    #     title='has phreds', active=1,
+    #     cell_renderer=Gtk.CellRendererToggle(radio=False)))
 
     iface.view_qal.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
     iface.view_qal.connect('size_allocate', shared.get_dims, iface.qal_spacer, [iface.qal_win])
@@ -192,7 +192,7 @@ def do_trim(gui):
         i += 1
         iface.frac = i / k
         iface.txt = 'plot'
-        f = Figure()  # figsize=(scale // 10 * ratio * 5, scale // 10), dpi=300)
+        f = Figure()
         ax = f.add_subplot(111)
         mat = ax.matshow(array, alpha=1, cmap=ListedColormap(shared.colors),
                          vmin=-.5, vmax=len(shared.colors) - .5, aspect='auto')
@@ -213,6 +213,7 @@ def do_trim(gui):
         canvas.set_size_request(data.qal_shape[0], data.qal_shape[1])
         try:
             iface.qal_win.add(canvas)
+            iface.qal_tools.attach(NavigationToolbar(canvas, gui.win), 1, 1, 1, 1)
         except Gtk.Error as ex:
             LOG.error(ex)
 
