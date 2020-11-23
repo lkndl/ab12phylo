@@ -1670,6 +1670,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="max-width-chars">2</property>
                                     <property name="input-purpose">number</property>
                                     <property name="numeric">True</property>
+                                    <property name="update-policy">if-valid</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -2646,6 +2647,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="name">view_gbl</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
+                                            <property name="show-expanders">False</property>
                                             <property name="rubber-banding">True</property>
                                             <child internal-child="selection">
                                               <object class="GtkTreeSelection"/>
@@ -2817,6 +2819,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="can-focus">False</property>
                                 <property name="row-spacing">6</property>
                                 <property name="column-spacing">12</property>
+                                <property name="row-homogeneous">True</property>
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
@@ -2859,6 +2862,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="input-purpose">number</property>
                                     <property name="snap-to-ticks">True</property>
                                     <property name="numeric">True</property>
+                                    <property name="update-policy">if-valid</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -2904,7 +2908,8 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkComboBoxText" id="trim_preset">
+                                  <object class="GtkComboBoxText" id="gbl_preset">
+                                    <property name="name">gbl_preset</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="hexpand">False</property>
@@ -2922,7 +2927,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="can-focus">False</property>
                                         <property name="halign">start</property>
                                         <property name="width-chars">7</property>
-                                        <property name="text" translatable="yes">balanced</property>
+                                        <property name="text" translatable="yes">skip</property>
                                       </object>
                                     </child>
                                   </object>
@@ -2964,7 +2969,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">flank</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-markup" translatable="yes">the minimal number of identical characters in a column to define a &lt;/b&gt;conserved flanking&lt;/b&gt; position: ≥ conserved &gt; 50%</property>
+                                    <property name="tooltip-markup" translatable="yes">the minimal number of identical characters in a column to define a &lt;b&gt;conserved flanking&lt;/b&gt; position: ≥ conserved &gt; 50%</property>
                                     <property name="hexpand">False</property>
                                     <property name="vexpand">False</property>
                                     <property name="max-length">3</property>
@@ -2973,6 +2978,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="input-purpose">number</property>
                                     <property name="snap-to-ticks">True</property>
                                     <property name="numeric">True</property>
+                                    <property name="update-policy">if-valid</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -2982,15 +2988,12 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
-                                    <property name="sensitive">False</property>
                                     <property name="can-focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="label" translatable="yes">good block</property>
-                                    <property name="justify">right</property>
                                   </object>
                                   <packing>
-                                    <property name="left-attach">3</property>
-                                    <property name="top-attach">1</property>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="width">4</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -3004,65 +3007,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">3</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkSpinButton" id="good_block">
-                                    <property name="name">good_block</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="tooltip-markup" translatable="yes">the minimal number of conserved positions to define a &lt;b&gt;conserved block&lt;/b&gt;</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="max-length">3</property>
-                                    <property name="width-chars">3</property>
-                                    <property name="max-width-chars">3</property>
-                                    <property name="input-purpose">number</property>
-                                    <property name="snap-to-ticks">True</property>
-                                    <property name="numeric">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">4</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="sensitive">False</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="label" translatable="yes">keep gaps</property>
-                                    <property name="justify">right</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">3</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkComboBoxText" id="gaps">
-                                    <property name="name">gaps</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-markup" translatable="yes">discard all positions where a sequence has a gap; keep half or all</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">2</property>
-                                    <property name="has-entry">True</property>
-                                    <items>
-                                      <item translatable="yes">none</item>
-                                      <item translatable="yes">half</item>
-                                      <item translatable="yes">all</item>
-                                    </items>
-                                    <child internal-child="entry">
-                                      <object class="GtkEntry">
-                                        <property name="can-focus">False</property>
-                                        <property name="width-chars">7</property>
-                                      </object>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">4</property>
                                     <property name="top-attach">3</property>
                                   </packing>
                                 </child>
@@ -3079,6 +3023,27 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="input-purpose">number</property>
                                     <property name="snap-to-ticks">True</property>
                                     <property name="numeric">True</property>
+                                    <property name="update-policy">if-valid</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">4</property>
+                                    <property name="top-attach">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="good_block">
+                                    <property name="name">good_block</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-markup" translatable="yes">the minimal number of conserved positions to define a &lt;b&gt;conserved block&lt;/b&gt;</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="max-length">3</property>
+                                    <property name="width-chars">3</property>
+                                    <property name="max-width-chars">3</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="snap-to-ticks">True</property>
+                                    <property name="numeric">True</property>
+                                    <property name="update-policy">if-valid</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">4</property>
@@ -3088,12 +3053,55 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
                                     <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">good block</property>
+                                    <property name="justify">right</property>
                                   </object>
                                   <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">0</property>
-                                    <property name="width">4</property>
+                                    <property name="left-attach">3</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">keep gaps</property>
+                                    <property name="justify">right</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">3</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkComboBoxText" id="gaps">
+                                    <property name="name">gaps</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-markup" translatable="yes">discard all positions where a sequence has a gap; keep half or all</property>
+                                    <property name="active">2</property>
+                                    <property name="has-entry">True</property>
+                                    <items>
+                                      <item translatable="yes">none</item>
+                                      <item translatable="yes">half</item>
+                                      <item translatable="yes">all</item>
+                                    </items>
+                                    <child internal-child="entry">
+                                      <object class="GtkEntry">
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="width-chars">7</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">4</property>
+                                    <property name="top-attach">1</property>
                                   </packing>
                                 </child>
                               </object>
@@ -3856,12 +3864,12 @@ Alternatively, a color legend would nicely fit here.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="valign">start</property>
-                <property name="spacing">20</property>
                 <child>
-                  <!-- n-columns=3 n-rows=2 -->
+                  <!-- n-columns=4 n-rows=2 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="column-spacing">6</property>
                     <child>
                       <object class="GtkLabel" id="reveal_title">
                         <property name="name">reveal_title</property>
@@ -3890,8 +3898,13 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="name">reveal_list</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="margin-top">12</property>
                             <property name="hexpand">True</property>
                             <property name="vexpand">True</property>
+                            <property name="left-margin">12</property>
+                            <property name="right-margin">12</property>
+                            <property name="top-margin">12</property>
+                            <property name="bottom-margin">12</property>
                           </object>
                         </child>
                       </object>
@@ -3921,37 +3934,47 @@ Alternatively, a color legend would nicely fit here.</property>
                         <property name="top-attach">0</property>
                       </packing>
                     </child>
+                    <child>
+                      <object class="GtkButton" id="dismiss">
+                        <property name="name">dismiss</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="valign">start</property>
+                        <property name="relief">none</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="icon-name">window-close-symbolic</property>
+                          </object>
+                        </child>
+                        <accelerator key="a" signal="clicked" modifiers="GDK_LOCK_MASK"/>
+                        <style>
+                          <class name="image-button"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">	</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="dismiss">
-                    <property name="name">dismiss</property>
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">True</property>
-                    <property name="valign">start</property>
-                    <property name="relief">none</property>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="icon-name">window-close-symbolic</property>
-                      </object>
-                    </child>
-                    <accelerator key="a" signal="clicked" modifiers="GDK_LOCK_MASK"/>
-                    <style>
-                      <class name="image-button"/>
-                    </style>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
                   </packing>
                 </child>
                 <style>

@@ -33,6 +33,8 @@ Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Maia')
 Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
 
 
+# TODO write in a tempdir?
+
 class app(Gtk.Application):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
@@ -68,6 +70,9 @@ class app(Gtk.Application):
         iface.running = False
         iface.frac = 0
         iface.txt = ''
+        iface.run_after = None
+
+        # set up preliminary working directory
         self.project_path = None
         self.wd = Path.cwd() / 'untitled'
         Path.mkdir(self.wd, exist_ok=True)
@@ -141,7 +146,7 @@ class app(Gtk.Application):
         gtk_msa.init(self)
         gtk_gbl.init(self)
 
-        self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
+        # self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
 
     def new(self, confirm=True):
         """
@@ -289,7 +294,8 @@ class project_dataset:
         self.errors_indicator = [False] * 20
         self.page = 0
         self.qal_shape = [0, 0]
-        self.gbl_shape = [0, 0, 0, 0]  # width-height before and after trimming
+        self.gbl_shape = [0, 0]
+        self.msa_shape = [0, 0, 0, 0]  # width-height before and after trimming
         self.msa_hash = ''
 
     def agene(self):
@@ -319,7 +325,7 @@ class project_dataset:
 def _init_log(**kwargs):
     """Initializes logging."""
     log = logging.getLogger()
-    log.setLevel(logging.INFO)
+    log.setLevel(logging.DEBUG)
 
     if 'filename' in kwargs:
         # init verbose logging to file

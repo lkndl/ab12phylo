@@ -52,7 +52,12 @@ class msa_build:
         # concat MSAs
         self.concat_msa()
 
-    def build_local(self, gene, no_run=False):
+    def reset_paths(self, dir, msa, missing):
+        self.dir = dir
+        self.msa = msa
+        self.missing_samples = missing
+
+    def build_local(self, gene, no_run=False, new_arg=False):
         """Build MSAs locally using a pre-installed binary."""
         log_file = path.join(self.dir, gene, self.algo + '.log')
         fasta = path.join(self.dir, gene, gene + '.fasta')
@@ -79,9 +84,11 @@ class msa_build:
 
         if no_run:
             return arg
+        if new_arg:
+            arg = new_arg
         self._run(arg, log_file, 'pre-installed %s' % self.algo, no_exit=True)
 
-    def build_remote(self, gene, no_run=False):
+    def build_remote(self, gene, no_run=False, new_arg=False):
         """Builds an MSA online using an EBI API client"""
         log_file = path.join(self.dir, gene, self.algo + '.log')
         fasta = path.join(self.dir, gene, gene + '.fasta')
@@ -109,6 +116,8 @@ class msa_build:
 
         if no_run:
             return arg
+        if new_arg:
+            arg = new_arg
         # build an MSA for each gene
         self._run(arg, log_file, 'online %s' % self.algo)
         try:
@@ -173,17 +182,17 @@ class msa_build:
                 gaps = ['n', 'h', 'a'][0]
                 self.log.info('running strict Gblocks')
 
-            # create base call
+            # create base call  # TODO -p=s for GUI version
             arg = '%s %s -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=.txt -d=n -s=y -p=n; exit 0' \
                   % (binary, raw_msa, flank, cons, b4, gaps)  # don't swap order!
             # MARK the -d=n sets the mode to nucleotides ... adapt?
             self._run(arg, log_file, 'pre-installed Gblocks' if local else 'out-of-the-box Gblocks')
             shutil.move(raw_msa + '.txt', path.join(self.dir, gene, gene + '_msa.fasta'))
 
-    def concat_msa(self, raw=False):
+    def concat_msa(self, gui=False):
         """Reads all trimmed MSAs to memory, then iterates over samples, writes concatenated MSA."""
         self.log.debug('concatenating per-gene MSAs')
-        insert = '_raw' if raw else ''
+        insert = '_raw' if gui else ''
         # read in all MSAs using SeqIO
         all_records = {gene: {record.id: record.upper() for record in SeqIO.parse(
             path.join(self.dir, gene, gene + '%s_msa.fasta' % insert), 'fasta')} for gene in self.genes}
@@ -217,14 +226,16 @@ class msa_build:
                     SeqIO.write(record, msa, 'fasta')
         if len(self.genes) > 1:
             if shared == 0:
-                self.log.error('No samples shared across all genes.')
-                exit(1)
+                msg = 'No samples shared across all genes.'
+                self.log.error(msg)
+                raise ValueError(msg) if gui else exit(1)
             else:
                 self.log.info('finished writing concat MSA with %d entries' % shared)
         else:
             if msa_len == 0:
-                self.log.error('No conserved sites found. Please try a more relaxed trimming mode!')
-                exit(1)
+                msg = 'No conserved sites found. Please try a more relaxed trimming mode!'
+                self.log.error(msg)
+                raise ValueError(msg) if gui else exit(1)
             self.log.info('copied MSA to result root')
         self.log.info('MSA shape: %dx%d' % (msa_len, shared))
 

@@ -25,13 +25,13 @@ def init(gui):
     iface.plates = True
 
     iface.msa_algo.set_entry_text_column(0)
-    iface.align = Namespace()
-    iface.align.cmd = dict()
-    iface.align.remote_cmd = dict()
+    iface.msa = Namespace()
+    iface.msa.cmd = dict()
+    iface.msa.remote_cmd = dict()
 
-    iface.msa_cmd.connect('focus_out_event', lambda widget, *args: iface.align.cmd.update(
+    iface.msa_cmd.connect('focus_out_event', lambda widget, *args: iface.msa.cmd.update(
         {shared.toalgo(iface.msa_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
-    iface.remote_cmd.connect('focus_out_event', lambda widget, *args: iface.align.remote_cmd.update(
+    iface.remote_cmd.connect('focus_out_event', lambda widget, *args: iface.msa.remote_cmd.update(
         {shared.toalgo(iface.remote_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
 
     iface.msa_algo.connect('changed', get_help, gui)
@@ -52,24 +52,24 @@ def get_help(widget, gui, remote=False, try_path=False):
     if not data.genes:
         return
 
-    algo = shared.toalgo(iface.msa_algo.get_active_text())
+    iface.msa.algo = shared.toalgo(iface.msa_algo.get_active_text())
     if remote:
-        client = shared.TOOLS / 'MSA_clients' / (algo + '.py')
+        client = shared.TOOLS / 'MSA_clients' / (iface.msa.algo + '.py')
         set_helpers(gui, 'python3 %s ' % client, iface.remote_help,
-                    iface.align.remote_cmd, algo, True, iface.remote_cmd)
+                    iface.msa.remote_cmd, iface.msa.algo, True, iface.remote_cmd)
     else:
-        exe = shutil.which(algo)
+        exe = shutil.which(iface.msa.algo)
         exe = widget.get_active_text() if try_path else exe
         if exe:
             # get the --help output and save it in the lookup field on the right
             iface.msa_exe.set_filename(exe)
             set_helpers(gui, '%s --help; exit 0' % exe, iface.msa_help,
-                        iface.align.cmd, algo, False, iface.msa_cmd)
+                        iface.msa.cmd, iface.msa.algo, False, iface.msa_cmd)
         else:
             # no executable found; unselect in path box
             iface.msa_exe.unselect_all()
-            txt = algo + ' was not found on your system $PATH. You can try manually' \
-                         ' specifying the path to the executable.'
+            txt = iface.msa.algo + ' was not found on your system $PATH. You can try ' \
+                               'manually specifying the path to the executable.'
             iface.msa_help.get_buffer().props.text = txt  # show this snarky line
             iface.msa_cmd.get_buffer().props.text = ''  # no cmd suggestion
 
@@ -128,12 +128,13 @@ def start_align(widget, gui, remote=False, run_after=None):
     if iface.running:  # a)
         shared.show_notification(gui, 'Thread running')
         return
-    elif run_after and (gui.wd / shared.RAW_MSA).exists() \
-            and not shared.get_errors(gui, PAGE):  # b)
-        [run(gui) for run in iface.run_after]
-        return
     elif not shared.get_changed(gui, PAGE):  # c)
         shared.show_notification(gui, 'MSA already generated, please proceed')
+        return
+    elif run_after and (gui.wd / shared.RAW_MSA).exists() \
+            and not shared.get_errors(gui, PAGE):  # b)
+        shared.set_changed(gui, PAGE, False)
+        [do_func(gui) for do_func in iface.run_after]
         return
     if 'aligner' not in iface:
         get_help(None, gui, remote)
@@ -156,22 +157,30 @@ def do_align(gui, remote=False):
     for gene in data.genes:
         iface.txt = 'aligning %s [%d/%d]' % (gene, i + 1, k - 2)
         try:
+            # TODO filenotfounderror
             if remote:
-                iface.aligner.build_remote(gene)
+                iface.aligner.build_remote(gene, new_arg=iface.msa.cmd[iface.msa.algo])
             else:
-                iface.aligner.build_local(gene)
+                iface.aligner.build_local(gene, new_arg=iface.msa.remote_cmd[iface.msa.algo])
         except (OSError, subprocess.CalledProcessError) as e:
             exceptions.append(str(e))
         i += 1
         iface.frac = i / k
     LOG.info('built MSAs')
     iface.txt = 'concatenating MSAs'
-    iface.aligner.concat_msa(raw=True)
-    i += 1
-    iface.frac = i / k
-    iface.txt = 'comparing SHA256 hashes'
-    compare_hashes(gui)
-    iface.frac = 1
+    try:
+        # TODO filenotfounderror
+        # try:
+        iface.aligner.concat_msa(gui=True)
+        # except FileNotFoundError as fe:
+        #     exceptions.append('MSA file not found. Please re-select the MSA')
+        i += 1
+        iface.frac = i / k
+        iface.txt = 'comparing SHA256 hashes'
+        compare_hashes(gui)
+        iface.frac = 1
+    except ValueError as e:
+        exceptions.append(str(e))
     GObject.idle_add(stop_align, gui, exceptions)
 
 

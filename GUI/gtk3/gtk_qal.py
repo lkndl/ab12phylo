@@ -26,13 +26,13 @@ LOG = logging.getLogger(__name__)
 plt.set_loglevel('warning')
 PAGE = 2
 
+"""The page for ABI trace trimming. Very similar to the MSA trimming page gtk_gbl.py"""
+
 
 # todo do not re-read if some were removed
 
 
 def init(gui):
-    # iface.gene_handler = iface.gene_roll.connect('changed', parse, None, gui)
-    # iface.quality_refresh.connect('clicked', lambda *args: start_trim(gui))
     data, iface = gui.data, gui.iface
 
     iface.rev_handler = iface.accept_rev.connect('toggled', parse, None, gui)
@@ -47,17 +47,17 @@ def init(gui):
                              qal_win.set_hadjustment(args[0].get_adjustment()))
 
     # this is kept up-to-date by the signals below
-    iface.q_params = Namespace(gene_roll='all')
+    iface.qal = Namespace(gene_roll='all')
 
     for w_name in ['min_phred', 'trim_out', 'trim_of', 'bad_stretch']:
         wi = iface.__getattribute__(w_name)
-        iface.q_params.__setattr__(w_name, int(wi.get_text()))
+        iface.qal.__setattr__(w_name, int(wi.get_text()))
         wi.connect('changed', edit, data, iface)
         wi.connect('focus_out_event', parse, gui)
         wi.connect('activate', parse, None, gui)
 
     for w_name in ['accept_rev', 'accept_nophred']:
-        iface.q_params.__setattr__(w_name, iface.__getattribute__(w_name).get_active())
+        iface.qal.__setattr__(w_name, iface.__getattribute__(w_name).get_active())
 
     for wi in [iface.trim_out, iface.trim_of, iface.bad_stretch]:
         wi.connect('key-press-event', keypress, data, iface)
@@ -72,7 +72,7 @@ def init(gui):
         cell_renderer=Gtk.CellRendererToggle(radio=False)))
 
     iface.view_qal.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
-    iface.view_qal.connect('size_allocate', get_dims, gui)
+    iface.view_qal.connect('size_allocate', shared.get_dims, iface.qal_spacer, [iface.qal_win])
     iface.view_qal.connect('key_press_event', delete_and_ignore_rows, gui, PAGE, iface.view_qal.get_selection())
 
 
@@ -81,9 +81,9 @@ def refresh(gui):
     if not (gui.wd / shared.PREVIEW).exists() or 0 in data.qal_shape:
         start_trim(gui)
         return
-    get_dims(iface.view_qal, None, gui)
 
     # place the png preview
+    data.qal_shape[1] = shared.get_dims(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
     [child.destroy() for child in iface.qal_win.get_children()]
     pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
         str(gui.wd / shared.PREVIEW),
@@ -109,7 +109,7 @@ def start_trim(gui):
         return
 
     if not data.seqdata:
-        gtk_rgx.start_read(gui, run_after=start_trim)
+        gtk_rgx.start_read(gui, run_after=[start_trim])
         return
 
     with iface.gene_roll.handler_block(iface.gene_handler):
@@ -142,11 +142,11 @@ def do_trim(gui):
     """
     data, iface = gui.data, gui.iface
     # parameters are up-to-date
-    LOG.debug('re-draw with %s' % str(iface.q_params))
+    LOG.debug('re-draw with %s' % str(iface.qal))
     iface.frac = 0
     iface.txt = 'creating matrix'
     rows = list()
-    p = iface.q_params
+    p = iface.qal
     p.gene_roll = data.genes if p.gene_roll == 'all' else p.gene_roll
     i = 0
     k = sum([len(data.seqdata[gene]) for gene in p.gene_roll]) + 3
@@ -214,7 +214,7 @@ def do_trim(gui):
         iface.frac = i / k
         iface.txt = 'place + resize'
         data.qal_shape[0] = seq_array.shape[1] * 4
-        data.qal_shape[1] = get_dims(iface.view_qal, None, gui)[1]
+        data.qal_shape[1] = shared.get_dims(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
         canvas.set_size_request(data.qal_shape[0], data.qal_shape[1])
         try:
             iface.qal_win.add(canvas)
@@ -276,11 +276,7 @@ def keypress(widget, event, data, iface):
 
 def edit(widget, data, iface):
     """
-    Edit a treeview cell in-place and save the result
-    :param widget:
-    :param data:
-    :param iface:
-    :return:
+    Edit a GtkTreeView cell in-place and save the result
     """
     LOG.debug('editing')
     # filter for numbers only
@@ -291,12 +287,6 @@ def edit(widget, data, iface):
 def delete_and_ignore_rows(widget, event, gui, page, selection):
     """
     Keep track of the rows that will not be written to the fasta and delete them from the treeview
-    :param widget: 
-    :param event: 
-    :param gui: 
-    :param page: 
-    :param selection: 
-    :return: 
     """
     data, iface = gui.data, gui.iface
     if Gdk.keyval_name(event.keyval) == 'Delete':
@@ -315,7 +305,7 @@ def parse(widget, event, gui):
     """
     Parse the content of a widget and if something changed cause a re-draw
     :param widget: The element to parse and inspect for changes
-    :param event: sometimes passed by the signal
+    :param event: passed by some signals -> focus_out_event
     :param gui:
     :return:
     """
@@ -323,7 +313,7 @@ def parse(widget, event, gui):
     LOG.debug('parsing for re-draw')
     pre = None
     try:
-        pre = iface.q_params.__getattribute__(widget.get_name())
+        pre = iface.qal.__getattribute__(widget.get_name())
     except KeyError:
         exit('%s not in q_params' % widget.get_name())
     # getting new value depends on widget type
@@ -343,10 +333,10 @@ def parse(widget, event, gui):
     if pre == now:
         LOG.debug('no change, skip re-draw')
         return
-    iface.q_params.__setattr__(widget.get_name(), now)
-    if iface.q_params.trim_out > iface.q_params.trim_of:
+    iface.qal.__setattr__(widget.get_name(), now)
+    if iface.qal.trim_out > iface.qal.trim_of:
         shared.show_notification(gui, 'cannot draw %d from %d' %
-                                 (iface.q_params.trim_out, iface.q_params.trim_of))
+                                 (iface.qal.trim_out, iface.qal.trim_of))
         widget.set_text('0')
     else:
         shared.set_changed(gui, PAGE)
@@ -369,7 +359,7 @@ def trim_all(gui, run_after=None):
         gtk_rgx.start_read(gui, run_after=[trim_all])
         return
 
-    p = iface.q_params
+    p = iface.qal
     LOG.debug('writing collated .fasta files')
     for gene, genedata in data.seqdata.items():
         Path.mkdir(gui.wd / gene, exist_ok=True)
@@ -395,20 +385,8 @@ def trim_all(gui, run_after=None):
 
     shared.set_changed(gui, PAGE, False)
     if run_after:
-        [run(gui)for run in run_after]
-
-
-def get_dims(view_qal, event, gui):
-    data, iface = gui.data, gui.iface
-    w, h = view_qal.get_allocated_width(), view_qal.get_allocated_height()
-    iface.qal_spacer.set_size_request(w, -1)
-    iface.qal_win.set_max_content_height(h)
-    try:
-        iface.qal_win.get_children()[0].set_size_request(w, h)
-    except IndexError:
-        pass
-    data.qal_shape[1] = h
-    return w, h
+        [run(gui) for run in run_after]
+    return
 
 
 def onpick(event):

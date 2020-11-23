@@ -178,8 +178,8 @@ def proceed(widget, gui=None, page=None):
 
     # then proceed
     iface.notebook.next_page()
-    # hide old notifications
-    gui.iface.revealer.set_reveal_child(True)
+    # # hide old notifications
+    # gui.iface.revealer.set_reveal_child(False)
     LOG.debug('proceeded to page %d' % iface.notebook.get_current_page())
 
 
@@ -227,10 +227,32 @@ def get_column(list_store, col_idx):
     return col
 
 
+def get_dims(widget, event, spacer, scroll_wins):
+    """
+    Adjust the height of a plot in a GtkScrolledWindow depending on the height of the
+    associated labeling column. Adjust the width of the spacer below the labels so that
+    the scrollbar below the plot has exactly the width of the latter.
+    :param widget: the label column whose re-sizing causes this event
+    :param event: will be ignored
+    :param spacer: below the label column and next to the scrollbar that will be resized, too
+    :param scroll_wins: one or two GtkScrolledWindows containing plots
+    """
+    w, h = widget.get_allocated_width(), widget.get_allocated_height()
+    spacer.set_size_request(w, -1)
+    for sw in scroll_wins:
+        sw.set_max_content_height(h)
+        try:
+            sw.get_children()[0].set_size_request(w,h)
+        except IndexError:
+            print('yup')  # TODO that just re-sized but ok
+            pass
+    return h
+
+
 def update(iface, page):
     """
-    Keep the progress bar up-to-date
-    :param page: the page to freeze
+    Keep the progress bar up-to-date. TODO freeze the action bar?
+    :param page: the index of the current page, which will be frozen
     """
     if iface.running:
         iface.notebook.get_children()[page].set_sensitive(False)

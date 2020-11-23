@@ -537,12 +537,12 @@ def stop_read(gui, errors, warnings):
     iface.prog_bar.set_text('idle')
     LOG.info('regex thread idle')
     if errors or warnings:
-        shared.show_notification(gui, 'File troubles', ['error:%s' % f for f in errors] +
-                                 ['warning:%s' % f for f in warnings])
+        shared.show_notification(gui, 'File troubles', ['error: %s' % f for f in errors] +
+                                 ['warning: %s' % f for f in warnings])
     # now finally flip to next page
     shared.set_changed(gui, PAGE, False)
 
     # *Now* go back to where you came from
     if iface.run_after:
-        [run(gui)for run in iface.run_after]
+        [do_func(gui)for do_func in iface.run_after]
     return
