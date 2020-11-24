@@ -211,7 +211,9 @@ def re_run(gui, *args):
     """Depending on the currently visible page, re-run the matching background task."""
     if args:
         gui = args[-1]
-    RERUN[gui.iface.notebook.get_current_page()](gui)
+    page = gui.iface.notebook.get_current_page()
+    # gui.iface.refresh.grab_focus()
+    RERUN[page](gui)
 
 
 def refresh(gui, *args):
@@ -266,9 +268,10 @@ def get_dims(widget, event, spacer, scroll_wins, lower=0):
 
 def update(iface, page):
     """
-    Keep the progress bar up-to-date.
+    Keep the progress bar up-to-date, and slowly moving rightwards
     :param page: the index of the current page, which will be frozen
     """
+    iface.frac = min(iface.frac + 0.001, 1)
     if iface.running:
         iface.notebook.get_children()[page].set_sensitive(False)
         iface.prog_bar.set_visible(True)
@@ -292,6 +295,7 @@ class picklable_liststore(Gtk.ListStore):
     """
 
     def __reduce__(self):
+        rows = list()
         try:
             rows = [list(row) for row in self]
             coltypes = [type(c) for c in rows[0]]
@@ -308,6 +312,7 @@ class picklable_liststore(Gtk.ListStore):
             elif cols == 7:
                 coltypes = [str, str, str, str, str, bool, bool, str]
             else:
+                print('assert False')
                 assert False
             return _unpickle_liststore, (self.__class__, coltypes, rows)
         except Exception as ex:

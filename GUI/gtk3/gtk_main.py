@@ -37,6 +37,10 @@ Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
 # TODO refactor changed into unfinished?
 # TODO freeze actionbar?
 
+# TODO png-only, zoom levels, rechtsklick
+#   refactor matrices, save as square, svg
+# TODO not visible on refresh
+
 class app(Gtk.Application):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
     ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
@@ -44,6 +48,7 @@ class app(Gtk.Application):
     def do_activate(self):
         self.add_window(self.win)
         self.win.show_all()
+        self.win.present()  # TODO move win on top
 
     def __init__(self):
         Gtk.Application.__init__(self)
@@ -90,6 +95,7 @@ class app(Gtk.Application):
         css_provider.load_from_data(b'''
         .codeview text { background-color: %s(@bg_color); color: %s(@fg_color); }
         .seqid { font-size: xx-small; }
+        separator.wide { min-width: 15px; background-color: @fg-color; }
         button:active { background-color: #17f }
         ''' % mod)
         # TODO CSS also supports key bindings ... zoom?
@@ -132,7 +138,7 @@ class app(Gtk.Application):
         iface.back.connect('clicked', shared.step_back, self)
         shared.bind_accelerator(self.accelerators, iface.back, '<Alt>Left')
         iface.refresh.connect('clicked', shared.re_run, self)
-        shared.bind_accelerator(self.accelerators, iface.back, '<Control>r')
+        shared.bind_accelerator(self.accelerators, iface.refresh, 'Return')
         # connect gene switcher
         iface.gene_handler = iface.gene_roll.connect('changed', shared.select, self)
         # any page change
@@ -214,6 +220,7 @@ class app(Gtk.Application):
             self.iface.notebook.set_current_page(self.data.page)
             shared.refresh(self)
         except Exception as e:
+            print(str(e))
             shared.show_notification(self, 'Project could not be loaded')
 
     def save(self, event, copy_from=None):

@@ -51,8 +51,8 @@ def init(gui):
         wi = iface.__getattribute__(w_name)
         iface.qal.__setattr__(w_name, int(wi.get_text()))
         wi.connect('changed', edit, data, iface)
-        # wi.connect('focus_out_event', parse, gui)
-        wi.connect('activate', parse, None, gui)
+        wi.connect('focus_out_event', parse, gui)
+        # wi.connect('activate', parse, None, gui)
 
     for w_name in ['accept_rev', 'accept_nophred']:
         iface.qal.__setattr__(w_name, iface.__getattribute__(w_name).get_active())
@@ -89,6 +89,48 @@ def refresh(gui):
         preserve_aspect_ratio=False)
     iface.qal_win.add(Gtk.Image.new_from_pixbuf(pixbuf))
     gui.win.show_all()
+
+
+def parse(widget, event, gui):
+    """
+    Parse the content of a widget. Hitting enter in an entry still calls this, which is good.
+    :param widget: The element to parse and inspect for changes
+    :param event: passed by some signals -> focus_out_event
+    :param gui:
+    :return:
+    """
+    data, iface = gui.data, gui.iface
+    LOG.debug('parsing for re-draw')
+    pre = None
+    try:
+        pre = iface.qal.__getattribute__(widget.get_name())
+    except KeyError:
+        exit('%s not in q_params' % widget.get_name())
+    # getting new value depends on widget type
+    if widget == iface.gene_roll:
+        now = widget.get_active_text()
+        now = data.genes if now == 'all' else {now}
+    elif widget in [iface.accept_rev, iface.accept_nophred]:
+        now = widget.get_active()
+    else:
+        try:
+            now = int(widget.get_text())
+        except ValueError:
+            now = 0
+    delete_event(widget, event)
+
+    # cause re-drawing if something changed
+    if pre == now:
+        LOG.debug('no change, skip re-draw')
+        return
+    iface.qal.__setattr__(widget.get_name(), now)
+    if iface.qal.trim_out > iface.qal.trim_of:
+        shared.show_notification(gui, 'cannot draw %d from %d' %
+                                 (iface.qal.trim_out, iface.qal.trim_of))
+        widget.set_text('0')
+    else:
+        shared.set_changed(gui, PAGE)
+        # start_trim(gui)
 
 
 def start_trim(gui):
@@ -213,7 +255,7 @@ def do_trim(gui):
         canvas.set_size_request(data.qal_shape[0], data.qal_shape[1])
         try:
             iface.qal_win.add(canvas)
-            iface.qal_tools.attach(NavigationToolbar(canvas, gui.win), 1, 1, 1, 1)
+            # iface.qal_tools.attach(NavigationToolbar(canvas, gui.win), 1, 1, 1, 1)
         except Gtk.Error as ex:
             LOG.error(ex)
 
@@ -295,48 +337,6 @@ def delete_and_ignore_rows(widget, event, gui, page, selection):
 
         shared.set_changed(gui, page, True)
         refresh(gui)
-
-
-def parse(widget, event, gui):
-    """
-    Parse the content of a widget and if something changed cause a re-draw
-    :param widget: The element to parse and inspect for changes
-    :param event: passed by some signals -> focus_out_event
-    :param gui:
-    :return:
-    """
-    data, iface = gui.data, gui.iface
-    LOG.debug('parsing for re-draw')
-    pre = None
-    try:
-        pre = iface.qal.__getattribute__(widget.get_name())
-    except KeyError:
-        exit('%s not in q_params' % widget.get_name())
-    # getting new value depends on widget type
-    if widget == iface.gene_roll:
-        now = widget.get_active_text()
-        now = data.genes if now == 'all' else {now}
-    elif widget in [iface.accept_rev, iface.accept_nophred]:
-        now = widget.get_active()
-    else:
-        try:
-            now = int(widget.get_text())
-        except ValueError:
-            now = 0
-    delete_event(widget, event)
-
-    # cause re-drawing if something changed
-    if pre == now:
-        LOG.debug('no change, skip re-draw')
-        return
-    iface.qal.__setattr__(widget.get_name(), now)
-    if iface.qal.trim_out > iface.qal.trim_of:
-        shared.show_notification(gui, 'cannot draw %d from %d' %
-                                 (iface.qal.trim_out, iface.qal.trim_of))
-        widget.set_text('0')
-    else:
-        shared.set_changed(gui, PAGE)
-        start_trim(gui)
 
 
 def trim_all(gui, run_after=None):

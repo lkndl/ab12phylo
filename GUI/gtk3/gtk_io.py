@@ -19,6 +19,11 @@ FILETYPES = ['.ab1', '.seq', '.fasta', '.fa']
 def init(gui):
     data, iface = gui.data, gui.iface
 
+    # blink the progress bar so the window allocates a size
+    iface.prog_bar.props.visible = True
+    gui.win.show_all()
+    iface.prog_bar.props.visible = False
+
     # trace file types
     # create a TreeView model
     iface.file_type_model = shared.picklable_liststore(str, bool)

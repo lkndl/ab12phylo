@@ -54,7 +54,7 @@ def init(gui):
 
     iface.gaps.connect('changed', lambda *args: iface.gbl.  # no assignment in lambda -> use __setattr__
                        __setattr__('gaps', iface.gaps.get_active_text()))
-    iface.gbl_preset.connect('changed', re_preset, gui)
+    iface.gbl_preset.connect_after('changed', re_preset, gui)
     iface.gbl_preset.set_active_id('relaxed')  # trigger initial values. not sure if works?
 
 
@@ -74,18 +74,27 @@ def refresh(gui):
         for r in SeqIO.parse(gui.wd / shared.RAW_MSA, 'fasta'):
             data.gbl_model.append([r.id, r.id])
             i += 1
-        data.msa_shape = len(r), i, 1, 1  # todo think if this is any use.
-        iface.msa_shape.set_text('%d : %d' % data.msa_shape[:2])
+        data.msa_shape = [len(r), i, -1, i]  # width-heigth-width_after-height
+        iface.msa_shape.set_text('%d : %d' % tuple(data.msa_shape[:2]))
+        iface.msa_shape_trimmed.set_text('%d : %d' % tuple(data.msa_shape[2:]))
         # set the adjustment boundaries of the spin buttons
         re_preset(iface.gbl_preset, gui)
         start_gbl(gui)
         return
 
-    # place the existing png preview
-    for wi, image in zip([iface.gbl_left, iface.gbl_right], [gui.wd / shared.LEFT, gui.wd / shared.RIGHT]):
+    try:
+        iface.msa_shape.set_text('%d : %d' % tuple(data.msa_shape[:2]))
+        iface.msa_shape_trimmed.set_text('%d : %d' % tuple(data.msa_shape[2:]))
+    except TypeError:
+        pass
+    # place the existing png
+    x_scale = data.msa_shape[2] / data.msa_shape[0]
+    LOG.debug('x scale: %.3f' % x_scale)
+    for x_scale, wi, image in zip([1, x_scale], [iface.gbl_left, iface.gbl_right],
+                                  [gui.wd / shared.LEFT, gui.wd / shared.RIGHT]):
         [child.destroy() for child in wi.get_children()]
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-            str(image), width=data.gbl_shape[0], height=data.gbl_shape[1],
+            str(image), width=data.gbl_shape[0] * x_scale, height=data.gbl_shape[1],
             preserve_aspect_ratio=False)
         wi.add(Gtk.Image.new_from_pixbuf(pixbuf))
     gui.win.show_all()
@@ -100,6 +109,8 @@ def re_preset(gbl_preset, gui):
     gbl = gui.iface.gbl
     n_sites, n_seqs = gui.data.msa_shape[:2]
 
+    if type(n_sites) != int:
+        print('stop')  # TODO delete
     # block / un-block SpinButtons
     [gui.iface.__getattribute__(w_name).set_sensitive(mode != 'skip')
      for w_name in ['conserved', 'flank', 'good_block', 'bad_block', 'gaps']]
@@ -157,6 +168,8 @@ def edit(wi, gui):
 
 
 def __start_gbl(widget, gui):
+    print(type(widget))
+    print(type(gui))
     start_gbl(gui)
 
 
@@ -187,7 +200,8 @@ def start_gbl(gui, run_after=None):
                               [gbl.conserved, gbl.flank, gbl.good_block, gbl.bad_block]]
     gaps = iface.gaps.get_active_text()[0]
     # failsave
-    flank = min(cons, flank)
+    if flank < cons:
+        flank = cons
     params = [cons, flank, bad, good, gaps]
     # check if they have changed
     if iface.gbl.params == params:
@@ -221,7 +235,7 @@ def do_gbl(gui):
                       r in SeqIO.parse(gui.wd / shared.RAW_MSA, 'fasta')])
     data.gbl_shape[0] = array.shape[1] * shared.H_SCALER
     # make everything beyond N completely transparent
-    array = np.ma.masked_where(array > shared.toint('N'), array)
+    # array = np.ma.masked_where(array > shared.toint('N'), array)
 
     i += 1
     iface.frac = i / k
@@ -257,35 +271,46 @@ def do_gbl(gui):
         for line in fh:
             if line.startswith('Flank positions of the') and \
                     line.strip().endswith('selected block(s)'):
-                blocks = fh.readline().strip()[9:-1].split(']  [')
+                lane = fh.readline()
+                line_blocks = lane.strip()[9:-1].split(']  [')
                 break
-    slices = {range(r[0], r[1] + 1) for r in
-              [[int(b) for b in block.split('  ')] for block in blocks]}
-    LOG.debug(slices)
+    if len(line_blocks) == 1:
+        err = 'no good blocks'
+        LOG.error(err)
+        errors.append(err)
+        GObject.idle_add(stop_gbl, gui, errors)
+        return True
+
+    slices = {range(r[0] - 1, r[1]) for r in
+              [[int(b) for b in block.split('  ')] for block in line_blocks]}
 
     i += 1
     iface.frac = i / k
     iface.txt = 'plot MSAs'
 
     # create a transparency mask
-    drop_cols = set()
+    blocks = set()
     while slices:
-        drop_cols |= set(slices.pop())
+        blocks |= set(slices.pop())
     gbl_mask = np.full(array.shape, shared.ALPHA)
-    gbl_mask[:, list(drop_cols)] = 1
+    gbl_mask[:, list(blocks)] = 1
+    data.msa_shape[2] = len(blocks)  # for completeness
+    LOG.debug('msa shape: %s' % str(data.msa_shape))
 
-    for alpha, win, png_path in zip([1, gbl_mask], [iface.gbl_left, iface.gbl_right],
-                                    [shared.LEFT, shared.RIGHT]):
+    for alpha, blocks, win, png_path in zip([gbl_mask, 1], [range(array.shape[1]), sorted(list(blocks))],
+                                            [iface.gbl_left, iface.gbl_right],
+                                            [shared.LEFT, shared.RIGHT]):
         f = Figure()
         ax = f.add_subplot(111)
-        mat = ax.matshow(array, alpha=alpha, cmap=ListedColormap(shared.colors),
+
+        mat = ax.matshow(array[:, blocks], alpha=alpha, cmap=ListedColormap(shared.colors),
                          vmin=-.5, vmax=len(shared.colors) - .5, aspect='auto')
         ax.axis('off')
         f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
         f.set_facecolor('none')
 
         canvas = FigureCanvas(f)
-        canvas.set_size_request(data.gbl_shape[0], data.gbl_shape[1])
+        canvas.set_size_request(len(blocks) * shared.H_SCALER, data.gbl_shape[1])  # width, height
         try:
             win.add(canvas)
         except Gtk.Error as ex:
@@ -328,6 +353,7 @@ def stop_gbl(gui, errors):
     LOG.info('gbl thread idle')
     shared.set_errors(gui, PAGE, bool(errors))
     shared.set_changed(gui, PAGE, False)
+    iface.msa_shape_trimmed.set_text('%d : %d' % tuple(gui.data.msa_shape[2:]))
     if errors:
         shared.show_notification(gui, 'Errors during MSA trimming', errors)
         return

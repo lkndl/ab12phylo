@@ -1589,7 +1589,7 @@
                             <property name="adjustment">qal_scroll_adj</property>
                             <property name="inverted">True</property>
                             <property name="show-fill-level">True</property>
-                            <property name="fill-level">12312213223453491004045080303836856320</property>
+                            <property name="restrict-to-fill-level">False</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -2662,6 +2662,9 @@
                                             <child internal-child="selection">
                                               <object class="GtkTreeSelection"/>
                                             </child>
+                                            <style>
+                                              <class name="seqid"/>
+                                            </style>
                                           </object>
                                         </child>
                                       </object>
@@ -2803,6 +2806,7 @@
                             <property name="adjustment">gbl_scroll_adj</property>
                             <property name="inverted">True</property>
                             <property name="show-fill-level">True</property>
+                            <property name="restrict-to-fill-level">False</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -2906,8 +2910,8 @@
                                   </object>
                                   <packing>
                                     <property name="left-attach">5</property>
-                                    <property name="top-attach">1</property>
-                                    <property name="height">3</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="height">4</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -2943,6 +2947,7 @@
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
                                         <property name="halign">start</property>
+                                        <property name="editable">False</property>
                                         <property name="width-chars">7</property>
                                         <property name="text" translatable="yes">skip</property>
                                       </object>
@@ -3005,17 +3010,6 @@
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">0</property>
-                                    <property name="width">4</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
                                     <property name="sensitive">False</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">end</property>
@@ -3025,6 +3019,49 @@
                                   <packing>
                                     <property name="left-attach">3</property>
                                     <property name="top-attach">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">good block</property>
+                                    <property name="justify">right</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">3</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">keep gaps</property>
+                                    <property name="justify">right</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">3</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="label" translatable="yes">trimmed</property>
+                                    <property name="justify">right</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="width">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -3068,39 +3105,12 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="sensitive">False</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="label" translatable="yes">good block</property>
-                                    <property name="justify">right</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">3</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="sensitive">False</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="label" translatable="yes">keep gaps</property>
-                                    <property name="justify">right</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">3</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkComboBoxText" id="gaps">
                                     <property name="name">gaps</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="tooltip-markup" translatable="yes">discard all positions where a sequence has a gap; keep half or all</property>
+                                    <property name="hexpand">False</property>
                                     <property name="active">2</property>
                                     <property name="has-entry">True</property>
                                     <items>
@@ -3112,6 +3122,7 @@
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
                                         <property name="halign">start</property>
+                                        <property name="editable">False</property>
                                         <property name="width-chars">7</property>
                                       </object>
                                     </child>
@@ -3119,6 +3130,21 @@
                                   <packing>
                                     <property name="left-attach">4</property>
                                     <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="msa_shape_trimmed">
+                                    <property name="name">msa_shape_trimmed</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">&lt;max seq length&gt; : # sequences</property>
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="label" translatable="yes">740 : 30</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">4</property>
+                                    <property name="top-attach">0</property>
                                   </packing>
                                 </child>
                               </object>
@@ -3791,7 +3817,6 @@
                             <property name="name">next</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="has-focus">True</property>
                             <property name="receives-default">True</property>
                             <child>
                               <object class="GtkBox">
