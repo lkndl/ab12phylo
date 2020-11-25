@@ -2,13 +2,14 @@
 
 import gi
 from pathlib import Path
+from time import sleep
 import logging
 import sys
 import copy
 import hashlib
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GdkPixbuf
 
 from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
 
@@ -187,7 +188,7 @@ def proceed(widget, gui=None, page=None):
             gtk_msa.start_align(None, gui, run_after=[proceed])
             return
         elif page == 4:
-            gtk_gbl.start_gbl(None, gui)
+            gtk_gbl.start_gbl(gui)
         set_changed(gui, page, False)
 
     # then proceed
@@ -243,6 +244,25 @@ def get_column(list_store, col_idx):
     return col
 
 
+def load_image(gtk_bin, img_path, width, height):
+    LOG.debug('load image')
+    child = gtk_bin.get_child()
+    if type(child) != Gtk.Image:
+        gtk_bin.remove(child)
+        child = Gtk.Image()
+        gtk_bin.add(child)
+
+    pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+        str(img_path), width=width, height=height,
+        preserve_aspect_ratio=False)
+    child.set_from_pixbuf(pb)
+
+
+def load_colorbar(gtk_image, wd):
+    gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
+        str(wd / CBAR), width=250, height=100, preserve_aspect_ratio=True))
+
+
 def get_dims(widget, event, spacer, scroll_wins, lower=0):
     """
     Adjust the height of a plot in a GtkScrolledWindow depending on the height of the
@@ -253,6 +273,7 @@ def get_dims(widget, event, spacer, scroll_wins, lower=0):
     :param spacer: below the label column and next to the scrollbar that will be resized, too
     :param scroll_wins: one or two GtkScrolledWindows containing plots
     """
+    LOG.debug('re-sizing')
     w, h = widget.get_allocated_width(), widget.get_allocated_height()
     spacer.set_size_request(w, -1)
     if lower:
@@ -263,7 +284,66 @@ def get_dims(widget, event, spacer, scroll_wins, lower=0):
             sw.get_children()[0].set_size_request(w, h)
         except IndexError:
             pass
+    print('new height: %d' % h, file=sys.stderr)
     return h
+
+
+def hadj(iface):
+    return iface.hadj.adj.get_value() * 2
+
+
+def scale(gtk_bin, factor):
+    """Horizontally stretch a pixbuf."""
+    child = gtk_bin.get_child()
+    if type(child) != Gtk.Image:
+        LOG.info('can not rescale %s' % str(type(child)))
+        return False
+    pb = child.get_pixbuf()
+    child.set_from_pixbuf(pb.scale_simple(
+        min(14000, pb.get_width() * factor), pb.get_height(),
+        GdkPixbuf.InterpType.NEAREST))
+    return True
+
+
+def h_adjust(adj, gui):
+    """
+    Horizontally scale a preview.
+    """
+    data, iface = gui.data, gui.iface
+    # with adj.hander_block(iface.hadj.handle):
+    val = max(.2, adj.get_value())
+    page = gui.iface.notebook.get_current_page()
+    shift = val - iface.hadj.bak
+    if shift > 0 > iface.hadj.trend:
+        iface.hadj.trend = shift
+
+    factor = val / iface.hadj.bak
+    iface.hadj.trend += factor - 1
+
+    if factor >= 2:
+        LOG.debug('re-loading images')
+        # re-load and re-set
+        iface.hadj.trend = 0
+        if page == 2:
+            load_image(iface.qal_eventbox, gui.wd / PREVIEW,
+                       data.qal_shape[0] * val * 2, data.qal_shape[1])
+        elif page == 4:
+            load_image(iface.gbl_left_eventbox, gui.wd / LEFT,
+                       data.msa_shape[0] * val * 2, data.gbl_shape[1])
+            sleep(.1)
+            load_image(iface.gbl_right_eventbox, gui.wd / RIGHT,
+                       data.msa_shape[2] * val * 2, data.gbl_shape[1])
+    else:
+        # scale in-place
+        LOG.debug('scale: %.2f fold' % factor)
+        if page == 2:
+            scale(iface.qal_eventbox, factor)
+        elif page == 4:
+            scale(iface.gbl_left_eventbox, factor)
+            sleep(.1)
+            scale(iface.gbl_right_eventbox, factor)
+    iface.hadj.bak = val
+    sleep(.1)
 
 
 def update(iface, page):
@@ -271,16 +351,21 @@ def update(iface, page):
     Keep the progress bar up-to-date, and slowly moving rightwards
     :param page: the index of the current page, which will be frozen
     """
-    iface.frac = min(iface.frac + 0.001, 1)
+    iface.frac = min(
+        max(iface.i / iface.k,  # base progress from caller thread iteration
+            iface.frac + 0.001),  # pretend to proceed
+        (iface.i + 1) / iface.k,  # but do not pass next iteration level
+        1)  # and never pass 1
     if iface.running:
         iface.notebook.get_children()[page].set_sensitive(False)
-        iface.prog_bar.set_visible(True)
         iface.prog_bar.set_fraction(iface.frac)
-        iface.prog_bar.set_text(iface.txt)
+        for wi in [iface.prog_bar, iface.prog_label]:
+            wi.set_visible(True)
+            wi.set_text(iface.text)
         return True
     else:
         iface.notebook.get_children()[page].set_sensitive(True)
-        iface.prog_bar.set_visible(False)
+        [wi.set_visible(False) for wi in [iface.prog_bar, iface.prog_label]]
         return False
 
 

@@ -18,7 +18,7 @@ from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject, GdkPixbuf
+from gi.repository import Gtk, Gdk, GObject, GdkPixbuf
 
 from GUI.gtk3 import shared
 
@@ -37,7 +37,7 @@ def init(gui):
     iface.view_gbl.set_model(data.gbl_model)
     iface.view_gbl.append_column(Gtk.TreeViewColumn(
         title='id', cell_renderer=Gtk.CellRendererText(), text=0))
-    iface.view_gbl.connect('size_allocate', shared.get_dims, iface.gbl_spacer,
+    iface.view_gbl.connect('check-resize', shared.get_dims, iface.gbl_spacer,
                            [iface.gbl_left, iface.gbl_right])
 
     iface.gbl_preset.set_id_column(0)
@@ -56,6 +56,37 @@ def init(gui):
                        __setattr__('gaps', iface.gaps.get_active_text()))
     iface.gbl_preset.connect_after('changed', re_preset, gui)
     iface.gbl_preset.set_active_id('relaxed')  # trigger initial values. not sure if works?
+
+
+#     # try zooming
+#     iface.hadj = iface.hadj_scale.get_adjustment()
+#     iface.hadj.connect_after('value-changed', hscale, gui)
+#     # iface.view_gbl.connect('scroll-event', zoom, gui)
+#
+#
+# def hscale(hadj, gui):
+#     LOG.debug('scaling')
+#     data, iface = gui.data, gui.iface
+#     val = hadj.props.value
+#     print('%.2f   %d' % (val, data.msa_shape[0]))
+#     iface.gbl_left.set_max_content_width(data.msa_shape[0] * val)
+#     iface.gbl_left.set_min_content_width(data.msa_shape[0] * val)
+#
+#     iface.gbl_right.set_max_content_width(data.msa_shape[2] * val)
+#     iface.gbl_right.set_min_content_width(data.msa_shape[2] * val)
+
+
+# def zoom(widget, event, gui):
+#
+#     print(type(widget))
+#     print('no')
+#     accel_mask = Gtk.accelerator_get_default_mod_mask()
+#     if event.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
+#         direction = event.get_scroll_deltas()[2]
+#         if direction > 0:  # scrolling down -> zoom out
+#             widget.set_zoom_level(widget.get_zoom_level() - 0.1)
+#         else:
+#             widget.set_zoom_level(widget.get_zoom_level() + 0.1)
 
 
 def refresh(gui):
@@ -89,14 +120,13 @@ def refresh(gui):
         pass
     # place the existing png
     x_scale = data.msa_shape[2] / data.msa_shape[0]
-    LOG.debug('x scale: %.3f' % x_scale)
-    for x_scale, wi, image in zip([1, x_scale], [iface.gbl_left, iface.gbl_right],
-                                  [gui.wd / shared.LEFT, gui.wd / shared.RIGHT]):
-        [child.destroy() for child in wi.get_children()]
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-            str(image), width=data.gbl_shape[0] * x_scale, height=data.gbl_shape[1],
-            preserve_aspect_ratio=False)
-        wi.add(Gtk.Image.new_from_pixbuf(pixbuf))
+    shared.load_image(iface.gbl_left_eventbox, gui.wd / shared.LEFT,
+                      width=data.gbl_shape[0] * shared.hadj(iface),
+                      height=data.gbl_shape[1])
+    shared.load_image(iface.gbl_right_eventbox, gui.wd / shared.RIGHT,
+                      width=data.gbl_shape[0] * shared.hadj(iface) * x_scale,
+                      height=data.gbl_shape[1])
+    shared.load_colorbar(iface.palplot2, gui.wd)
     gui.win.show_all()
 
 
@@ -209,13 +239,9 @@ def start_gbl(gui, run_after=None):
         return
     iface.gbl.params = params
 
-    [[child.destroy() for child in wi.get_children()]
-     for wi in [iface.gbl_left, iface.gbl_right]]
     iface.thread = threading.Thread(target=do_gbl, args=[gui])
     iface.run_after = run_after
     iface.running = True
-    iface.frac = 0
-    iface.txt = ''
     GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
     sleep(.1)
@@ -228,18 +254,19 @@ def do_gbl(gui):
 
     errors = list()
     iface.frac = .05
-    i = 0
-    k = 5
-    iface.txt = 'read MSA'
+    iface.i = 0
+    iface.k = 7
+    iface.text = 'read MSA'
+    LOG.debug(iface.text)
     array = np.array([shared.seqtoint(r.seq) for
                       r in SeqIO.parse(gui.wd / shared.RAW_MSA, 'fasta')])
-    data.gbl_shape[0] = array.shape[1] * shared.H_SCALER
+    data.gbl_shape[0] = array.shape[1] * shared.hadj(iface)
     # make everything beyond N completely transparent
-    # array = np.ma.masked_where(array > shared.toint('N'), array)
+    array = np.ma.masked_where(array > shared.toint('N'), array)
 
-    i += 1
-    iface.frac = i / k
-    iface.txt = 'run Gblocks'
+    iface.i += 1
+    iface.text = 'run Gblocks'
+    LOG.debug(iface.text)
 
     # look for local system Gblocks
     binary = shutil.which('Gblocks')
@@ -263,9 +290,9 @@ def do_gbl(gui):
             return True
 
     # parse result
-    i += 1
-    iface.frac = i / k
-    iface.txt = 'parse result'
+    iface.i += 1
+    iface.text = 'parse result'
+    LOG.debug(iface.text)
     shutil.move(gui.wd / shared.RAW_MSA.with_suffix('.fasta.txt'), gui.wd / shared.MSA)
     with open(gui.wd / shared.RAW_MSA.with_suffix('.fasta.txt.txts'), 'r') as fh:
         for line in fh:
@@ -284,60 +311,70 @@ def do_gbl(gui):
     slices = {range(r[0] - 1, r[1]) for r in
               [[int(b) for b in block.split('  ')] for block in line_blocks]}
 
-    i += 1
-    iface.frac = i / k
-    iface.txt = 'plot MSAs'
+    iface.i += 1
+    iface.text = 'plot MSAs'
+    LOG.debug(iface.text)
 
     # create a transparency mask
     blocks = set()
     while slices:
         blocks |= set(slices.pop())
+    blocks = sorted(list(blocks))
     gbl_mask = np.full(array.shape, shared.ALPHA)
-    gbl_mask[:, list(blocks)] = 1
+    gbl_mask[:, blocks] = 1
+
     data.msa_shape[2] = len(blocks)  # for completeness
     LOG.debug('msa shape: %s' % str(data.msa_shape))
+    x_scale = data.msa_shape[2] / data.msa_shape[0]
+    LOG.debug('x scale: %.3f' % x_scale)
 
-    for alpha, blocks, win, png_path in zip([gbl_mask, 1], [range(array.shape[1]), sorted(list(blocks))],
-                                            [iface.gbl_left, iface.gbl_right],
-                                            [shared.LEFT, shared.RIGHT]):
+    for alpha, blocks, gtk_bin, png_path, x_scale in zip([gbl_mask, 1], [range(array.shape[1]), blocks],
+                                                         [iface.gbl_left_eventbox, iface.gbl_right_eventbox],
+                                                         [shared.LEFT, shared.RIGHT], [1, x_scale]):
         f = Figure()
+        f.set_facecolor('none')
         ax = f.add_subplot(111)
-
-        mat = ax.matshow(array[:, blocks], alpha=alpha, cmap=ListedColormap(shared.colors),
-                         vmin=-.5, vmax=len(shared.colors) - .5, aspect='auto')
         ax.axis('off')
         f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-        f.set_facecolor('none')
+        mat = ax.matshow(array[:, blocks], alpha=alpha, cmap=ListedColormap(shared.colors),
+                         vmin=-.5, vmax=len(shared.colors) - .5, aspect='auto')
 
-        canvas = FigureCanvas(f)
-        canvas.set_size_request(len(blocks) * shared.H_SCALER, data.gbl_shape[1])  # width, height
-        try:
-            win.add(canvas)
-        except Gtk.Error as ex:
-            LOG.error(ex)
-        pass
+        iface.i += 1
+        iface.text = 'save'
+        LOG.debug(iface.text)
+        Path.mkdir(gui.wd / png_path.parent, exist_ok=True)
+        f.savefig(gui.wd / png_path, transparent=True,
+                  dpi=600, bbox_inches='tight', pad_inches=0)
 
-        if gui.wd:
-            LOG.debug('saving plot')
-            Path.mkdir(gui.wd / png_path.parent, exist_ok=True)
-            f.savefig(gui.wd / png_path, transparent=True,
-                      dpi=600, bbox_inches='tight', pad_inches=0)
+        # experimentally good point to re-size
+        data.gbl_shape[1] = shared.get_dims(iface.view_gbl, None, iface.gbl_spacer,
+                                            [iface.gbl_left, iface.gbl_right])
+
+        if iface.rasterize.props.active:
+            iface.text = 'place PNG'
+            LOG.debug(iface.text)
+            shared.load_image(gtk_bin, gui.wd / png_path,
+                              data.gbl_shape[0] * x_scale * shared.hadj(iface), data.gbl_shape[1])
         else:
-            assert False
-        i += 1
-        iface.frac = i / k
+            iface.text = 'place vector'
+            LOG.debug(iface.text)
+            canvas = FigureCanvas(f)
+            canvas.set_size_request(len(blocks) * shared.hadj(iface), data.gbl_shape[1])  # width, height
+            try:
+                gtk_bin.remove(gtk_bin.get_child())
+                gtk_bin.add(canvas)
+            except Gtk.Error as ex:
+                LOG.error(ex)
+        iface.i += 1
 
-    # experimentally good point to re-size
-    data.gbl_shape[1] = shared.get_dims(iface.view_gbl, None, iface.gbl_spacer,
-                                        [iface.gbl_left, iface.gbl_right])
     # re-size
     for wi in [iface.gbl_left, iface.gbl_right]:
         wi.set_max_content_height(data.gbl_shape[1])
 
-    pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-        str(gui.wd / shared.CBAR), 250, 100, preserve_aspect_ratio=True)
-    iface.palplot2.set_from_pixbuf(pb)
+    shared.load_colorbar(iface.palplot2, gui.wd)
 
+    iface.text = 'idle'
+    iface.frac = 1
     sleep(.1)
     GObject.idle_add(stop_gbl, gui, errors)
     return True
@@ -349,7 +386,6 @@ def stop_gbl(gui, errors):
     iface.running = False
     iface.thread.join()
     gui.win.show_all()
-    iface.prog_bar.props.text = 'idle'
     LOG.info('gbl thread idle')
     shared.set_errors(gui, PAGE, bool(errors))
     shared.set_changed(gui, PAGE, False)

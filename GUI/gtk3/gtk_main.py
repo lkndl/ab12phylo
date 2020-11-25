@@ -26,7 +26,7 @@ from gi.repository import Gtk, Gdk, GLib, GObject
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
-__verbose__, __info__ = 0, 1
+__verbose__, __info__ = 1, 0
 
 # set the icon theme
 Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Maia')
@@ -34,12 +34,13 @@ Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
 
 
 # TODO write in a tempdir?
-# TODO refactor changed into unfinished?
 # TODO freeze actionbar?
 
-# TODO png-only, zoom levels, rechtsklick
+# TODO zoom levels, rechtsklick
 #   refactor matrices, save as square, svg
-# TODO not visible on refresh
+
+# TODO measure scale-up, then re-load
+# DONE prog-bar do not increase beyond next step
 
 class app(Gtk.Application):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
@@ -48,7 +49,13 @@ class app(Gtk.Application):
     def do_activate(self):
         self.add_window(self.win)
         self.win.show_all()
-        self.win.present()  # TODO move win on top
+        # self.win.present()  # useless alternative
+
+    def do_shutdown(self):
+        # delete data if it was in the prelim directory
+        if self.wd == Path.cwd() / 'untitled':
+            LOG.info('shutdown: delete prelim data')
+            shutil.rmtree(path=self.wd)
 
     def __init__(self):
         Gtk.Application.__init__(self)
@@ -70,14 +77,23 @@ class app(Gtk.Application):
         tbar.pack_start(iface.menu_bar)
         self.win.set_titlebar(tbar)
         self.win.set_hide_titlebar_when_maximized(True)
+        self.win.set_title('AB12PHYLO [untitled]')
         LOG.debug('GTK Window initialized')
+
+        self.log = logging.getLogger()
+        self._init_log()
 
         # set up an empty thread so Gtk can get used to it
         iface.thread = threading.Thread()
         iface.running = False
+        iface.i = 0
+        iface.k = 1
         iface.frac = 0
-        iface.txt = ''
+        iface.text = 'idle'
         iface.run_after = []
+
+        # whether to draw raster (fast) or vector images is a button state
+        iface.rasterize.props.active
 
         # set up preliminary working directory
         self.project_path = None
@@ -95,11 +111,14 @@ class app(Gtk.Application):
         css_provider.load_from_data(b'''
         .codeview text { background-color: %s(@bg_color); color: %s(@fg_color); }
         .seqid { font-size: xx-small; }
-        separator.wide { min-width: 15px; background-color: @fg-color; }
+        separator.wide { min-width: 18px }
+        progressbar trough progress { min-height: 8px; border-radius: 1px; }
+        progressbar trough { min-height: 8px; }
+        #prog_label { font-size: x-small }
         button:active { background-color: #17f }
         ''' % mod)
         # TODO CSS also supports key bindings ... zoom?
-        # treeview {background-color: darker(@bg_color);}
+        # treeview {background-color: darker(@bg_color);} separator has margin-left
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css_provider,
                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         # get some colors
@@ -129,7 +148,7 @@ class app(Gtk.Application):
         shared.bind_accelerator(self.accelerators, iface.open, '<Control>o', 'activate')
         iface.save.connect('activate', self.save)
         shared.bind_accelerator(self.accelerators, iface.save, '<Control>s', 'activate')
-        iface.saveas.connect('activate', self.saveas)
+        iface.saveas.connect('activate', self.save_as)
         shared.bind_accelerator(self.accelerators, iface.saveas, '<Control><Shift>s', 'activate')
 
         # connect buttons
@@ -158,7 +177,8 @@ class app(Gtk.Application):
         gtk_msa.init(self)
         gtk_gbl.init(self)
 
-        self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
+        self.load('/home/quirin/PYTHON/outputwd/base.proj')
+        # self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
 
     def new(self, confirm=True):
         """
@@ -223,14 +243,14 @@ class app(Gtk.Application):
             print(str(e))
             shared.show_notification(self, 'Project could not be loaded')
 
-    def save(self, event, copy_from=None):
+    def save(self, event):
         """
         Save project_dataset to file directly, unless it hasn't previously been saved.
         :param event: To ignore, GTK+ callback requires positional argument.
         :return:
         """
         if not self.project_path:
-            self.saveas(None)
+            self.save_as(None)
             return
         with open(self.project_path, 'wb') as proj:
             LOG.info('saving to %s' % self.project_path)
@@ -263,7 +283,7 @@ class app(Gtk.Application):
         self.wd = self.project_path.parent / self.project_path.stem
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
 
-    def saveas(self, event):
+    def save_as(self, event):
         """
         Save with a file dialog. If previously saved, suggest old filename.
         :param event: To ignore, GTK+ callback requires positional argument.
@@ -283,6 +303,30 @@ class app(Gtk.Application):
             LOG.debug('got save path to %s' % self.project_path)
             self.save(None)
         dialog.destroy()
+
+    def _init_log(self, **kwargs):
+        self.log.setLevel(logging.DEBUG)
+
+        if 'filename' in kwargs:
+            # init verbose logging to file
+            fh = logging.FileHandler(filename=kwargs['filename'], mode='w')
+            fh.setLevel(logging.DEBUG)
+            fh.setFormatter(logging.Formatter('%(asctime)s: %(levelname)s\t%(name)s\t%(message)s',
+                                              datefmt='%Y-%m-%d %H:%M:%S'))
+            self.log.addHandler(fh)
+
+        # init shortened console logging
+        sh = logging.StreamHandler(sys.stdout)
+        if __verbose__:
+            sh.setLevel(logging.DEBUG)
+            sh.setFormatter(logging.Formatter('%(levelname)s -- %(message)s'))
+        elif __info__:
+            sh.setLevel(logging.INFO)
+            sh.setFormatter(logging.Formatter('%(message)s'))
+        else:
+            sh.setLevel(logging.WARNING)
+
+        self.log.addHandler(sh)
 
 
 class project_dataset:
@@ -343,36 +387,6 @@ class project_dataset:
                 except (AttributeError, TypeError) as ex:
                     LOG.error(ex)
 
-
-def _init_log(**kwargs):
-    """Initializes logging."""
-    log = logging.getLogger()
-    log.setLevel(logging.DEBUG)
-
-    if 'filename' in kwargs:
-        # init verbose logging to file
-        fh = logging.FileHandler(filename=kwargs['filename'], mode='w')
-        fh.setLevel(logging.DEBUG)
-        fh.setFormatter(logging.Formatter('%(asctime)s: %(levelname)s\t%(name)s\t%(message)s',
-                                          datefmt='%Y-%m-%d %H:%M:%S'))
-        log.addHandler(fh)
-
-    # init shortened console logging
-    sh = logging.StreamHandler(sys.stdout)
-    if __verbose__:
-        sh.setLevel(logging.DEBUG)
-        sh.setFormatter(logging.Formatter('%(levelname)s -- %(message)s'))
-    elif __info__:
-        sh.setLevel(logging.INFO)
-        sh.setFormatter(logging.Formatter('%(message)s'))
-    else:
-        sh.setLevel(logging.WARNING)
-
-    log.addHandler(sh)
-
-
-_init_log()  # filename='nope')
-LOG.info('AB12PHYLO GUI version')
 
 app = app()
 exit_status = app.run(sys.argv)

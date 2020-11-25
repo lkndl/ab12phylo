@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from argparse import Namespace
 
 import gi
 
@@ -77,6 +78,17 @@ def init(gui):
         tv.connect('key-press-event', shared.tv_keypress, gui, PAGE, sel)
         iface.__getattribute__('delete_all_%s' % file_type) \
             .connect('clicked', shared.delete_rows, gui, PAGE, sel, mo)
+
+    iface.rasterize.set_visible(False)
+    # horizontal scaling
+    iface.hadj = Namespace()
+    iface.hadj.adj = iface.hadj_scale.get_adjustment()
+    iface.hadj.adj.configure(1, .2, 2.6, .2, 0, 0)
+    iface.hadj_scale.set_digits(1)
+    iface.hadj_scale1.set_digits(1)
+    iface.hadj.bak = iface.hadj.adj.get_value()
+    iface.hadj.trend = 0
+    iface.hadj.handle = iface.hadj.adj.connect_after('value-changed', shared.h_adjust, gui)
 
 
 def add_folder(widget, gui, file_type, model):

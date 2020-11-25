@@ -13,6 +13,13 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="h_scale_adj">
+    <property name="upper">4</property>
+    <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+    <property name="page-size">0.5</property>
+  </object>
   <object class="GtkMenuBar" id="menu_bar">
     <property name="name">menu_bar</property>
     <property name="visible">True</property>
@@ -1532,11 +1539,19 @@
                                             <property name="can-focus">False</property>
                                             <property name="hadjustment">qal_scroll_adj</property>
                                             <child>
-                                              <object class="GtkLabel">
-                                                <property name="height-request">470</property>
+                                              <object class="GtkEventBox" id="qal_eventbox">
+                                                <property name="name">qal_eventbox</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
-                                                <property name="label" translatable="yes">&lt;placeholder&gt;</property>
+                                                <property name="above-child">True</property>
+                                                <child>
+                                                  <object class="GtkLabel">
+                                                    <property name="height-request">400</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="label" translatable="yes">&lt;placeholder&gt;</property>
+                                                  </object>
+                                                </child>
                                               </object>
                                             </child>
                                           </object>
@@ -1877,12 +1892,11 @@
                               </packing>
                             </child>
                             <child>
-                              <!-- n-columns=1 n-rows=2 -->
+                              <!-- n-columns=2 n-rows=3 -->
                               <object class="GtkGrid" id="qal_tools">
                                 <property name="name">qal_tools</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="hexpand">False</property>
                                 <property name="row-spacing">10</property>
                                 <child>
                                   <object class="GtkImage" id="palplot">
@@ -1893,15 +1907,51 @@
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkScale" id="hadj_scale1">
+                                    <property name="name">hadj_scale1</property>
+                                    <property name="width-request">250</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="adjustment">h_scale_adj</property>
+                                    <property name="round-digits">0</property>
+                                    <property name="digits">0</property>
+                                    <property name="has-origin">False</property>
+                                    <property name="value-pos">bottom</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
                                     <property name="top-attach">1</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <placeholder/>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="hexpand">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="height">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
                                 </child>
                               </object>
                               <packing>
-                                <property name="expand">False</property>
+                                <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="position">1</property>
                               </packing>
@@ -2720,11 +2770,19 @@
                                                 <property name="can-focus">False</property>
                                                 <property name="hadjustment">gbl_scroll_adj</property>
                                                 <child>
-                                                  <object class="GtkLabel">
-                                                    <property name="height-request">470</property>
+                                                  <object class="GtkEventBox" id="gbl_left_eventbox">
+                                                    <property name="name">gbl_left_eventbox</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="label" translatable="yes">&lt;placeholder&gt;</property>
+                                                    <property name="above-child">True</property>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="height-request">400</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label" translatable="yes">&lt;placeholder&gt;</property>
+                                                      </object>
+                                                    </child>
                                                   </object>
                                                 </child>
                                               </object>
@@ -2752,11 +2810,19 @@
                                                 <property name="can-focus">False</property>
                                                 <property name="hadjustment">gbl_scroll_adj</property>
                                                 <child>
-                                                  <object class="GtkLabel">
-                                                    <property name="height-request">470</property>
+                                                  <object class="GtkEventBox" id="gbl_right_eventbox">
+                                                    <property name="name">gbl_right_eventbox</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="label" translatable="yes">&lt;placeholder&gt;</property>
+                                                    <property name="above-child">True</property>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="height-request">400</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label" translatable="yes">&lt;placeholder&gt;</property>
+                                                      </object>
+                                                    </child>
                                                   </object>
                                                 </child>
                                               </object>
@@ -2946,10 +3012,7 @@
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="editable">False</property>
                                         <property name="width-chars">7</property>
-                                        <property name="text" translatable="yes">skip</property>
                                       </object>
                                     </child>
                                   </object>
@@ -3121,8 +3184,6 @@
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="editable">False</property>
                                         <property name="width-chars">7</property>
                                       </object>
                                     </child>
@@ -3155,7 +3216,7 @@
                               </packing>
                             </child>
                             <child>
-                              <!-- n-columns=1 n-rows=2 -->
+                              <!-- n-columns=2 n-rows=3 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -3178,7 +3239,6 @@
                                     <property name="name">gbl_cmd</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
                                     <property name="editable">False</property>
                                     <property name="wrap-mode">word</property>
@@ -3194,7 +3254,36 @@
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkScale" id="hadj_scale">
+                                    <property name="name">hadj_scale</property>
+                                    <property name="width-request">250</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="adjustment">h_scale_adj</property>
+                                    <property name="round-digits">0</property>
+                                    <property name="digits">0</property>
+                                    <property name="has-origin">False</property>
+                                    <property name="value-pos">bottom</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
                                     <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="hexpand">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="height">3</property>
                                   </packing>
                                 </child>
                               </object>
@@ -3693,9 +3782,52 @@
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="halign">end</property>
                     <property name="hexpand">True</property>
-                    <property name="orientation">vertical</property>
+                    <property name="spacing">18</property>
+                    <child>
+                      <object class="GtkLabel" id="prog_label">
+                        <property name="name">prog_label</property>
+                        <property name="width-request">10</property>
+                        <property name="sensitive">False</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="hexpand">False</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="hexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="rasterize">
+                        <property name="label" translatable="yes">rasterize plots</property>
+                        <property name="name">rasterize</property>
+                        <property name="can-focus">True</property>
+                        <property name="has-default">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="no-show-all">True</property>
+                        <property name="active">True</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
                     <child>
                       <object class="GtkButtonBox">
                         <property name="visible">True</property>
@@ -3862,7 +3994,7 @@
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">0</property>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                   </object>
@@ -3881,9 +4013,8 @@
                 <property name="name">prog_bar</property>
                 <property name="can-focus">False</property>
                 <property name="no-show-all">True</property>
-                <property name="margin-top">4</property>
+                <property name="hexpand">True</property>
                 <property name="vexpand">False</property>
-                <property name="show-text">True</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>

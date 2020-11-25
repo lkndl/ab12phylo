@@ -18,7 +18,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
 from GUI.gtk3 import shared
-from ab12phylo import filter
+from ab12phylo.filter import new_version
 
 LOG = logging.getLogger(__name__)
 PAGE = 1
@@ -389,14 +389,13 @@ def start_read(gui, run_after=None):
 
 def do_read(gui):
     data, iface = gui.data, gui.iface
-    iface.frac = 0
-    iface.txt = ''
+    iface.text = ''
+    iface.i = 0
+    iface.k = len(data.trace_store) + len(data.plate_store)
     data.csvs.clear()
     data.seqdata.clear()
     data.record_order.clear()
     records, warnings, errors = list(), set(), set()
-    all_there_is_to_do = len(data.trace_store) + len(data.plate_store)
-    done = 0
 
     # use random but reproducible prefixes for references. different seed from raxml -> less confusion
     random.seed(data.seed + 2)
@@ -406,7 +405,7 @@ def do_read(gui):
 
     # read in wellsplates
     LOG.debug('reading wellsplates')
-    iface.txt = 'reading plates ...'
+    iface.text = 'reading plates ...'
     for row in data.plate_store:
         df = pd.read_csv(row[0], header=None, engine='python')
         df.index = list(range(1, df.shape[0] + 1))
@@ -415,14 +414,13 @@ def do_read(gui):
         if box in data.csvs:
             errors.add('overwrite wellsplate %s with %s' % (box, file))
         data.csvs[box] = df
-        done += 1
-        iface.frac = done / all_there_is_to_do
+        iface.i += 1
 
     # read in trace files
     LOG.debug('reading traces')
     for row in data.trace_store:
         file_path, file, coords, box, gene, is_ref, is_rev, color = row
-        iface.txt = 'reading %s' % file
+        iface.text = 'reading %s' % file
 
         # read in one file
         if file_path.endswith('.ab1'):
@@ -447,7 +445,7 @@ def do_read(gui):
             elif record.id in data.seqdata[gene]:
                 warnings.add('duplicate ID %s' % record.id)
                 # add suffix to duplicate IDs
-                record = filter.new_version(record, data.seqdata[gene].keys())
+                record = new_version(record, data.seqdata[gene].keys())
 
             # normal sequence
             if not is_ref:
@@ -513,9 +511,10 @@ def do_read(gui):
             # save the order of all records
             data.record_order.append((record.id, gene))
 
-        done += 1
-        iface.frac = done / all_there_is_to_do
+        iface.i += 1
 
+    iface.text = 'idle'
+    iface.frac = 1
     LOG.debug('reading done')
     GObject.idle_add(stop_read, gui, errors, warnings)
     return
@@ -533,7 +532,6 @@ def stop_read(gui, errors, warnings):
     data, iface = gui.data, gui.iface
     iface.running = False
     iface.thread.join()
-    iface.prog_bar.set_text('idle')
     LOG.info('rgx thread idle')
     if errors or warnings:
         shared.show_notification(gui, 'File troubles', ['error: %s' % f for f in errors] +

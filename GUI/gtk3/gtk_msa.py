@@ -159,7 +159,7 @@ def do_align(gui, remote=False):
                        [iface.msa.cmd, iface.msa.remote_cmd]
     try:
         for gene in data.genes:
-            iface.txt = 'aligning %s [%d/%d]' % (gene, i + 1, k - 2)
+            iface.text = 'aligning %s [%d/%d]' % (gene, i + 1, k - 2)
             try:
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
                                             % tuple([gene] * 4))  # interpreting bool as int here
@@ -171,7 +171,7 @@ def do_align(gui, remote=False):
             i += 1
             iface.frac = i / k
         LOG.info('built MSAs')
-        iface.txt = 'concatenating MSAs'
+        iface.text = 'concatenating MSAs'
         try:
             iface.aligner.concat_msa(gui=True)
         except FileNotFoundError:
@@ -179,11 +179,11 @@ def do_align(gui, remote=False):
             iface.aligner.concat_msa(gui=True)
         i += 1
         iface.frac = i / k
-        iface.txt = 'comparing SHA256 hashes'
+        iface.text = 'comparing SHA256 hashes'
         compare_hashes(gui)
         iface.frac = 1
     except (OSError, subprocess.CalledProcessError) as e:
-        errors.append('%s at task %d (%s). invalid command?' % (type(e), i, iface.txt))
+        errors.append('%s at task %d (%s). invalid command?' % (type(e), i, iface.text))
     except FileNotFoundError:
         errors.append('MSA/sequences file not found. Did you just save somewhere new?')
     GObject.idle_add(stop_align, gui, errors)
