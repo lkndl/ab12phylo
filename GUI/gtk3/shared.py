@@ -374,6 +374,68 @@ def bind_accelerator(accelerators, widget, accelerator, signal='clicked'):
     widget.add_accelerator(signal, accelerators, key, mod, Gtk.AccelFlags.VISIBLE)
 
 
+def select_seqs(event_box, loc, tv, ns):
+    """
+    Select sequences from a trim preview directly in the image, in an expected way.
+    Shift focus to the labeling treeview on the left, which is already <Delete>-sensitive
+    :param event_box:
+    :param loc:
+    :param sel:
+    :param ns:
+    :param args:
+    :return:
+    """
+    tv.grab_focus()
+    sel = tv.get_selection()
+
+    accel_mask = Gtk.accelerator_get_default_mod_mask()
+    rect, baseline = event_box.get_allocated_size()
+    mo, tree_path_iterator = sel.get_selected_rows()
+    idcs = {tp[0] for tp in tree_path_iterator}
+    idx = int(loc.y / rect.height * len(mo))
+    if idx == '' or idx < 0:
+        sel.unselect_all()
+        return
+    if loc.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
+        sel.select_path(idx) if idx not in idcs else sel.unselect_path(Gtk.TreePath(idx))
+    elif loc.state & accel_mask == Gdk.ModifierType.SHIFT_MASK and 'previous' in ns:
+        m, n = min(idx, ns.previous), max(idx, ns.previous)
+        new_idcs = set(range(m, n))
+        if all(idc in idcs for idc in new_idcs):
+            sel.unselect_range(Gtk.TreePath(m), Gtk.TreePath(n))
+        else:
+            sel.select_range(Gtk.TreePath(m), Gtk.TreePath(n))
+    else:
+        # select only the one clicked on
+        sel.unselect_all()
+        sel.select_path(idx)
+    ns.previous = idx
+
+
+def delete_and_ignore_rows(widget, event, gui, page, sel, ns):
+    """
+    Keep track of the rows that will not be written to the next fasta and delete them from the treeview.
+    """
+    if Gdk.keyval_name(event.keyval) == 'Delete':
+        model, tree_path_iterator = sel.get_selected_rows()
+        if 'ignore_set' not in ns:
+            ns.ignore_set = set()
+        for row in reversed(sorted(tree_path_iterator)):
+            ns.ignore_set.add(model[row[:]][0])
+            if page == 2:
+                model.remove(model.get_iter(row))
+            elif page == 4:
+                model[row][0] = '---'
+
+        set_changed(gui, page, True)
+        if page == 2:
+            gui.iface.view_qal.grab_focus()
+            gtk_qal.start_trim(gui)
+        elif page == 4:
+            gui.iface.view_gbl.grab_focus()
+            gtk_gbl.drop_seqs(gui)
+
+
 class picklable_liststore(Gtk.ListStore):
     """
     kudos go to samplebias on https://stackoverflow.com/a/5969700

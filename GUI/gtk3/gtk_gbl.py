@@ -28,9 +28,6 @@ PAGE = 4
 """The Gblocks page for MSA trimming. Very similar to the sequence trimming page gtk_qal.py"""
 
 
-# TODO allow deletion at this point!!!!!!
-
-
 def init(gui):
     """Initialize the page. Connect buttons."""
     data, iface = gui.data, gui.iface
@@ -57,23 +54,15 @@ def init(gui):
     iface.gbl_preset.connect_after('changed', re_preset, gui)
     iface.gbl_preset.set_active_id('relaxed')  # trigger initial values. not sure if works?
 
-
-#     # try zooming
-#     iface.hadj = iface.hadj_scale.get_adjustment()
-#     iface.hadj.connect_after('value-changed', hscale, gui)
-#     # iface.view_gbl.connect('scroll-event', zoom, gui)
-#
-#
-# def hscale(hadj, gui):
-#     LOG.debug('scaling')
-#     data, iface = gui.data, gui.iface
-#     val = hadj.props.value
-#     print('%.2f   %d' % (val, data.msa_shape[0]))
-#     iface.gbl_left.set_max_content_width(data.msa_shape[0] * val)
-#     iface.gbl_left.set_min_content_width(data.msa_shape[0] * val)
-#
-#     iface.gbl_right.set_max_content_width(data.msa_shape[2] * val)
-#     iface.gbl_right.set_min_content_width(data.msa_shape[2] * val)
+    iface.view_gbl.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
+    # in-preview deletion
+    iface.view_gbl.connect('key_press_event', shared.delete_and_ignore_rows, gui, PAGE,
+                           iface.view_gbl.get_selection(), iface.gbl)
+    # enable in-preview selection
+    iface.gbl_left_eventbox.connect('button_press_event', shared.select_seqs,
+                                    iface.view_gbl, iface.gbl)
+    iface.gbl_right_eventbox.connect('button_press_event', shared.select_seqs,
+                                     iface.view_gbl, iface.gbl)
 
 
 # def zoom(widget, event, gui):
@@ -396,3 +385,20 @@ def stop_gbl(gui, errors):
     if iface.run_after:
         [do_func(gui) for do_func in iface.run_after]
     return
+
+
+def drop_seqs(gui):
+    """
+    Overwrite 'old' trimmed MSA file that still contained dropped records.
+    :param gui:
+    :return:
+    """
+    if 'ignore_set' not in gui.iface.gbl:
+        return
+    with open(gui.wd / (shared.MSA + '_TEMP'), 'w') as fasta:
+        for record in SeqIO.parse(gui.wd / shared.MSA, 'fasta'):
+            if record.id not in gui.iface.gbl.ignore_set:
+                SeqIO.write(record, fasta, 'fasta')
+    LOG.debug('dropped %d sequences from trimmed MSA' % len(gui.iface.gbl.ignore_set))
+    del gui.iface.gbl.ignore_set
+    shutil.move(gui.wd / (shared.MSA + '_TEMP'), gui.wd / shared.MSA)

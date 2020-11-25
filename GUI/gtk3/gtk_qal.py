@@ -12,12 +12,11 @@ from time import sleep
 from Bio import SeqIO
 from argparse import Namespace
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
-from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from matplotlib.figure import Figure
 from matplotlib.colors import ListedColormap
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib, GObject, GdkPixbuf
+from gi.repository import Gtk, Gdk, GObject
 
 from GUI.gtk3 import shared, gtk_rgx
 from ab12phylo.filter import trim_ends, mark_bad_stretches
@@ -70,8 +69,28 @@ def init(gui):
     #     cell_renderer=Gtk.CellRendererToggle(radio=False)))
 
     iface.view_qal.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
-    iface.view_qal.connect('check-resize', shared.get_dims, iface.qal_spacer, [iface.qal_win])
-    iface.view_qal.connect('key_press_event', delete_and_ignore_rows, gui, PAGE, iface.view_qal.get_selection())
+    iface.view_qal.connect('check-resize', shared.get_dims,
+                           iface.qal_spacer, [iface.qal_win])
+    # in-preview deletion
+    iface.view_qal.connect('key_press_event', shared.delete_and_ignore_rows,
+                           gui, PAGE, iface.view_qal.get_selection(), iface.qal)
+    # in-preview selection
+    iface.qal_eventbox.connect('button_press_event', shared.select_seqs,
+                               iface.view_qal, iface.qal)
+
+    # iface.qal_eventbox.connect('scroll_event', on_scroll, gui)
+
+
+def on_scroll(widget, event, gui):
+    # Handles zoom in / zoom out on Ctrl+mouse wheel
+    accel_mask = Gtk.accelerator_get_default_mod_mask()
+    # if event.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
+    # direction = event.get_scroll_deltas()[2]
+    # if direction > 0:  # scrolling down -> zoom out
+    #     self.set_zoom_level(self.get_zoom_level() - 0.1)
+    # else:
+    #     self.set_zoom_level(self.get_zoom_level() + 0.1)
+    print('yup')
 
 
 def refresh(gui):
@@ -180,7 +199,7 @@ def do_trim(gui):
     p = iface.qal
     rows = list()
     p.gene_roll = data.genes if p.gene_roll == 'all' else p.gene_roll
-    ignore_ids = iface.ignore_set if 'ignore_set' in iface else set()
+    ignore_ids = iface.qal.ignore_set if 'ignore_set' in iface.qal else set()
     iface.text = 'creating matrix'
     LOG.debug(iface.text)
     iface.i = 0
@@ -326,23 +345,6 @@ def edit(widget, data, iface):
     widget.set_text(value if value else '')  # entering 0 is annoying
 
 
-def delete_and_ignore_rows(widget, event, gui, page, selection):
-    """
-    Keep track of the rows that will not be written to the fasta and delete them from the treeview
-    """
-    data, iface = gui.data, gui.iface
-    if Gdk.keyval_name(event.keyval) == 'Delete':
-        model, iterator = selection.get_selected_rows()
-        if 'ignore_set' not in iface:
-            iface.ignore_set = set()
-        for row in reversed(sorted(iterator)):
-            iface.ignore_set.add(model[row[:]][0])
-            model.remove(model.get_iter(row))
-
-        shared.set_changed(gui, page, True)
-        refresh(gui)
-
-
 def trim_all(gui, run_after=None):
     """
     Trim all SeqRecords in project_dataset.seqdata to sequence strings and write collated .fasta files.
@@ -353,6 +355,7 @@ def trim_all(gui, run_after=None):
     :return:
     """
     data, iface = gui.data, gui.iface
+    accepted_ids = set(shared.get_column(data.qal_model, 0))
 
     if not data.seqdata:
         LOG.debug('re-reading files')
@@ -365,7 +368,7 @@ def trim_all(gui, run_after=None):
         Path.mkdir(gui.wd / gene, exist_ok=True)
 
         # do actual trimming
-        for _id in list(genedata.keys()):
+        for _id in accepted_ids:
             record = genedata.pop(_id)
             try:
                 record = trim_ends(record, p.min_phred, (p.trim_out, p.trim_of))

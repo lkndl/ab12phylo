@@ -153,13 +153,14 @@ def do_align(gui, remote=False):
     data, iface = gui.data, gui.iface
     errors = list()
     iface.frac = .05
-    i = 0
-    k = len(data.genes) + 2
+    iface.i = 0
+    iface.k = len(data.genes) + 2
     funcs, arg_dicts = [iface.aligner.build_local, iface.aligner.build_remote], \
                        [iface.msa.cmd, iface.msa.remote_cmd]
     try:
         for gene in data.genes:
-            iface.text = 'aligning %s [%d/%d]' % (gene, i + 1, k - 2)
+            iface.text = 'aligning %s [%d/%d]' % (gene, iface.i + 1, iface.k - 2)
+            LOG.debug(iface.text)
             try:
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
                                             % tuple([gene] * 4))  # interpreting bool as int here
@@ -168,22 +169,23 @@ def do_align(gui, remote=False):
                 # try again once more
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
                                             % tuple([gene] * 4))
-            i += 1
-            iface.frac = i / k
+            iface.i += 1
         LOG.info('built MSAs')
         iface.text = 'concatenating MSAs'
+        LOG.debug(iface.text)
         try:
             iface.aligner.concat_msa(gui=True)
         except FileNotFoundError:
             iface.aligner.reset_paths(gui.wd, gui.wd / shared.RAW_MSA, gui.wd / shared.MISSING)
             iface.aligner.concat_msa(gui=True)
-        i += 1
-        iface.frac = i / k
+        iface.i += 1
         iface.text = 'comparing SHA256 hashes'
+        LOG.debug(iface.text)
         compare_hashes(gui)
         iface.frac = 1
+        iface.text = 'idle'
     except (OSError, subprocess.CalledProcessError) as e:
-        errors.append('%s at task %d (%s). invalid command?' % (type(e), i, iface.text))
+        errors.append('%s at task %d (%s). invalid command?' % (type(e), iface.i, iface.text))
     except FileNotFoundError:
         errors.append('MSA/sequences file not found. Did you just save somewhere new?')
     GObject.idle_add(stop_align, gui, errors)
@@ -195,7 +197,6 @@ def stop_align(gui, errors):
     iface.thread.join()
     iface.align_stack.props.sensitive = True
     gui.win.show_all()
-    iface.prog_bar.props.text = 'idle'
     LOG.info('msa thread idle')
     shared.set_errors(gui, PAGE, bool(errors))
     shared.set_changed(gui, PAGE, False)

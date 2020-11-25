@@ -1496,16 +1496,22 @@
                                         <property name="height-request">30</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">The check indicates if this sample has phred quality scores.</property>
                                         <property name="hexpand">False</property>
+                                        <property name="vexpand">False</property>
                                         <property name="hscrollbar-policy">never</property>
                                         <property name="vscrollbar-policy">never</property>
                                         <property name="shadow-type">in</property>
                                         <child>
                                           <object class="GtkTreeView" id="view_qal">
                                             <property name="name">view_qal</property>
+                                            <property name="height-request">20</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
+                                            <property name="has-focus">True</property>
+                                            <property name="valign">start</property>
+                                            <property name="vexpand">False</property>
+                                            <property name="headers-visible">False</property>
+                                            <property name="show-expanders">False</property>
                                             <property name="rubber-banding">True</property>
                                             <child internal-child="selection">
                                               <object class="GtkTreeSelection"/>
@@ -2696,7 +2702,6 @@
                                         <property name="height-request">30</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">The check indicates if this sample has phred quality scores.</property>
                                         <property name="hexpand">False</property>
                                         <property name="hscrollbar-policy">never</property>
                                         <property name="vscrollbar-policy">never</property>
@@ -2704,8 +2709,11 @@
                                         <child>
                                           <object class="GtkTreeView" id="view_gbl">
                                             <property name="name">view_gbl</property>
+                                            <property name="height-request">20</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
+                                            <property name="has-focus">True</property>
+                                            <property name="valign">start</property>
                                             <property name="headers-visible">False</property>
                                             <property name="show-expanders">False</property>
                                             <property name="rubber-banding">True</property>

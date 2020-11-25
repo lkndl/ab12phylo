@@ -93,7 +93,6 @@ class app(Gtk.Application):
         iface.run_after = []
 
         # whether to draw raster (fast) or vector images is a button state
-        iface.rasterize.props.active
 
         # set up preliminary working directory
         self.project_path = None
