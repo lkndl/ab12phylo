@@ -63,10 +63,11 @@ def init(gui):
     iface.view_qal.set_model(data.qal_model)
     iface.view_qal.set_headers_visible(False)
     iface.view_qal.append_column(Gtk.TreeViewColumn(
-        title='id', cell_renderer=Gtk.CellRendererText(), text=0))
+        title='id', cell_renderer=Gtk.CellRendererText(), text=0, underline=1, strikethrough=2))
+    # crt = Gtk.CellRendererToggle(radio=False)
+    # crt.props.indicator_size = 13
     # iface.view_qal.append_column(Gtk.TreeViewColumn(
-    #     title='has phreds', active=1,
-    #     cell_renderer=Gtk.CellRendererToggle(radio=False)))
+    #     title='no phreds', active=1, cell_renderer=crt))
 
     iface.view_qal.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
     iface.view_qal.connect('check-resize', shared.get_dims,
@@ -74,23 +75,9 @@ def init(gui):
     # in-preview deletion
     iface.view_qal.connect('key_press_event', shared.delete_and_ignore_rows,
                            gui, PAGE, iface.view_qal.get_selection(), iface.qal)
-    # in-preview selection
-    iface.qal_eventbox.connect('button_press_event', shared.select_seqs,
-                               iface.view_qal, iface.qal)
-
-    # iface.qal_eventbox.connect('scroll_event', on_scroll, gui)
-
-
-def on_scroll(widget, event, gui):
-    # Handles zoom in / zoom out on Ctrl+mouse wheel
-    accel_mask = Gtk.accelerator_get_default_mod_mask()
-    # if event.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
-    # direction = event.get_scroll_deltas()[2]
-    # if direction > 0:  # scrolling down -> zoom out
-    #     self.set_zoom_level(self.get_zoom_level() - 0.1)
-    # else:
-    #     self.set_zoom_level(self.get_zoom_level() + 0.1)
-    print('yup')
+    iface.qal_eventbox.connect_after('button_press_event', shared.select_seqs, PAGE, iface.zoom,
+                                     iface.view_qal, iface.qal)  # in-preview selection
+    iface.qal_win.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
 
 
 def refresh(gui):
@@ -101,8 +88,8 @@ def refresh(gui):
 
     # place the png preview
     data.qal_shape[1] = shared.get_dims(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
-    shared.load_image(iface.qal_eventbox, gui.wd / shared.PREVIEW,
-                      data.qal_shape[0] * shared.hadj(iface), data.qal_shape[1])
+    shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / shared.PREVIEW,
+                      data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
     shared.load_colorbar(iface.palplot, gui.wd)
     gui.win.show_all()
 
@@ -224,15 +211,16 @@ def do_trim(gui):
                 row = shared.seqtoint(record)
             except AttributeError:
                 # accept references anyway, but maybe skip no-phred ones
-                if not data.metadata[gene][record_id]['is_ref'] and not p.accept_nophred:
+                is_ref = data.metadata[gene][record_id]['is_ref']
+                if not is_ref and not p.accept_nophred:
                     continue
-                has_qal, is_bad = False, False
+                has_qal, is_bad = is_ref, False
                 row = shared.seqtoint(record)
             except ValueError:
                 has_qal, is_bad = True, True
                 row = shared.seqtogray(record)
             rows.append(row)
-            data.qal_model.append([record.id, has_qal, is_bad])
+            data.qal_model.append([record.id, not has_qal, is_bad])
 
     except KeyError as ke:
         exit(ke)
@@ -274,15 +262,15 @@ def do_trim(gui):
     if iface.rasterize.props.active:
         iface.text = 'place PNG'
         LOG.debug(iface.text)
-        shared.load_image(iface.qal_eventbox, gui.wd / shared.PREVIEW,
-                          data.qal_shape[0] * shared.hadj(iface), data.qal_shape[1])
+        shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / shared.PREVIEW,
+                          data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
     else:
         iface.text = 'place vector'
         LOG.debug(iface.text)
         canvas = FigureCanvas(f)  # a Gtk.DrawingArea
         # canvas.mpl_connect('pick_event', onpick)
         # canvas.mpl_connect('button_press_event', onclick)
-        canvas.set_size_request(data.qal_shape[0] * shared.hadj(iface), data.qal_shape[1])
+        canvas.set_size_request(data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
         try:
             iface.qal_eventbox.get_child().destroy()
             iface.qal_eventbox.add(canvas)

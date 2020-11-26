@@ -54,28 +54,13 @@ def init(gui):
     iface.gbl_preset.connect_after('changed', re_preset, gui)
     iface.gbl_preset.set_active_id('relaxed')  # trigger initial values. not sure if works?
 
-    iface.view_gbl.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
-    # in-preview deletion
-    iface.view_gbl.connect('key_press_event', shared.delete_and_ignore_rows, gui, PAGE,
-                           iface.view_gbl.get_selection(), iface.gbl)
-    # enable in-preview selection
-    iface.gbl_left_eventbox.connect('button_press_event', shared.select_seqs,
-                                    iface.view_gbl, iface.gbl)
-    iface.gbl_right_eventbox.connect('button_press_event', shared.select_seqs,
-                                     iface.view_gbl, iface.gbl)
-
-
-# def zoom(widget, event, gui):
-#
-#     print(type(widget))
-#     print('no')
-#     accel_mask = Gtk.accelerator_get_default_mod_mask()
-#     if event.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
-#         direction = event.get_scroll_deltas()[2]
-#         if direction > 0:  # scrolling down -> zoom out
-#             widget.set_zoom_level(widget.get_zoom_level() - 0.1)
-#         else:
-#             widget.set_zoom_level(widget.get_zoom_level() + 0.1)
+    sel = iface.view_gbl.get_selection()
+    sel.set_mode(Gtk.SelectionMode.MULTIPLE)
+    iface.view_gbl.connect('key_press_event', shared.delete_and_ignore_rows,
+                           gui, PAGE, sel, iface.gbl)  # in-preview deletion
+    iface.gbl_eventbox.connect('button_press_event', shared.select_seqs, PAGE, iface.zoom,
+                               iface.view_gbl, iface.gbl)  # in-preview selection
+    iface.gbl_eventbox.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
 
 
 def refresh(gui):
@@ -108,12 +93,12 @@ def refresh(gui):
     except TypeError:
         pass
     # place the existing png
-    x_scale = data.msa_shape[2] / data.msa_shape[0]
-    shared.load_image(iface.gbl_left_eventbox, gui.wd / shared.LEFT,
-                      width=data.gbl_shape[0] * shared.hadj(iface),
+    x_ratio = data.msa_shape[2] / data.msa_shape[0]
+    shared.load_image(iface.zoom, PAGE, iface.gbl_left_vp, gui.wd / shared.LEFT,
+                      width=data.gbl_shape[0] * shared.get_hadj(iface),
                       height=data.gbl_shape[1])
-    shared.load_image(iface.gbl_right_eventbox, gui.wd / shared.RIGHT,
-                      width=data.gbl_shape[0] * shared.hadj(iface) * x_scale,
+    shared.load_image(iface.zoom, PAGE, iface.gbl_right_vp, gui.wd / shared.RIGHT,
+                      width=data.gbl_shape[0] * shared.get_hadj(iface) * x_ratio,
                       height=data.gbl_shape[1])
     shared.load_colorbar(iface.palplot2, gui.wd)
     gui.win.show_all()
@@ -249,7 +234,7 @@ def do_gbl(gui):
     LOG.debug(iface.text)
     array = np.array([shared.seqtoint(r.seq) for
                       r in SeqIO.parse(gui.wd / shared.RAW_MSA, 'fasta')])
-    data.gbl_shape[0] = array.shape[1] * shared.hadj(iface)
+    data.gbl_shape[0] = array.shape[1] * shared.get_hadj(iface)
     # make everything beyond N completely transparent
     array = np.ma.masked_where(array > shared.toint('N'), array)
 
@@ -314,12 +299,12 @@ def do_gbl(gui):
 
     data.msa_shape[2] = len(blocks)  # for completeness
     LOG.debug('msa shape: %s' % str(data.msa_shape))
-    x_scale = data.msa_shape[2] / data.msa_shape[0]
-    LOG.debug('x scale: %.3f' % x_scale)
+    x_ratio = data.msa_shape[2] / data.msa_shape[0]
+    LOG.debug('x ratio: %.3f' % x_ratio)
 
-    for alpha, blocks, gtk_bin, png_path, x_scale in zip([gbl_mask, 1], [range(array.shape[1]), blocks],
-                                                         [iface.gbl_left_eventbox, iface.gbl_right_eventbox],
-                                                         [shared.LEFT, shared.RIGHT], [1, x_scale]):
+    for alpha, blocks, gtk_bin, png_path, x_ratio in zip([gbl_mask, 1], [range(array.shape[1]), blocks],
+                                                         [iface.gbl_left_vp, iface.gbl_right_vp],
+                                                         [shared.LEFT, shared.RIGHT], [1, x_ratio]):
         f = Figure()
         f.set_facecolor('none')
         ax = f.add_subplot(111)
@@ -342,13 +327,13 @@ def do_gbl(gui):
         if iface.rasterize.props.active:
             iface.text = 'place PNG'
             LOG.debug(iface.text)
-            shared.load_image(gtk_bin, gui.wd / png_path,
-                              data.gbl_shape[0] * x_scale * shared.hadj(iface), data.gbl_shape[1])
+            shared.load_image(iface.zoom, PAGE, gtk_bin, gui.wd / png_path,
+                              data.gbl_shape[0] * x_ratio * shared.get_hadj(iface), data.gbl_shape[1])
         else:
             iface.text = 'place vector'
             LOG.debug(iface.text)
             canvas = FigureCanvas(f)
-            canvas.set_size_request(len(blocks) * shared.hadj(iface), data.gbl_shape[1])  # width, height
+            canvas.set_size_request(len(blocks) * shared.get_hadj(iface), data.gbl_shape[1])  # width, height
             try:
                 gtk_bin.remove(gtk_bin.get_child())
                 gtk_bin.add(canvas)

@@ -2,14 +2,11 @@
 
 import gi
 from pathlib import Path
-from time import sleep
 import logging
-import sys
-import copy
 import hashlib
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GdkPixbuf
+from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 
 from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
 
@@ -244,8 +241,15 @@ def get_column(list_store, col_idx):
     return col
 
 
-def load_image(gtk_bin, img_path, width, height):
-    LOG.debug('load image')
+def load_image(zoom_ns, page, gtk_bin, img_path, width, height):
+    """
+    Load an image into a GtkImage child inside gtk_bin, keeping track of observed sizes.
+    :param zoom_ns: where all the zooming info is stored, specifically [min_w, min_h,
+    w_now, h_now] of the image inside :param gtk_bin inside the zoom_ns.sizes dict.
+    """
+    # save the current size: only called on enlarging -> easy
+    zoom_ns.sizes[page] = [width, height, width, height]
+
     child = gtk_bin.get_child()
     if type(child) != Gtk.Image:
         gtk_bin.remove(child)
@@ -284,66 +288,128 @@ def get_dims(widget, event, spacer, scroll_wins, lower=0):
             sw.get_children()[0].set_size_request(w, h)
         except IndexError:
             pass
-    print('new height: %d' % h, file=sys.stderr)
     return h
 
 
-def hadj(iface):
-    return iface.hadj.adj.get_value() * 2
+def get_hadj(iface):
+    return iface.zoom.adj.get_value() * 2
 
 
-def scale(gtk_bin, factor):
-    """Horizontally stretch a pixbuf."""
+def scale(gtk_bin, x, y):
+    """
+    Stretch a pixbuf residing in a GtkImage, the single child of
+    :param gtk_bin:
+    :param x: horizontal scaling factor
+    :param y: vertical scaling factor
+    :return:
+    """
     child = gtk_bin.get_child()
     if type(child) != Gtk.Image:
-        LOG.info('can not rescale %s' % str(type(child)))
+        LOG.info('won\'t rescale %s' % str(type(child)))
         return False
     pb = child.get_pixbuf()
     child.set_from_pixbuf(pb.scale_simple(
-        min(14000, pb.get_width() * factor), pb.get_height(),
-        GdkPixbuf.InterpType.NEAREST))
+        min(14000, pb.get_width() * x), min(14000, pb.get_height() * y),
+        GdkPixbuf.InterpType.BILINEAR))
     return True
 
 
-def h_adjust(adj, gui):
+def x_scale(adj, gui, zoom_ns):
+    """Horizontally scale a preview."""
+    with GObject.signal_handler_block(adj, zoom_ns.handle):
+        a = adj.props
+        page = gui.iface.notebook.get_current_page()
+        data, iface = gui.data, gui.iface
+
+        a.value = max(.2, a.value)
+        x = a.value / zoom_ns.bak
+        min_w, min_h, w_now, h_now = zoom_ns.sizes[page]
+
+        if x * w_now > 2 * min_w:
+            LOG.debug('re-loading images')
+            # load larger, so zoom in won't happen so soon again
+            a.value = min(a.upper, a.value + 2 * a.step_increment)
+            x = a.value / zoom_ns.bak
+            if page == 2:
+                load_image(zoom_ns, page, iface.qal_eventbox, gui.wd / PREVIEW,
+                           data.qal_shape[0] * a.value * 2, h_now)
+            elif page == 4:
+                load_image(zoom_ns, page, iface.gbl_left_vp, gui.wd / LEFT,
+                           data.msa_shape[0] * a.value * 2, h_now)
+                load_image(zoom_ns, page, iface.gbl_right_vp, gui.wd / RIGHT,
+                           data.msa_shape[2] * a.value * 2, h_now)
+            zoom_ns.sizes[page] = [w_now * x, min_h, w_now * x, h_now]
+        else:
+            LOG.debug('scale x: %.2f fold' % x)
+            if page == 2:
+                scale(iface.qal_eventbox, x, 1)
+            elif page == 4:
+                scale(iface.gbl_left_vp, x, 1)
+                scale(iface.gbl_right_vp, x, 1)
+            zoom_ns.sizes[page] = [min(w_now * x, min_w), min_h, w_now * x, h_now]
+        zoom_ns.bak = a.value
+
+
+def xy_scale(widget, event, gui, page):
     """
-    Horizontally scale a preview.
+    Handles zoom in / zoom out on Ctrl+mouse wheel in both x and y
+    :param widget:
+    :param event:
+    :param gui:
+    :param page:
+    :return:
     """
     data, iface = gui.data, gui.iface
-    # with adj.hander_block(iface.hadj.handle):
-    val = max(.2, adj.get_value())
-    page = gui.iface.notebook.get_current_page()
-    shift = val - iface.hadj.bak
-    if shift > 0 > iface.hadj.trend:
-        iface.hadj.trend = shift
-
-    factor = val / iface.hadj.bak
-    iface.hadj.trend += factor - 1
-
-    if factor >= 2:
-        LOG.debug('re-loading images')
-        # re-load and re-set
-        iface.hadj.trend = 0
-        if page == 2:
-            load_image(iface.qal_eventbox, gui.wd / PREVIEW,
-                       data.qal_shape[0] * val * 2, data.qal_shape[1])
-        elif page == 4:
-            load_image(iface.gbl_left_eventbox, gui.wd / LEFT,
-                       data.msa_shape[0] * val * 2, data.gbl_shape[1])
-            sleep(.1)
-            load_image(iface.gbl_right_eventbox, gui.wd / RIGHT,
-                       data.msa_shape[2] * val * 2, data.gbl_shape[1])
-    else:
-        # scale in-place
-        LOG.debug('scale: %.2f fold' % factor)
-        if page == 2:
-            scale(iface.qal_eventbox, factor)
-        elif page == 4:
-            scale(iface.gbl_left_eventbox, factor)
-            sleep(.1)
-            scale(iface.gbl_right_eventbox, factor)
-    iface.hadj.bak = val
-    sleep(.1)
+    accel_mask = Gtk.accelerator_get_default_mod_mask()
+    if event.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
+        with GObject.signal_handler_block(iface.zoom.adj, iface.zoom.handle):
+            direction = event.get_scroll_deltas()[2]
+            a = iface.zoom.adj.props
+            bak = a.value
+            min_w, min_h, w_now, h_now = iface.zoom.sizes[page]
+            if direction > 0:  # scrolling down -> zoom out -> simple
+                # go one tick down
+                a.value = max(.2, a.value - a.step_increment)
+                if a.value == bak:
+                    return
+                new = a.value / bak
+                LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
+                if page == 2:
+                    scale(iface.qal_eventbox, new, new)
+                elif page == 4:
+                    scale(iface.gbl_left_vp, new, new)
+                    scale(iface.gbl_right_vp, new, new)
+                # adjust the saved sizes
+                iface.zoom.sizes[page] = [min(min_w * new, min_w), min(min_h * new, min_h), w_now * new, h_now * new]
+            else:
+                a.value = min(a.upper, a.value + a.step_increment)
+                new = a.value / bak
+                if a.value == bak:
+                    return
+                min_w, min_h, w_now, h_now = iface.zoom.sizes[page]
+                if w_now / min_w * new > 3 or h_now / min_h * new > 4:
+                    # re-load is due. jump ahead by incrementing again
+                    a.value = min(a.upper, a.value + 2 * a.step_increment)
+                    new = a.value / bak
+                    LOG.debug('re-loading images, scale xy: %.2f fold, %.1f' % (new, a.value))
+                    if page == 2:
+                        load_image(iface.zoom, page, iface.qal_eventbox, gui.wd / PREVIEW,
+                                   data.qal_shape[0] * a.value * 2, data.qal_shape[1])
+                    elif page == 4:
+                        load_image(iface.zoom, page, iface.gbl_left_vp, gui.wd / LEFT,
+                                   data.msa_shape[0] * a.value * 2, data.gbl_shape[1])
+                        load_image(iface.zoom, page, iface.gbl_right_vp, gui.wd / RIGHT,
+                                   data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
+                else:
+                    LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
+                    # scale the eay way
+                    if page == 2:
+                        scale(iface.qal_eventbox, new, new)
+                    elif page == 4:
+                        scale(iface.gbl_left_vp, new, new)
+                        scale(iface.gbl_right_vp, new, new)
+                iface.zoom.sizes[page] = [min_w, min_h, w_now * new, h_now * new]
+            iface.zoom.bak = a.value
 
 
 def update(iface, page):
@@ -374,7 +440,7 @@ def bind_accelerator(accelerators, widget, accelerator, signal='clicked'):
     widget.add_accelerator(signal, accelerators, key, mod, Gtk.AccelFlags.VISIBLE)
 
 
-def select_seqs(event_box, loc, tv, ns):
+def select_seqs(event_box, loc, page, zoom_ns, tv, ns):
     """
     Select sequences from a trim preview directly in the image, in an expected way.
     Shift focus to the labeling treeview on the left, which is already <Delete>-sensitive
@@ -385,14 +451,17 @@ def select_seqs(event_box, loc, tv, ns):
     :param args:
     :return:
     """
-    tv.grab_focus()
+    if tv.props.visible:
+        tv.grab_focus()
     sel = tv.get_selection()
 
     accel_mask = Gtk.accelerator_get_default_mod_mask()
     rect, baseline = event_box.get_allocated_size()
     mo, tree_path_iterator = sel.get_selected_rows()
     idcs = {tp[0] for tp in tree_path_iterator}
-    idx = int(loc.y / rect.height * len(mo))
+
+    h_now = zoom_ns.sizes[page][3]
+    idx = int((loc.y - (rect.height - h_now) / 2) / h_now * len(mo))
     if idx == '' or idx < 0:
         sel.unselect_all()
         return
@@ -434,41 +503,3 @@ def delete_and_ignore_rows(widget, event, gui, page, sel, ns):
         elif page == 4:
             gui.iface.view_gbl.grab_focus()
             gtk_gbl.drop_seqs(gui)
-
-
-class picklable_liststore(Gtk.ListStore):
-    """
-    kudos go to samplebias on https://stackoverflow.com/a/5969700
-    """
-
-    def __reduce__(self):
-        rows = list()
-        try:
-            rows = [list(row) for row in self]
-            coltypes = [type(c) for c in rows[0]]
-            return _unpickle_liststore, (self.__class__, coltypes, rows)
-        except IndexError as ex:
-            cols = self.get_n_columns()
-            # allow saving of emptry data stores
-            if cols == 2:
-                coltypes = [str, str]
-            elif cols == 4:
-                coltypes = [str, str, str, str]
-            elif cols == 3:
-                coltypes = [str, bool, bool]
-            elif cols == 7:
-                coltypes = [str, str, str, str, str, bool, bool, str]
-            else:
-                print('assert False')
-                assert False
-            return _unpickle_liststore, (self.__class__, coltypes, rows)
-        except Exception as ex:
-            LOG.exception(ex)
-
-
-def _unpickle_liststore(cls, col_types, rows):
-    inst = cls.__new__(cls)
-    inst.__init__(*col_types)
-    for row in rows:
-        inst.append(row)
-    return inst

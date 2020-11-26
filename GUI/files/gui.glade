@@ -1496,6 +1496,7 @@
                                         <property name="height-request">30</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">Underlined records did not contain any phred scores, and strikethrough indicates deletion.</property>
                                         <property name="hexpand">False</property>
                                         <property name="vexpand">False</property>
                                         <property name="hscrollbar-policy">never</property>
@@ -1525,6 +1526,27 @@
                                       <packing>
                                         <property name="left-attach">0</property>
                                         <property name="top-attach">0</property>
+                                        <property name="height">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">1</property>
                                         <property name="height">2</property>
                                       </packing>
                                     </child>
@@ -1566,27 +1588,6 @@
                                       <packing>
                                         <property name="left-attach">1</property>
                                         <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">0</property>
-                                        <property name="top-attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">1</property>
-                                        <property name="top-attach">1</property>
-                                        <property name="height">2</property>
                                       </packing>
                                     </child>
                                   </object>
@@ -1922,6 +1923,8 @@
                                     <property name="width-request">250</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">set horizontal scaling.
+use &lt;Control&gt;&lt;mouse wheel&gt; to zoom the preview above</property>
                                     <property name="adjustment">h_scale_adj</property>
                                     <property name="round-digits">0</property>
                                     <property name="digits">0</property>
@@ -2754,35 +2757,36 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkPaned">
+                                      <object class="GtkEventBox" id="gbl_eventbox">
+                                        <property name="name">gbl_eventbox</property>
                                         <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
+                                        <property name="can-focus">False</property>
                                         <property name="hexpand">True</property>
-                                        <property name="position">300</property>
-                                        <property name="position-set">True</property>
-                                        <property name="wide-handle">True</property>
                                         <child>
-                                          <object class="GtkScrolledWindow" id="gbl_left">
-                                            <property name="name">gbl_left</property>
+                                          <object class="GtkPaned">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="hexpand">True</property>
-                                            <property name="hadjustment">gbl_scroll_adj</property>
-                                            <property name="hscrollbar-policy">external</property>
-                                            <property name="vscrollbar-policy">never</property>
-                                            <property name="window-placement">bottom-right</property>
-                                            <property name="shadow-type">in</property>
+                                            <property name="position">300</property>
+                                            <property name="position-set">True</property>
+                                            <property name="wide-handle">True</property>
                                             <child>
-                                              <object class="GtkViewport">
+                                              <object class="GtkScrolledWindow" id="gbl_left">
+                                                <property name="name">gbl_left</property>
                                                 <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="hexpand">True</property>
                                                 <property name="hadjustment">gbl_scroll_adj</property>
+                                                <property name="hscrollbar-policy">external</property>
+                                                <property name="vscrollbar-policy">never</property>
+                                                <property name="window-placement">bottom-right</property>
+                                                <property name="shadow-type">in</property>
                                                 <child>
-                                                  <object class="GtkEventBox" id="gbl_left_eventbox">
-                                                    <property name="name">gbl_left_eventbox</property>
+                                                  <object class="GtkViewport" id="gbl_left_vp">
+                                                    <property name="name">gbl_left_vp</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="above-child">True</property>
+                                                    <property name="hadjustment">gbl_scroll_adj</property>
                                                     <child>
                                                       <object class="GtkLabel">
                                                         <property name="height-request">400</property>
@@ -2794,35 +2798,28 @@
                                                   </object>
                                                 </child>
                                               </object>
+                                              <packing>
+                                                <property name="resize">False</property>
+                                                <property name="shrink">True</property>
+                                              </packing>
                                             </child>
-                                          </object>
-                                          <packing>
-                                            <property name="resize">False</property>
-                                            <property name="shrink">True</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkScrolledWindow" id="gbl_right">
-                                            <property name="name">gbl_right</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="hexpand">True</property>
-                                            <property name="hadjustment">gbl_scroll_adj</property>
-                                            <property name="hscrollbar-policy">external</property>
-                                            <property name="vscrollbar-policy">never</property>
-                                            <property name="window-placement">bottom-right</property>
-                                            <property name="shadow-type">in</property>
                                             <child>
-                                              <object class="GtkViewport">
+                                              <object class="GtkScrolledWindow" id="gbl_right">
+                                                <property name="name">gbl_right</property>
                                                 <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="hexpand">True</property>
                                                 <property name="hadjustment">gbl_scroll_adj</property>
+                                                <property name="hscrollbar-policy">external</property>
+                                                <property name="vscrollbar-policy">never</property>
+                                                <property name="window-placement">bottom-right</property>
+                                                <property name="shadow-type">in</property>
                                                 <child>
-                                                  <object class="GtkEventBox" id="gbl_right_eventbox">
-                                                    <property name="name">gbl_right_eventbox</property>
+                                                  <object class="GtkViewport" id="gbl_right_vp">
+                                                    <property name="name">gbl_right_vp</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="above-child">True</property>
+                                                    <property name="hadjustment">gbl_scroll_adj</property>
                                                     <child>
                                                       <object class="GtkLabel">
                                                         <property name="height-request">400</property>
@@ -2834,12 +2831,12 @@
                                                   </object>
                                                 </child>
                                               </object>
+                                              <packing>
+                                                <property name="resize">True</property>
+                                                <property name="shrink">True</property>
+                                              </packing>
                                             </child>
                                           </object>
-                                          <packing>
-                                            <property name="resize">True</property>
-                                            <property name="shrink">True</property>
-                                          </packing>
                                         </child>
                                       </object>
                                       <packing>

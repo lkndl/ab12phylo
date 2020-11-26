@@ -3,8 +3,8 @@
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.3a.01'
-__date__ = '20 November 2020'
+__version__ = '0.3a.08'
+__date__ = '26 November 2020'
 __license__ = 'MIT'
 __status__ = 'Alpha'
 
@@ -19,10 +19,11 @@ from pathlib import Path
 
 import gi
 
-from GUI.gtk3 import shared, gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
+from GUI.gtk3 import gtk_proj, shared, gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
+
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib, GObject
+from gi.repository import Gtk, Gdk
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
@@ -32,15 +33,6 @@ __verbose__, __info__ = 1, 0
 Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Maia')
 Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
 
-
-# TODO write in a tempdir?
-# TODO freeze actionbar?
-
-# TODO zoom levels, rechtsklick
-#   refactor matrices, save as square, svg
-
-# TODO measure scale-up, then re-load
-# DONE prog-bar do not increase beyond next step
 
 class app(Gtk.Application):
     TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
@@ -111,12 +103,12 @@ class app(Gtk.Application):
         .codeview text { background-color: %s(@bg_color); color: %s(@fg_color); }
         .seqid { font-size: xx-small; }
         separator.wide { min-width: 18px }
-        progressbar trough progress { min-height: 8px; border-radius: 1px; }
-        progressbar trough { min-height: 8px; }
+        progressbar trough progress { min-height: 6px; border-radius: 1px; background-color: @success_color; }
+        progressbar trough { min-height: 6px; }
         #prog_label { font-size: x-small }
         button:active { background-color: #17f }
         ''' % mod)
-        # TODO CSS also supports key bindings ... zoom?
+        # CSS also supports key bindings
         # treeview {background-color: darker(@bg_color);} separator has margin-left
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css_provider,
                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
@@ -166,7 +158,7 @@ class app(Gtk.Application):
         shared.bind_accelerator(self.accelerators, iface.dismiss, 'Escape')
         shared.bind_accelerator(self.accelerators, iface.dismiss, 'Return')
 
-        self.data = project_dataset()
+        self.data = gtk_proj.project_dataset()
         LOG.debug('interface and dataset initialized')
 
         # initialize the notebook pages
@@ -176,8 +168,7 @@ class app(Gtk.Application):
         gtk_msa.init(self)
         gtk_gbl.init(self)
 
-        self.load('/home/quirin/PYTHON/outputwd/base.proj')
-        # self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
+        self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
 
     def new(self, confirm=True):
         """
@@ -237,9 +228,8 @@ class app(Gtk.Application):
             Path.mkdir(self.wd, exist_ok=True)
             self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
             self.iface.notebook.set_current_page(self.data.page)
-            shared.refresh(self)
         except Exception as e:
-            print(str(e))
+            LOG.exception(e)
             shared.show_notification(self, 'Project could not be loaded')
 
     def save(self, event):
@@ -326,65 +316,6 @@ class app(Gtk.Application):
             sh.setLevel(logging.WARNING)
 
         self.log.addHandler(sh)
-
-
-class project_dataset:
-    def __init__(self):
-        self.trace_store = shared.picklable_liststore(str,  # path
-                                                      str,  # filename
-                                                      str,  # well/id
-                                                      str,  # plate
-                                                      str,  # gene
-                                                      bool,  # reference
-                                                      bool,  # reversed
-                                                      str)  # color
-
-        self.plate_store = shared.picklable_liststore(str,  # path
-                                                      str,  # filename
-                                                      str,  # plate ID
-                                                      str)  # errors
-        self.genes = set()  # used *before* seqdata exists
-        self.csvs = dict()
-        self.seqdata = dict()
-        self.metadata = dict()
-        self.seed = 0
-        self.record_order = list()
-        self.qal_model = shared.picklable_liststore(str,  # id
-                                                    bool,  # has phreds
-                                                    bool)  # low quality
-        self.gbl_model = shared.picklable_liststore(str,  # id
-                                                    str)  # seq
-        # set up indicator of changes, tabs are not disabled initially
-        self.change_indicator = [False] * 20
-        self.errors_indicator = [False] * 20
-        self.page = 0
-        self.qal_shape = [0, 0]
-        self.gbl_shape = [0, 0]
-        self.msa_shape = [0, 0, 0, 0]  # width-height before and after trimming
-        self.msa_hash = ''
-
-    def agene(self):
-        gene = self.genes.pop()
-        self.genes.add(gene)
-        return gene
-
-    def new_project(self):
-        self.overwrite(project_dataset())
-
-    def overwrite(self, new_dataset):
-        for attr in [a for a in dir(self) if not callable(getattr(self, a)) and not a.startswith('__')]:
-            old = self.__getattribute__(attr)
-            if type(old) == shared.picklable_liststore:
-                old.clear()
-                [old.append(row[:]) for row in new_dataset.__getattribute__(attr)]
-            elif type(old) == dict:
-                old.clear()
-                old.update(new_dataset.__getattribute__(attr))
-            else:
-                try:
-                    self.__setattr__(attr, new_dataset.__getattribute__(attr))
-                except (AttributeError, TypeError) as ex:
-                    LOG.error(ex)
 
 
 app = app()

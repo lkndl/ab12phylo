@@ -1,11 +1,13 @@
 # 2020 Leo Kaindl
 
 import logging
+import numpy as np
 from pathlib import Path
 from argparse import Namespace
 
 import gi
 
+import gtk_proj
 from GUI.gtk3 import shared
 
 gi.require_version('Gtk', '3.0')
@@ -27,7 +29,7 @@ def init(gui):
 
     # trace file types
     # create a TreeView model
-    iface.file_type_model = shared.picklable_liststore(str, bool)
+    iface.file_type_model = gtk_proj.picklable_liststore(str, bool)
     [iface.file_type_model.append([file_type, False]) for file_type in FILETYPES]
 
     # check ABI traces by default
@@ -81,14 +83,14 @@ def init(gui):
 
     iface.rasterize.set_visible(False)
     # horizontal scaling
-    iface.hadj = Namespace()
-    iface.hadj.adj = iface.hadj_scale.get_adjustment()
-    iface.hadj.adj.configure(1, .2, 2.6, .2, 0, 0)
+    iface.zoom = Namespace()
+    iface.zoom.adj = iface.hadj_scale.get_adjustment()
+    iface.zoom.adj.configure(1, .2, 2.6, .2, 0, 0)
     iface.hadj_scale.set_digits(1)
     iface.hadj_scale1.set_digits(1)
-    iface.hadj.bak = iface.hadj.adj.get_value()
-    iface.hadj.trend = 0
-    iface.hadj.handle = iface.hadj.adj.connect_after('value-changed', shared.h_adjust, gui)
+    iface.zoom.bak = iface.zoom.adj.get_value()
+    iface.zoom.handle = iface.zoom.adj.connect_after('value-changed', shared.x_scale, gui, iface.zoom)
+    iface.zoom.sizes = dict()  # will save with the image parent name here
 
 
 def add_folder(widget, gui, file_type, model):
