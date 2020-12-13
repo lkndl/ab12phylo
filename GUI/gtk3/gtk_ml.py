@@ -43,7 +43,7 @@ def refresh(gui):
     pass
 
 
-def check_MSA(widget, gui, ):
+def check_MSA(widget, gui, algo):
     pass
 
 
@@ -55,7 +55,6 @@ def start_ML(widget, gui):
 def do_ML(gui):
     """Run the Gblocks thread."""
     pass
-
 
 
 def stop_ML(gui, errors):

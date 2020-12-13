@@ -17,7 +17,7 @@ SEP = 'NNNNNNNNNN'
 RAW_MSA = Path('Trim') / 'raw_msa.fasta'
 MSA = 'msa.fasta'
 MISSING = 'missing_samples.tsv'
-PREVIEW = Path('Trim') / 'msa_trim.png'
+PREVIEW = Path('Trim') / 'trim_preview.png'
 CBAR = Path('Trim') / 'colorbar.png'
 LEFT = Path('Trim') / 'msa_gbl_pre.png'
 RIGHT = Path('Trim') / 'msa_gbl_post.png'
@@ -86,11 +86,13 @@ def set_changed(gui, page, changed=True):
         [page.set_sensitive(False) for page in iface.notebook.get_children()[page + 1: iface.notebook.get_n_pages()]]
         # set later pages to 'changed'
         data.change_indicator[page:] = [True] * (iface.notebook.get_n_pages() - page)
+        # gui.iface.next.get_style_context().remove_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
     else:
         # enable the next page
         iface.notebook.get_children()[page + 1].set_sensitive(True)
         # set earlier pages to 'unchanged'
         data.change_indicator[:page + 1] = [False] * (page + 1)
+        # gui.iface.next.get_style_context().remove_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
 
 
 def show_message_dialog(message, list_to_print=None):

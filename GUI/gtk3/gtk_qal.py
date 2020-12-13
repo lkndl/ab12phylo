@@ -240,7 +240,7 @@ def do_trim(gui):
     LOG.debug(iface.text)
 
     # adjust maximum size
-    scale = 12
+    scale = 6
     while max(array.shape) * scale > 2 ** 14:
         scale -= 1
     LOG.debug('scaling qal with %d' % scale)
@@ -379,6 +379,7 @@ def trim_all(gui, run_after=None):
         with open(str(gui.wd / gene / (gene + '.fasta')), 'w') as fasta:
             SeqIO.write(genedata.values(), fasta, 'fasta')
 
+    LOG.debug('deleting seqdata')
     # delete now bloaty data
     data.seqdata.clear()
 

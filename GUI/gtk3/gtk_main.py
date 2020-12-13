@@ -3,8 +3,8 @@
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.3a.08'
-__date__ = '26 November 2020'
+__version__ = '0.3a.09'
+__date__ = '13 December 2020'
 __license__ = 'MIT'
 __status__ = 'Alpha'
 
@@ -22,7 +22,7 @@ import gi
 from GUI.gtk3 import gtk_proj, shared, gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, Gio, GdkPixbuf
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
@@ -48,6 +48,17 @@ class app(Gtk.Application):
             LOG.info('shutdown: delete prelim data')
             shutil.rmtree(path=self.wd)
 
+    def do_startup(self):
+        Gtk.Application.do_startup(self)
+        # connect menu actions and shortcuts
+        for act, acc in zip(['new', 'open', 'save', 'save_as', 'help', 'about', 'on_quit'],
+                            ['n', 'o', 's', '<Shift>s', 'h', '', 'q']):
+            action = Gio.SimpleAction.new(act)
+            action.connect('activate', self.__getattribute__(act))  # can pass parameters here
+            self.add_action(action)
+            self.set_accels_for_action(detailed_action_name='app.%s' % act, accels=['<Control>%s' % acc])
+            # self.add_accelerator(accelerator='<Control>h', action_name='app.help', parameter=None)
+
     def __init__(self):
         Gtk.Application.__init__(self)
 
@@ -61,12 +72,7 @@ class app(Gtk.Application):
         self.win = iface.win
         self.win.set_icon_from_file(str(app.ICON))
 
-        tbar = Gtk.HeaderBar()
-        tbar.set_has_subtitle(False)
-        tbar.set_decoration_layout('menu:minimize,maximize,close')
-        tbar.set_show_close_button(True)
-        tbar.pack_start(iface.menu_bar)
-        self.win.set_titlebar(tbar)
+        self.win.set_titlebar(iface.tbar)
         self.win.set_hide_titlebar_when_maximized(True)
         self.win.set_title('AB12PHYLO [untitled]')
         LOG.debug('GTK Window initialized')
@@ -93,13 +99,13 @@ class app(Gtk.Application):
         # get some CSS styling
         mod = b'lighter', b'darker'
         mod2 = 200  # per default, make treeview text color darker
-        if 'dark' in Gtk.Settings.get_default().get_property('gtk-theme-name'):
+        theme = Gtk.Settings.get_default().get_property('gtk-theme-name')
+        if 'dark' in theme:
             mod = mod[::-1]
             mod2 = 255
 
         css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(b'''
-        .codeview text { background-color: %s(@bg_color); color: %s(@fg_color); }
+        css = b'''
         .seqid { font-size: xx-small; }
         separator.wide { min-width: 18px }
         progressbar trough progress { min-height: 6px; border-radius: 1px; background-color: @success_color; }
@@ -107,8 +113,15 @@ class app(Gtk.Application):
         #prog_label { font-size: x-small }
         button:active { background-color: #17f }
         notebook header { background-color: transparent; }
-        window { background-color: mix(@bg_color, rgba(127,127,127,0), 0.05) }
-        ''' % mod)
+        '''
+        if 'atcha' in theme:
+            css += b'''
+            .codeview text { background-color: %s(@bg_color); color: %s(@fg_color); }
+            window { background-color: mix(@bg_color, rgba(127,127,127,0), 0.05) }
+            ''' % mod
+        else:
+            css += b'''.codeview text { background-color: white; color: black; }'''
+        css_provider.load_from_data(css)
         # CSS also supports key bindings
         # treeview {background-color: darker(@bg_color);} separator has margin-left
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css_provider,
@@ -130,18 +143,9 @@ class app(Gtk.Application):
         self.win.add_accel_group(self.accelerators)
 
         # connect to the window's delete event to close on x click
-        self.win.connect('destroy', Gtk.main_quit)
-        # connect menu events and shortcuts
-        iface.quit.connect('activate', Gtk.main_quit)
-        shared.bind_accelerator(self.accelerators, iface.quit, '<Control>q', 'activate')
-        iface.new.connect('activate', self.new)
-        shared.bind_accelerator(self.accelerators, iface.new, '<Control>n', 'activate')
-        iface.open.connect('activate', self.open)
-        shared.bind_accelerator(self.accelerators, iface.open, '<Control>o', 'activate')
-        iface.save.connect('activate', self.save)
-        shared.bind_accelerator(self.accelerators, iface.save, '<Control>s', 'activate')
-        iface.saveas.connect('activate', self.save_as)
-        shared.bind_accelerator(self.accelerators, iface.saveas, '<Control><Shift>s', 'activate')
+        self.win.connect('destroy', lambda *args: self.quit())
+        # shared.bind_accelerator(self.accelerators, iface.open, '<Control>o', 'activate')
+        # iface.save.connect('activate', self.save)
 
         # connect buttons
         iface.next.connect('clicked', shared.proceed, self)
@@ -183,12 +187,12 @@ class app(Gtk.Application):
         # TODO gtk_qal not accepting reverse doesn't work
         # TODO trimming: initial settings and run
 
-    def new(self, confirm=True):
+    def new(self, action, confirm=True, *args):
         """
         Create a new project by resetting the dataset and some interface aspects.
         :return:
         """
-        if confirm:
+        if confirm or confirm is None:
             message = 'New project, discard changes?'
             dialog = Gtk.MessageDialog(transient_for=None, flags=0, text=message,
                                        buttons=Gtk.ButtonsType.OK_CANCEL,
@@ -205,10 +209,9 @@ class app(Gtk.Application):
         self.win.set_title('AB12PHYLO [untitled]')
         self.iface.notebook.set_current_page(0)
 
-    def open(self, event):
+    def open(self, *args):
         """
         Project file open dialog. Calls self.load internally.
-        :param event: will be ignored, but must have an additional positional argument for use as callback
         :return:
         """
         dialog = Gtk.FileChooserDialog(title='open project', parent=None,
@@ -245,10 +248,9 @@ class app(Gtk.Application):
             LOG.exception(e)
             shared.show_notification(self, 'Project could not be loaded')
 
-    def save(self, event):
+    def save(self, *args):
         """
         Save project_dataset to file directly, unless it hasn't previously been saved.
-        :param event: To ignore, GTK+ callback requires positional argument.
         :return:
         """
         if not self.project_path:
@@ -285,10 +287,9 @@ class app(Gtk.Application):
         self.wd = self.project_path.parent / self.project_path.stem
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
 
-    def save_as(self, event):
+    def save_as(self, *args):
         """
         Save with a file dialog. If previously saved, suggest old filename.
-        :param event: To ignore, GTK+ callback requires positional argument.
         :return:
         """
         dialog = Gtk.FileChooserDialog(title='save project', parent=None,
@@ -305,6 +306,22 @@ class app(Gtk.Application):
             LOG.debug('got save path to %s' % self.project_path)
             self.save(None)
         dialog.destroy()
+
+    def help(self, *args):
+        print('HELP!')
+
+    def on_quit(self, *args):
+        self.quit()
+
+    def about(self, *args):
+        Gtk.AboutDialog(transient_for=self.win, modal=True, title='About AB12PHYLO',
+                        authors=[__author__ + '<leo.kaindl@tum.de>', 'Dr Remco Stam', 'Corinn Small'],
+                        comments='An integrated pipeline for Maximum Likelihood (ML) '
+                                 'phylogenetic tree inference from ABI sequencing data',
+                        program_name='AB12PHYLO', version=__version__,
+                        website='https://gitlab.lrz.de/leokaindl/ab12phylo',
+                        website_label='GitLab Repo', license_type=Gtk.License.MIT_X11,
+                        logo=GdkPixbuf.Pixbuf.new_from_file(str(app.ICON))).present()
 
     def _init_log(self, **kwargs):
         self.log.setLevel(logging.DEBUG)
@@ -331,6 +348,7 @@ class app(Gtk.Application):
         self.log.addHandler(sh)
 
 
-app = app()
-exit_status = app.run(sys.argv)
-sys.exit(exit_status)
+if __name__ == '__main__':
+    app = app()
+    exit_status = app.run(sys.argv)
+    sys.exit(exit_status)

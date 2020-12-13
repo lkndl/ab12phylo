@@ -25,157 +25,207 @@
     <property name="page-increment">10</property>
     <property name="page-size">0.5</property>
   </object>
-  <object class="GtkMenuBar" id="menu_bar">
-    <property name="name">menu_bar</property>
-    <property name="visible">True</property>
+  <object class="GtkPopoverMenu" id="pop_menu">
+    <property name="name">pop_menu</property>
     <property name="can-focus">False</property>
-    <property name="margin-start">6</property>
-    <property name="margin-end">6</property>
-    <property name="margin-top">6</property>
-    <property name="margin-bottom">6</property>
     <child>
-      <object class="GtkMenuItem">
+      <!-- n-columns=1 n-rows=6 -->
+      <object class="GtkGrid">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="label" translatable="yes">_File</property>
-        <property name="use-underline">True</property>
-        <child type="submenu">
-          <object class="GtkMenu">
+        <property name="margin-start">12</property>
+        <property name="margin-end">12</property>
+        <property name="margin-top">12</property>
+        <property name="margin-bottom">12</property>
+        <child>
+          <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
-              <object class="GtkMenuItem" id="new">
+              <object class="GtkButton" id="new">
                 <property name="name">new</property>
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">New Project</property>
-                <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">New Project</property>
+                <property name="vexpand">False</property>
+                <property name="action-name">app.new</property>
+                <property name="always-show-image">True</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">document-new-symbolic</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="image-button"/>
+                </style>
               </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="padding">1</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
-              <object class="GtkMenuItem" id="open">
+              <object class="GtkButton" id="open">
                 <property name="name">open</property>
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Open Project</property>
-                <accelerator key="o" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Open Project</property>
+                <property name="vexpand">False</property>
+                <property name="action-name">app.open</property>
+                <property name="always-show-image">True</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">document-open-symbolic</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="image-button"/>
+                </style>
               </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="padding">1</property>
+                <property name="position">1</property>
+              </packing>
             </child>
             <child>
-              <object class="GtkMenuItem" id="save">
+              <object class="GtkButton" id="save">
                 <property name="name">save</property>
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Save Project</property>
-                <property name="use-underline">True</property>
-                <accelerator key="s" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Save Project</property>
+                <property name="vexpand">False</property>
+                <property name="action-name">app.save</property>
+                <property name="always-show-image">True</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">document-save-symbolic</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="image-button"/>
+                </style>
               </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="padding">1</property>
+                <property name="position">2</property>
+              </packing>
             </child>
             <child>
-              <object class="GtkMenuItem" id="saveas">
+              <object class="GtkButton" id="saveas">
                 <property name="name">saveas</property>
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Save as</property>
-                <property name="use-underline">True</property>
-                <accelerator key="s" signal="activate" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Save Project as</property>
+                <property name="vexpand">False</property>
+                <property name="action-name">app.save_as</property>
+                <property name="always-show-image">True</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">document-save-as-symbolic</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="image-button"/>
+                </style>
               </object>
-            </child>
-            <child>
-              <object class="GtkSeparatorMenuItem">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkMenuItem" id="quit">
-                <property name="name">quit</property>
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Quit</property>
-                <property name="use-underline">True</property>
-                <accelerator key="q" signal="activate" modifiers="GDK_CONTROL_MASK"/>
-              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="padding">1</property>
+                <property name="position">3</property>
+              </packing>
             </child>
           </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">0</property>
+          </packing>
         </child>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">_Export</property>
-        <property name="use-underline">True</property>
-        <child type="submenu">
-          <object class="GtkMenu">
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="text" translatable="yes">Preferences</property>
+            <property name="menu-name">prefs</property>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="action-name">app.help</property>
+            <property name="text" translatable="yes">Help</property>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="action-name">app.about</property>
+            <property name="text" translatable="yes">About</property>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSeparator">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <child>
-              <object class="GtkImageMenuItem">
-                <property name="label">gtk-cut</property>
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="use-underline">True</property>
-                <property name="use-stock">True</property>
-                <property name="always-show-image">True</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkImageMenuItem">
-                <property name="label">gtk-copy</property>
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="use-underline">True</property>
-                <property name="use-stock">True</property>
-                <property name="always-show-image">True</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkImageMenuItem">
-                <property name="label">gtk-paste</property>
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="use-underline">True</property>
-                <property name="use-stock">True</property>
-                <property name="always-show-image">True</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkImageMenuItem">
-                <property name="label">gtk-delete</property>
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="use-underline">True</property>
-                <property name="use-stock">True</property>
-                <property name="always-show-image">True</property>
-              </object>
-            </child>
           </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">1</property>
+          </packing>
         </child>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">_Help</property>
-        <property name="use-underline">True</property>
-        <child type="submenu">
-          <object class="GtkMenu">
+        <child>
+          <object class="GtkModelButton">
             <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkMenuItem" id="about">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">About</property>
-                <property name="use-underline">True</property>
-              </object>
-            </child>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="action-name">app.on_quit</property>
+            <property name="text" translatable="yes">Quit</property>
           </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">5</property>
+          </packing>
         </child>
       </object>
+      <packing>
+        <property name="submenu">main</property>
+        <property name="position">1</property>
+      </packing>
     </child>
   </object>
   <object class="GtkAdjustment" id="qal_scroll_adj">
@@ -195,8 +245,8 @@
     <property name="can-focus">False</property>
     <property name="default-width">900</property>
     <property name="default-height">600</property>
-    <property name="hide-titlebar-when-maximized">True</property>
     <property name="urgency-hint">True</property>
+    <property name="show-menubar">False</property>
     <child>
       <object class="GtkOverlay" id="overlay">
         <property name="name">overlay</property>
@@ -4225,6 +4275,33 @@
           </object>
         </child>
       </object>
+    </child>
+  </object>
+  <object class="GtkHeaderBar" id="tbar">
+    <property name="name">tbar</property>
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">AB12PHYLO</property>
+    <property name="has-subtitle">False</property>
+    <property name="spacing">0</property>
+    <property name="show-close-button">True</property>
+    <property name="decoration-layout">menu:minimize,maximize,close</property>
+    <child>
+      <object class="GtkMenuButton">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="receives-default">True</property>
+        <property name="align-widget">win</property>
+        <property name="direction">none</property>
+        <property name="popover">pop_menu</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="pack-type">end</property>
+      </packing>
     </child>
   </object>
   <object class="GtkTextBuffer" id="trim_help_buf">
