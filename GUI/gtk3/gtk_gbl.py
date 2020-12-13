@@ -52,7 +52,7 @@ def init(gui):
     iface.gaps.connect('changed', lambda *args: iface.gbl.  # no assignment in lambda -> use __setattr__
                        __setattr__('gaps', iface.gaps.get_active_text()))
     iface.gbl_preset.connect_after('changed', re_preset, gui)
-    iface.gbl_preset.set_active_id('relaxed')  # trigger initial values. not sure if works?
+    iface.gbl_preset.set_active_id('balanced')  # TODO trigger initial values
 
     sel = iface.view_gbl.get_selection()
     sel.set_mode(Gtk.SelectionMode.MULTIPLE)
@@ -77,7 +77,7 @@ def refresh(gui):
         i, r = 0, ''
         data.gbl_model.clear()
         for r in SeqIO.parse(gui.wd / shared.RAW_MSA, 'fasta'):
-            data.gbl_model.append([r.id, r.id])
+            data.gbl_model.append([r.id])
             i += 1
         data.msa_shape = [len(r), i, -1, i]  # width-heigth-width_after-height
         iface.msa_shape.set_text('%d : %d' % tuple(data.msa_shape[:2]))
@@ -194,7 +194,7 @@ def start_gbl(gui, run_after=None):
     elif iface.gbl_preset.get_active_text() == 'skip':
         shared.set_changed(gui, PAGE, False)
         shared.set_errors(gui, PAGE, False)
-        shutil.copyfile(shared.RAW_MSA, shared.MSA)
+        shutil.copyfile(gui.wd / shared.RAW_MSA, gui.wd / shared.MSA)
         LOG.info('copied untrimmed MSA')
         return
 
@@ -232,8 +232,12 @@ def do_gbl(gui):
     iface.k = 7
     iface.text = 'read MSA'
     LOG.debug(iface.text)
-    array = np.array([shared.seqtoint(r.seq) for
-                      r in SeqIO.parse(gui.wd / shared.RAW_MSA, 'fasta')])
+    data.gbl_model.clear()
+    ints = list()
+    for r in SeqIO.parse(gui.wd / shared.RAW_MSA, 'fasta'):
+        data.gbl_model.append([r.id])
+        ints.append(shared.seqtoint(r.seq))
+    array = np.array(ints)
     data.gbl_shape[0] = array.shape[1] * shared.get_hadj(iface)
     # make everything beyond N completely transparent
     array = np.ma.masked_where(array > shared.toint('N'), array)
@@ -275,6 +279,7 @@ def do_gbl(gui):
                 lane = fh.readline()
                 line_blocks = lane.strip()[9:-1].split(']  [')
                 break
+    LOG.debug(line_blocks)
     if len(line_blocks) == 1:
         err = 'no good blocks'
         LOG.error(err)
@@ -302,11 +307,21 @@ def do_gbl(gui):
     x_ratio = data.msa_shape[2] / data.msa_shape[0]
     LOG.debug('x ratio: %.3f' % x_ratio)
 
-    for alpha, blocks, gtk_bin, png_path, x_ratio in zip([gbl_mask, 1], [range(array.shape[1]), blocks],
-                                                         [iface.gbl_left_vp, iface.gbl_right_vp],
-                                                         [shared.LEFT, shared.RIGHT], [1, x_ratio]):
-        f = Figure()
+    # adjust maximum size
+    scale = 12
+    while max(data.msa_shape[:2]) * scale > 2 ** 14:
+        scale -= 1
+    LOG.debug('scaling gbl with %d' % scale)
+
+    for alpha, blocks, gtk_bin, png_path, x_ratio, width \
+            in zip([gbl_mask, 1], [range(array.shape[1]), blocks],
+                   [iface.gbl_left_vp, iface.gbl_right_vp],
+                   [shared.LEFT, shared.RIGHT], [1, x_ratio],
+                   [data.msa_shape[0], data.msa_shape[2]]):
+        f = Figure()  # figsize=(width / shared.DPI, data.msa_shape[1] / shared.DPI), dpi=shared.DPI)  # figaspect(data.msa_shape[1] / width))
         f.set_facecolor('none')
+        f.set_figheight(data.msa_shape[1] / shared.DPI)
+        f.set_figwidth(width / shared.DPI)
         ax = f.add_subplot(111)
         ax.axis('off')
         f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
@@ -318,7 +333,7 @@ def do_gbl(gui):
         LOG.debug(iface.text)
         Path.mkdir(gui.wd / png_path.parent, exist_ok=True)
         f.savefig(gui.wd / png_path, transparent=True,
-                  dpi=600, bbox_inches='tight', pad_inches=0)
+                  dpi=scale * shared.DPI, bbox_inches='tight', pad_inches=0.00001)
 
         # experimentally good point to re-size
         data.gbl_shape[1] = shared.get_dims(iface.view_gbl, None, iface.gbl_spacer,

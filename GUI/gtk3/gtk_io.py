@@ -84,10 +84,12 @@ def init(gui):
     iface.rasterize.set_visible(False)
     # horizontal scaling
     iface.zoom = Namespace()
-    iface.zoom.adj = iface.hadj_scale.get_adjustment()
+    iface.zoom.adj = iface.qal_scale.get_adjustment()
     iface.zoom.adj.configure(1, .2, 2.6, .2, 0, 0)
-    iface.hadj_scale.set_digits(1)
-    iface.hadj_scale1.set_digits(1)
+    iface.qal_scale.set_digits(1)
+    iface.gbl_scale.set_digits(1)
+    iface.qal_scale.add_mark(1, Gtk.PositionType.BOTTOM, None)
+    iface.gbl_scale.add_mark(1, Gtk.PositionType.BOTTOM, None)
     iface.zoom.bak = iface.zoom.adj.get_value()
     iface.zoom.handle = iface.zoom.adj.connect_after('value-changed', shared.x_scale, gui, iface.zoom)
     iface.zoom.sizes = dict()  # will save with the image parent name here

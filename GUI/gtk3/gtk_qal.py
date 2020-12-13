@@ -28,9 +28,6 @@ PAGE = 2
 """The page for ABI trace trimming. Very similar to the MSA trimming page gtk_gbl.py"""
 
 
-# todo do not re-read if some were removed
-# todo not accepting reverse doesn't work
-
 def init(gui):
     data, iface = gui.data, gui.iface
 
@@ -241,8 +238,17 @@ def do_trim(gui):
     iface.i += 1
     iface.text = 'plot'
     LOG.debug(iface.text)
+
+    # adjust maximum size
+    scale = 12
+    while max(array.shape) * scale > 2 ** 14:
+        scale -= 1
+    LOG.debug('scaling qal with %d' % scale)
+
     f = Figure()
     f.set_facecolor('none')
+    f.set_figheight(array.shape[0] / shared.DPI)
+    f.set_figwidth(array.shape[1] / shared.DPI)
     ax = f.add_subplot(111)
     ax.axis('off')
     f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
@@ -254,7 +260,7 @@ def do_trim(gui):
     LOG.debug(iface.text)
     Path.mkdir(gui.wd / shared.PREVIEW.parent, exist_ok=True)
     f.savefig(gui.wd / shared.PREVIEW, transparent=True,
-              dpi=600, bbox_inches='tight', pad_inches=0)
+              dpi=scale * shared.DPI, bbox_inches='tight', pad_inches=0.00001)
 
     data.qal_shape[0] = array.shape[1]
     data.qal_shape[1] = shared.get_dims(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
@@ -343,7 +349,7 @@ def trim_all(gui, run_after=None):
     :return:
     """
     data, iface = gui.data, gui.iface
-    accepted_ids = set(shared.get_column(data.qal_model, 0))
+    # accepted_ids = set(shared.get_column(data.qal_model, 0))
 
     if not data.seqdata:
         LOG.debug('re-reading files')
@@ -356,7 +362,8 @@ def trim_all(gui, run_after=None):
         Path.mkdir(gui.wd / gene, exist_ok=True)
 
         # do actual trimming
-        for _id in accepted_ids:
+        ids = list(genedata.keys())
+        for _id in ids:
             record = genedata.pop(_id)
             try:
                 record = trim_ends(record, p.min_phred, (p.trim_out, p.trim_of))
@@ -365,6 +372,7 @@ def trim_all(gui, run_after=None):
                 continue
             except AttributeError:
                 pass
+            # put back only the good records
             genedata[_id] = record
 
         # write to file

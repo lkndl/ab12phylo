@@ -8,21 +8,21 @@ import hashlib
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 
-from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
+from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_ml
 
 LOG = logging.getLogger(__name__)
 TOOLS = Path(__file__).resolve().parents[2] / 'ab12phylo' / 'tools'
 USER = 'leo.kaindl@tum.de'
-SEP = 'SSSSSSSSSS'
+SEP = 'NNNNNNNNNN'
 RAW_MSA = Path('Trim') / 'raw_msa.fasta'
 MSA = 'msa.fasta'
 MISSING = 'missing_samples.tsv'
-PREVIEW = Path('Trim') / 'trim_preview.png'
+PREVIEW = Path('Trim') / 'msa_trim.png'
 CBAR = Path('Trim') / 'colorbar.png'
-LEFT = Path('Trim') / 'msa_pretrim.png'
-RIGHT = Path('Trim') / 'msa_posttrim.png'
+LEFT = Path('Trim') / 'msa_gbl_pre.png'
+RIGHT = Path('Trim') / 'msa_gbl_post.png'
 ALPHA = .25
-H_SCALER = 3
+DPI = 300
 BUF_SIZE = 128 * 1024
 NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S']
 KXLIN = {
@@ -38,7 +38,7 @@ KXLIN = {
 
 # TODO continue project variables
 # re-fresh page content. automatically called
-REFRESH = [gtk_io.refresh, gtk_rgx.refresh, gtk_qal.refresh, gtk_msa.refresh, gtk_gbl.refresh]
+REFRESH = [gtk_io.refresh, gtk_rgx.refresh, gtk_qal.refresh, gtk_msa.refresh, gtk_gbl.refresh, gtk_ml.refresh]
 # re-run background threads. -> "REFRESH" button
 RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim, 4: gtk_gbl.start_gbl}
 # where the gene selector is visible
@@ -201,7 +201,7 @@ def step_back(widget, gui):
     iface.notebook.prev_page()
     data.page = iface.notebook.get_current_page()
     set_changed(gui, data.page, False)
-    REFRESH[data.page](gui)
+    # REFRESH[data.page](gui)
     LOG.debug('stepped back to page %d' % data.page)
 
 
@@ -215,6 +215,13 @@ def re_run(gui, *args):
 
 
 def refresh(gui, *args):
+    """
+    Call the refresh function of the current page and hide or show
+    the appropriate buttons.
+    :param gui:
+    :param args:
+    :return:
+    """
     if args:
         gui = args[-1]
     page = gui.iface.notebook.get_current_page()
@@ -224,12 +231,20 @@ def refresh(gui, *args):
     gui.iface.gene_roll.props.visible = bool(page in SELECT)
 
 
-def select(gui, *args):
+def select_gene_and_redo(gui, *args):
+    """
+    A page-independent handler for selecting a different gene.
+    Currently, iface.gene_roll is only visible from one page, so a bit useless.
+    :param gui:
+    :param args:
+    :return:
+    """
     if args:
         gui = args[-1]
     page = gui.iface.notebook.get_current_page()
     if page == 2:  # trim preview
         gtk_qal.parse(gui.iface.gene_roll, None, gui)
+        gtk_qal.start_trim(gui)
     # TODO continue for new pages
 
 
@@ -402,7 +417,7 @@ def xy_scale(widget, event, gui, page):
                                    data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
                 else:
                     LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
-                    # scale the eay way
+                    # scale the easy way
                     if page == 2:
                         scale(iface.qal_eventbox, new, new)
                     elif page == 4:

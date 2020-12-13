@@ -53,12 +53,13 @@ def get_help(widget, gui, remote=False, try_path=False):
         return
     shared.set_changed(gui, PAGE, True)
 
-    iface.msa.algo = shared.toalgo(iface.msa_algo.get_active_text())
     if remote:
-        client = shared.TOOLS / 'M  SA_clients' / (iface.msa.algo + '.py')
+        iface.msa.algo = shared.toalgo(iface.remote_algo.get_active_text())
+        client = shared.TOOLS / 'MSA_clients' / (iface.msa.algo + '.py')
         set_helpers(gui, 'python3 %s ' % client, iface.remote_help,
                     iface.msa.remote_cmd, iface.msa.algo, True, iface.remote_cmd)
     else:
+        iface.msa.algo = shared.toalgo(iface.msa_algo.get_active_text())
         exe = shutil.which(iface.msa.algo)
         exe = widget.get_active_text() if try_path else exe
         if exe:
@@ -158,12 +159,12 @@ def do_align(gui, remote=False):
     funcs, arg_dicts = [iface.aligner.build_local, iface.aligner.build_remote], \
                        [iface.msa.cmd, iface.msa.remote_cmd]
     try:
-        for gene in data.genes:
+        for gene in sorted(list(data.genes)):
             iface.text = 'aligning %s [%d/%d]' % (gene, iface.i + 1, iface.k - 2)
             LOG.debug(iface.text)
             try:
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
-                                            % tuple([gene] * 4))  # interpreting bool as int here
+                                            % tuple([gene] * (4 - remote)))  # interpreting bool as int here
             except FileNotFoundError:
                 iface.aligner.reset_paths(gui.wd, gui.wd / shared.RAW_MSA, gui.wd / shared.MISSING)
                 # try again once more

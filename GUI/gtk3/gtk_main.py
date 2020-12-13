@@ -21,7 +21,6 @@ import gi
 
 from GUI.gtk3 import gtk_proj, shared, gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
 
-
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
 
@@ -107,6 +106,8 @@ class app(Gtk.Application):
         progressbar trough { min-height: 6px; }
         #prog_label { font-size: x-small }
         button:active { background-color: #17f }
+        notebook header { background-color: transparent; }
+        window { background-color: mix(@bg_color, rgba(127,127,127,0), 0.05) }
         ''' % mod)
         # CSS also supports key bindings
         # treeview {background-color: darker(@bg_color);} separator has margin-left
@@ -150,7 +151,7 @@ class app(Gtk.Application):
         iface.refresh.connect('clicked', shared.re_run, self)
         shared.bind_accelerator(self.accelerators, iface.refresh, 'Return')
         # connect gene switcher
-        iface.gene_handler = iface.gene_roll.connect('changed', shared.select, self)
+        iface.gene_handler = iface.gene_roll.connect('changed', shared.select_gene_and_redo, self)
         # any page change
         iface.notebook.connect_after('switch-page', shared.refresh, self)
 
@@ -168,7 +169,19 @@ class app(Gtk.Application):
         gtk_msa.init(self)
         gtk_gbl.init(self)
 
-        self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
+        # self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
+        self.load('/home/quirin/PYTHON/outputwd/concat.proj')
+
+        # TODO trim MSAs separately!
+        # DONE gbl png sizing + max size!
+        # TODO png saving for qal
+        # TODO keep selection in window
+        # TODO check Gblocks dropping separator
+        # TODO reconsider saving of empty data structure
+
+        # TODO gtk_qal do not re-read if some were removed
+        # TODO gtk_qal not accepting reverse doesn't work
+        # TODO trimming: initial settings and run
 
     def new(self, confirm=True):
         """

@@ -13,6 +13,11 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="gbl_scroll_vert">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="h_scale_adj">
     <property name="upper">4</property>
     <property name="value">1</property>
@@ -174,6 +179,11 @@
     </child>
   </object>
   <object class="GtkAdjustment" id="qal_scroll_adj">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="qal_scroll_vert">
     <property name="upper">100</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -1465,11 +1475,10 @@
                     <property name="margin-top">18</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <!-- n-columns=2 n-rows=2 -->
+                      <!-- n-columns=3 n-rows=2 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="column-spacing">10</property>
                         <child>
                           <object class="GtkScrolledWindow" id="parallel_viewer">
                             <property name="name">parallel_viewer</property>
@@ -1477,7 +1486,9 @@
                             <property name="can-focus">True</property>
                             <property name="hexpand">True</property>
                             <property name="vexpand">True</property>
+                            <property name="vadjustment">qal_scroll_vert</property>
                             <property name="hscrollbar-policy">never</property>
+                            <property name="vscrollbar-policy">external</property>
                             <property name="shadow-type">in</property>
                             <child>
                               <object class="GtkViewport">
@@ -1628,6 +1639,31 @@
                           <packing>
                             <property name="left-attach">0</property>
                             <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="hexpand">False</property>
+                            <property name="vexpand">False</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScrollbar">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="hexpand">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="adjustment">qal_scroll_vert</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                       </object>
@@ -1918,13 +1954,12 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScale" id="hadj_scale1">
-                                    <property name="name">hadj_scale1</property>
+                                  <object class="GtkScale" id="qal_scale">
+                                    <property name="name">qal_scale</property>
                                     <property name="width-request">250</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">set horizontal scaling.
-use &lt;Control&gt;&lt;mouse wheel&gt; to zoom the preview above</property>
+                                    <property name="tooltip-text" translatable="yes">horizontal scaling. For x-y scaling, hold &lt;Ctrl&gt; and zoom via touchpad or mouse</property>
                                     <property name="adjustment">h_scale_adj</property>
                                     <property name="round-digits">0</property>
                                     <property name="digits">0</property>
@@ -2199,7 +2234,6 @@ use &lt;Control&gt;&lt;mouse wheel&gt; to zoom the preview above</property>
                                         <property name="name">msa_help</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="hexpand">False</property>
                                         <property name="pixels-below-lines">2</property>
                                         <property name="editable">False</property>
                                         <property name="wrap-mode">word-char</property>
@@ -2675,11 +2709,10 @@ use &lt;Control&gt;&lt;mouse wheel&gt; to zoom the preview above</property>
                     <property name="margin-top">18</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <!-- n-columns=2 n-rows=2 -->
+                      <!-- n-columns=3 n-rows=2 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="column-spacing">10</property>
                         <child>
                           <object class="GtkScrolledWindow" id="parallel_viewer1">
                             <property name="name">parallel_viewer</property>
@@ -2687,7 +2720,9 @@ use &lt;Control&gt;&lt;mouse wheel&gt; to zoom the preview above</property>
                             <property name="can-focus">True</property>
                             <property name="hexpand">True</property>
                             <property name="vexpand">True</property>
+                            <property name="vadjustment">gbl_scroll_vert</property>
                             <property name="hscrollbar-policy">never</property>
+                            <property name="vscrollbar-policy">external</property>
                             <property name="shadow-type">in</property>
                             <child>
                               <object class="GtkViewport">
@@ -2882,6 +2917,31 @@ use &lt;Control&gt;&lt;mouse wheel&gt; to zoom the preview above</property>
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="hexpand">False</property>
+                            <property name="vexpand">False</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScrollbar">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="hexpand">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="adjustment">gbl_scroll_vert</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                       </object>
@@ -3263,11 +3323,12 @@ use &lt;Control&gt;&lt;mouse wheel&gt; to zoom the preview above</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScale" id="hadj_scale">
-                                    <property name="name">hadj_scale</property>
+                                  <object class="GtkScale" id="gbl_scale">
+                                    <property name="name">gbl_scale</property>
                                     <property name="width-request">250</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">horizontal scaling. For x-y scaling, hold &lt;Ctrl&gt; and zoom via touchpad or mouse</property>
                                     <property name="adjustment">h_scale_adj</property>
                                     <property name="round-digits">0</property>
                                     <property name="digits">0</property>

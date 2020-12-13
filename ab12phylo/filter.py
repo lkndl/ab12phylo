@@ -69,6 +69,8 @@ def mark_bad_stretches(seqrecord, min_phred, _len):
     :return: The input ``SeqRecord``, with bad stretches replaced.
     """
 
+    if not seqrecord.letter_annotations:
+        raise AttributeError('no quality')
     phreds = seqrecord.letter_annotations['phred_quality']
     if type(seqrecord.seq) != MutableSeq:
         seqrecord.seq = seqrecord.seq.tomutable()

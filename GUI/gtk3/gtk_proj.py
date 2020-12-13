@@ -34,8 +34,7 @@ class project_dataset:
         self.qal_model = picklable_liststore(str,  # id
                                              bool,  # has phreds
                                              bool)  # low quality
-        self.gbl_model = picklable_liststore(str,  # id
-                                             str)  # seq
+        self.gbl_model = picklable_liststore(str)  # id
         # set up indicator of changes, tabs are not disabled initially
         self.change_indicator = [False] * 20
         self.errors_indicator = [False] * 20
@@ -82,7 +81,9 @@ class picklable_liststore(Gtk.ListStore):
             return _unpickle_liststore, (self.__class__, coltypes, rows)
         except IndexError as ex:
             cols = self.get_n_columns()
-            # allow saving of emptry data stores
+            # allow saving of empty data stores
+            if cols == 1:
+                coltypes = [str]
             if cols == 2:
                 coltypes = [str, str]
             elif cols == 4:
