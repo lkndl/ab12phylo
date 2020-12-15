@@ -25,14 +25,14 @@ class project_dataset:
                                                str,  # filename
                                                str,  # plate ID
                                                str)  # errors
-        self.genes = set()  # used *before* seqdata exists
+        self.genes = list()  # used also before seqdata exists
         self.csvs = dict()
         self.seqdata = dict()
         self.metadata = dict()
         self.seed = 0
         self.record_order = list()
         self.qal_model = picklable_liststore(str,  # id
-                                             bool,  # has phreds
+                                             int,  # has phreds
                                              bool)  # low quality
         self.gbl_model = picklable_liststore(str)  # id
         # set up indicator of changes, tabs are not disabled initially
@@ -40,14 +40,12 @@ class project_dataset:
         self.errors_indicator = [False] * 20
         self.page = 0
         self.qal_shape = [0, 0]
-        self.gbl_shape = [0, 0]
+        self.gbl_shape = [0, 0]  # width-height
         self.msa_shape = [0, 0, 0, 0]  # width-height before and after trimming
+        self.msa_lens = list()
         self.msa_hash = ''
-
-    def agene(self):
-        gene = self.genes.pop()
-        self.genes.add(gene)
-        return gene
+        self.gene_ids = dict()
+        self.gene_for_preview = ''
 
     def new_project(self):
         self.overwrite(project_dataset())
@@ -60,7 +58,10 @@ class project_dataset:
                 [old.append(row[:]) for row in new_dataset.__getattribute__(attr)]
             elif type(old) == dict:
                 old.clear()
-                old.update(new_dataset.__getattribute__(attr))
+                try:
+                    old.update(new_dataset.__getattribute__(attr))
+                except AttributeError:
+                    pass  # try to go without dict values
             else:
                 try:
                     self.__setattr__(attr, new_dataset.__getattribute__(attr))
@@ -89,7 +90,7 @@ class picklable_liststore(Gtk.ListStore):
             elif cols == 4:
                 coltypes = [str, str, str, str]
             elif cols == 3:
-                coltypes = [str, bool, bool]
+                coltypes = [str, int, bool]
             elif cols == 7:
                 coltypes = [str, str, str, str, str, bool, bool, str]
             return _unpickle_liststore, (self.__class__, coltypes, rows)

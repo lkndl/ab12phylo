@@ -1,9 +1,14 @@
 # 2020 Leo Kaindl
 
-import gi
-from pathlib import Path
-import logging
 import hashlib
+import logging
+from argparse import Namespace
+from pathlib import Path
+
+import gi
+
+from ab12phylo import msa
+from gtk_msa import PAGE
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
@@ -13,8 +18,9 @@ from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_ml
 LOG = logging.getLogger(__name__)
 TOOLS = Path(__file__).resolve().parents[2] / 'ab12phylo' / 'tools'
 USER = 'leo.kaindl@tum.de'
-SEP = 'NNNNNNNNNN'
+SEP = '?*?'
 RAW_MSA = Path('Trim') / 'raw_msa.fasta'
+IMPORT_MSA = Path('import') / 'import_raw_msa.fasta'
 MSA = 'msa.fasta'
 MISSING = 'missing_samples.tsv'
 PREVIEW = Path('Trim') / 'trim_preview.png'
@@ -31,7 +37,7 @@ KXLIN = {
     'G': (0.16, 0.44, 0.8, 1),
     'T': (1, 0.47, 0.66, 1),
     'N': (0.84, 0.84, 0.84, 0.6),
-    'else': (1, 0, 0, 1),
+    'else': (0, 0, 0, 1),
     '-': (1, 1, 1, 0),
     ' ': (1, 1, 1, 0),
     'S': (1, 1, 1, 0)}
@@ -140,6 +146,13 @@ def delete_rows(widget, gui, page, selection, delete_all=False):
     REFRESH[page](gui)
 
 
+def get_hashes(gui, msa_path):
+    msa_hash = file_hash(gui.wd / msa_path)
+    if msa_hash != gui.data.msa_hash:
+        set_changed(gui, PAGE)
+        gui.data.msa_hash = msa_hash
+
+
 def file_hash(file_path):
     h = hashlib.sha256()
     b = bytearray(BUF_SIZE)
@@ -208,7 +221,10 @@ def step_back(widget, gui):
 
 
 def re_run(gui, *args):
-    """Depending on the currently visible page, re-run the matching background task."""
+    """
+    Depending on the currently visible page, re-run the matching background task.
+    Handles the Refresh button.
+    """
     if args:
         gui = args[-1]
     page = gui.iface.notebook.get_current_page()
@@ -274,7 +290,7 @@ def load_image(zoom_ns, page, gtk_bin, img_path, width, height):
         gtk_bin.add(child)
 
     pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-        str(img_path), width=width, height=height,
+        str(img_path), width=max(1, width), height=height,
         preserve_aspect_ratio=False)
     child.set_from_pixbuf(pb)
 
@@ -284,7 +300,7 @@ def load_colorbar(gtk_image, wd):
         str(wd / CBAR), width=250, height=100, preserve_aspect_ratio=True))
 
 
-def get_dims(widget, event, spacer, scroll_wins, lower=0):
+def get_height_resize(widget, event, spacer, scroll_wins, lower=0):
     """
     Adjust the height of a plot in a GtkScrolledWindow depending on the height of the
     associated labeling column. Adjust the width of the spacer below the labels so that
@@ -520,3 +536,78 @@ def delete_and_ignore_rows(widget, event, gui, page, sel, ns):
         elif page == 4:
             gui.iface.view_gbl.grab_focus()
             gtk_gbl.drop_seqs(gui)
+
+
+def init_gene_roll(gui):
+    """
+    Initialize gene switcher combo box with the previously selected gene from the dataset.
+    """
+    data, iface = gui.data, gui.iface
+    with iface.gene_roll.handler_block(iface.gene_handler):
+        iface.gene_roll.remove_all()
+        genes = list(data.genes)
+        [iface.gene_roll.append_text(gene) for gene in genes]
+        if len(genes) > 1:
+            iface.gene_roll.insert_text(0, 'all')
+            genes.insert(0, 'all')
+        if data.gene_for_preview:
+            idx = genes.index(data.gene_for_preview)
+        else:
+            idx = 0
+        iface.gene_roll.set_active(idx)
+
+
+def keep_visible(sel, adj, ns):
+    """
+    For keyboard navigation in previews, scroll the TreeView and keep the selection up-to-date
+    :param sel: a TreeSelection
+    :param adj: the Props of a Vadjustment in a ScrolledWindow
+    :param ns: a Namespace where the previous selection state is stored (amongst others)
+    :return:
+    """
+    mo, tp_iter = sel.get_selected_rows()
+    tps = {tp[0] for tp in tp_iter}
+    if 'sel' not in ns:
+        ns.sel = tps
+        return
+
+    tp = tps - ns.sel
+    ns.sel = tps
+    # scrolling only for incremental keyboard selection
+    if len(tp) != 1:
+        return
+    tp = tp.pop()
+
+    if (tp + 1) / len(mo) > (adj.value + adj.page_size) / adj.upper:
+        # scroll down
+        adj.value = min(adj.upper - adj.page_size,
+                        ((tp + 1) / (len(mo) + 1) - adj.page_size / adj.upper) * adj.upper)
+    elif tp / len(mo) < adj.value / adj.upper:
+        # scroll up
+        adj.value = tp / (len(mo) + 1) * adj.upper
+
+
+def get_cmd(algo, gui, remote=False):
+    """
+    Initializes a commandline msa_build object
+    :param algo:
+    :param gui:
+    :param remote:
+    :return:
+    """
+    data, iface = gui.data, gui.iface
+    args = Namespace(**{
+        'dir': gui.wd,
+        'genes': data.genes,
+        'msa_algo': algo,
+        'user': USER,
+        'msa': gui.wd / MSA,
+        'sep': SEP,
+        'missing_samples': None
+    })
+    iface.aligner = msa.msa_build(args, None, no_run=True)
+    if remote:
+        cmd = iface.aligner.build_remote('%s', no_run=True)
+    else:
+        cmd = iface.aligner.build_local('%s', no_run=True)
+    return cmd

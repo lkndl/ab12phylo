@@ -2,18 +2,17 @@
 
 import logging
 import threading
+from argparse import Namespace
 from pathlib import Path
-
-import matplotlib.pyplot as plt
+from time import sleep
 
 import gi
-import numpy as np, sys
-from time import sleep
+import matplotlib.pyplot as plt
+import numpy as np
 from Bio import SeqIO
-from argparse import Namespace
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
-from matplotlib.figure import Figure
 from matplotlib.colors import ListedColormap
+from matplotlib.figure import Figure
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject
@@ -66,12 +65,15 @@ def init(gui):
     # iface.view_qal.append_column(Gtk.TreeViewColumn(
     #     title='no phreds', active=1, cell_renderer=crt))
 
-    iface.view_qal.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
-    iface.view_qal.connect('check-resize', shared.get_dims,
+    sel = iface.view_qal.get_selection()
+    sel.set_mode(Gtk.SelectionMode.MULTIPLE)
+    sel.connect('changed', shared.keep_visible,
+                iface.parallel_qal.props.vadjustment.props, iface.qal)
+    iface.view_qal.connect('check-resize', shared.get_height_resize,
                            iface.qal_spacer, [iface.qal_win])
     # in-preview deletion
     iface.view_qal.connect('key_press_event', shared.delete_and_ignore_rows,
-                           gui, PAGE, iface.view_qal.get_selection(), iface.qal)
+                           gui, PAGE, sel, iface.qal)
     iface.qal_eventbox.connect_after('button_press_event', shared.select_seqs, PAGE, iface.zoom,
                                      iface.view_qal, iface.qal)  # in-preview selection
     iface.qal_win.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
@@ -84,7 +86,6 @@ def refresh(gui):
         return
 
     # place the png preview
-    data.qal_shape[1] = shared.get_dims(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
     shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / shared.PREVIEW,
                       data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
     shared.load_colorbar(iface.palplot, gui.wd)
@@ -109,7 +110,6 @@ def parse(widget, event, gui):
     # getting new value depends on widget type
     if widget == iface.gene_roll:
         now = widget.get_active_text()
-        now = data.genes if now == 'all' else {now}
     elif widget in [iface.accept_rev, iface.accept_nophred]:
         now = widget.get_active()
     else:
@@ -150,12 +150,6 @@ def start_trim(gui):
         gtk_rgx.start_read(gui, run_after=[start_trim])
         return
 
-    with iface.gene_roll.handler_block(iface.gene_handler):
-        iface.gene_roll.remove_all()
-        [iface.gene_roll.append_text(gene) for gene in data.genes]
-        if len(data.genes) > 1:
-            iface.gene_roll.insert_text(0, 'all')
-        iface.gene_roll.set_active(0)
     with iface.accept_rev.handler_block(iface.rev_handler):
         iface.accept_rev.set_active(iface.reverse_rx_chk.get_active())
         iface.accept_rev.set_sensitive(iface.reverse_rx_chk.get_active())
@@ -182,17 +176,19 @@ def do_trim(gui):
     LOG.debug('re-draw with %s' % str(iface.qal))
     p = iface.qal
     rows = list()
-    p.gene_roll = data.genes if p.gene_roll == 'all' else p.gene_roll
+    data.gene_for_preview = p.gene_roll
+    genes_for_preview = data.genes if p.gene_roll == 'all' else {p.gene_roll}
     ignore_ids = iface.qal.ignore_set if 'ignore_set' in iface.qal else set()
     iface.text = 'creating matrix'
     LOG.debug(iface.text)
     iface.i = 0
-    iface.k = sum([len(data.seqdata[gene]) for gene in p.gene_roll]) + 3
+    iface.k = sum([len(data.seqdata[gene]) for gene in genes_for_preview]) + 3
+    shared_ids = set.intersection(*data.gene_ids.values())
 
     try:
         for record_id, gene in data.record_order:
             # skip records from other genes for the trimming preview
-            if gene not in p.gene_roll or record_id in ignore_ids:
+            if gene not in genes_for_preview or record_id in ignore_ids:
                 continue
 
             iface.i += 1
@@ -217,7 +213,8 @@ def do_trim(gui):
                 has_qal, is_bad = True, True
                 row = shared.seqtogray(record)
             rows.append(row)
-            data.qal_model.append([record.id, not has_qal, is_bad])
+            underline = not has_qal if record.id in shared_ids else 4
+            data.qal_model.append([record.id, underline, is_bad])
 
     except KeyError as ke:
         exit(ke)
@@ -233,8 +230,8 @@ def do_trim(gui):
     LOG.debug(iface.text)
     max_len = max(map(len, rows))
     array = np.array([row + shared.seqtoint(' ') * (max_len - len(row)) for row in rows])
-    # make everything beyond N completely transparent
-    array = np.ma.masked_where(array > shared.toint('N'), array)
+    # make gaps transparent
+    array = np.ma.masked_where(array > shared.toint('else'), array)
     iface.i += 1
     iface.text = 'plot'
     LOG.debug(iface.text)
@@ -256,14 +253,14 @@ def do_trim(gui):
                      vmin=-.5, vmax=len(shared.colors) - .5, aspect='auto')
 
     iface.i += 1
-    iface.text = 'save'
+    iface.text = 'save PNG'
     LOG.debug(iface.text)
     Path.mkdir(gui.wd / shared.PREVIEW.parent, exist_ok=True)
     f.savefig(gui.wd / shared.PREVIEW, transparent=True,
               dpi=scale * shared.DPI, bbox_inches='tight', pad_inches=0.00001)
 
     data.qal_shape[0] = array.shape[1]
-    data.qal_shape[1] = shared.get_dims(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
+    data.qal_shape[1] = shared.get_height_resize(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
 
     if iface.rasterize.props.active:
         iface.text = 'place PNG'
@@ -331,7 +328,7 @@ def keypress(widget, event, data, iface):
 
 def edit(widget, data, iface):
     """
-    Edit a GtkTreeView cell in-place and save the result
+    Edit a parameter entry and save the result
     """
     LOG.debug('editing')
     # filter for numbers only
@@ -349,7 +346,6 @@ def trim_all(gui, run_after=None):
     :return:
     """
     data, iface = gui.data, gui.iface
-    # accepted_ids = set(shared.get_column(data.qal_model, 0))
 
     if not data.seqdata:
         LOG.debug('re-reading files')
@@ -358,12 +354,12 @@ def trim_all(gui, run_after=None):
 
     p = iface.qal
     LOG.debug('writing collated .fasta files')
+    shared_ids = set.intersection(*data.gene_ids.values())
     for gene, genedata in data.seqdata.items():
         Path.mkdir(gui.wd / gene, exist_ok=True)
 
         # do actual trimming
-        ids = list(genedata.keys())
-        for _id in ids:
+        for _id in data.gene_ids[gene]:
             record = genedata.pop(_id)
             try:
                 record = trim_ends(record, p.min_phred, (p.trim_out, p.trim_of))
@@ -376,8 +372,12 @@ def trim_all(gui, run_after=None):
             genedata[_id] = record
 
         # write to file
-        with open(str(gui.wd / gene / (gene + '.fasta')), 'w') as fasta:
+        with open(str(gui.wd / gene / (gene + '_all.fasta')), 'w') as fasta:
             SeqIO.write(genedata.values(), fasta, 'fasta')
+        # write only shared records to fasta for MSA
+        with open(str(gui.wd / gene / (gene + '.fasta')), 'w') as fasta:
+            SeqIO.write([record for _id, record in genedata.items()
+                         if _id in shared_ids], fasta, 'fasta')
 
     LOG.debug('deleting seqdata')
     # delete now bloaty data
@@ -396,7 +396,7 @@ def onpick(event):
     ind = event.ind
     points = tuple(zip(xdata[ind], ydata[ind]))
     print('onpick points:', points)
-    print('This would be useful after the next big restructuring', file=sys.stderr)
+    print('This would be useful after the next big restructuring')
     return True
 
 
@@ -404,5 +404,5 @@ def onclick(event):
     print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
           ('double' if event.dblclick else 'single', event.button,
            event.x, event.y, event.xdata, event.ydata))
-    print('This would be useful after the next big restructuring', file=sys.stderr)
+    print('This would be useful after the next big restructuring')
     return True

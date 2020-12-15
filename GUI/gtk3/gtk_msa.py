@@ -1,20 +1,19 @@
 # 2020 Leo Kaindl
 
-
 import logging
 import shutil
 import subprocess
 import threading
+from Bio import SeqIO
 from pathlib import Path
 from argparse import Namespace
 
 import gi
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject
+from gi.repository import GObject
 
 from GUI.gtk3 import shared
-from ab12phylo import msa
 
 LOG = logging.getLogger(__name__)
 PAGE = 3
@@ -86,29 +85,10 @@ def set_helpers(gui, cmdline, help_view, help_dict, algo, remote, cmd_view):
     # get the suggested command and allow user modification in the left field
     txt = help_dict.get(algo, '')  # fetch saved
     if txt == '':  # deleting all content will also get you back the original
-        txt = get_cmd(algo, gui, remote)  # fetch new
+        txt = shared.get_cmd(algo, gui, remote)  # fetch new
         help_dict[algo] = txt  # save
 
     cmd_view.get_buffer().props.text = help_dict[algo]  # show
-
-
-def get_cmd(algo, gui, remote=False):
-    data, iface = gui.data, gui.iface
-    args = Namespace(**{
-        'dir': gui.wd,
-        'genes': list(data.genes),
-        'msa_algo': algo,
-        'user': shared.USER,
-        'msa': gui.wd / shared.RAW_MSA,
-        'sep': shared.SEP,
-        'missing_samples': gui.wd / shared.MISSING
-    })
-    iface.aligner = msa.msa_build(args, None, no_run=True)
-    if remote:
-        cmd = iface.aligner.build_remote('%s', no_run=True)
-    else:
-        cmd = iface.aligner.build_local('%s', no_run=True)
-    return cmd
 
 
 def start_align(widget, gui, remote=False, run_after=None):
@@ -133,13 +113,14 @@ def start_align(widget, gui, remote=False, run_after=None):
     elif not shared.get_changed(gui, PAGE):  # c)
         shared.show_notification(gui, 'MSA already generated, please proceed')
         return
-    elif run_after and (gui.wd / shared.RAW_MSA).exists() \
-            and not shared.get_errors(gui, PAGE):  # b)
+    elif all([(gui.wd / gene / ('%s_raw_msa.fasta' % gene)).exists() for gene in data.genes]) \
+            and run_after and not shared.get_errors(gui, PAGE):  # b)
         shared.set_changed(gui, PAGE, False)
         [do_func(gui) for do_func in run_after]
         return
     if 'aligner' not in iface:
         get_help(None, gui, remote)
+    data.msa_lens.clear()
     iface.align_stack.props.sensitive = False
     iface.thread = threading.Thread(target=do_align, args=[gui, remote])
     iface.run_after = run_after
@@ -155,34 +136,26 @@ def do_align(gui, remote=False):
     errors = list()
     iface.frac = .05
     iface.i = 0
-    iface.k = len(data.genes) + 2
+    iface.k = len(data.genes)
     funcs, arg_dicts = [iface.aligner.build_local, iface.aligner.build_remote], \
                        [iface.msa.cmd, iface.msa.remote_cmd]
     try:
-        for gene in sorted(list(data.genes)):
-            iface.text = 'aligning %s [%d/%d]' % (gene, iface.i + 1, iface.k - 2)
+        for gene in data.genes:
+            iface.text = 'aligning %s [%d/%d]' % (gene, iface.i + 1, iface.k)
             LOG.debug(iface.text)
             try:
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
                                             % tuple([gene] * (4 - remote)))  # interpreting bool as int here
             except FileNotFoundError:
-                iface.aligner.reset_paths(gui.wd, gui.wd / shared.RAW_MSA, gui.wd / shared.MISSING)
+                iface.aligner.reset_paths(gui.wd, gui.wd / shared.MSA)
                 # try again once more
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
                                             % tuple([gene] * 4))
+            # fetch MSA length
+            for r in SeqIO.parse(gui.wd / gene / ('%s_raw_msa.fasta' % gene), 'fasta'):
+                data.msa_lens.append(len(r))
+                break
             iface.i += 1
-        LOG.info('built MSAs')
-        iface.text = 'concatenating MSAs'
-        LOG.debug(iface.text)
-        try:
-            iface.aligner.concat_msa(gui=True)
-        except FileNotFoundError:
-            iface.aligner.reset_paths(gui.wd, gui.wd / shared.RAW_MSA, gui.wd / shared.MISSING)
-            iface.aligner.concat_msa(gui=True)
-        iface.i += 1
-        iface.text = 'comparing SHA256 hashes'
-        LOG.debug(iface.text)
-        compare_hashes(gui)
         iface.frac = 1
         iface.text = 'idle'
     except (OSError, subprocess.CalledProcessError) as e:
@@ -213,13 +186,18 @@ def stop_align(gui, errors):
 
 def load_msa(widget, gui):
     try:
-        shutil.copy(widget.get_filename(), gui.wd / shared.RAW_MSA)
-        compare_hashes(gui)
+        Path.mkdir(gui.wd / shared.IMPORT_MSA.parent, exist_ok=True)
+        shutil.copy(widget.get_filename(), gui.wd / shared.IMPORT_MSA)
     except shutil.SameFileError:
         pass
     except Exception as ex:
         shared.show_notification(gui, str(ex))
         LOG.error(ex)
+    shared.get_hashes(gui, shared.IMPORT_MSA)
+    gui.data.genes = ['import']
+    gui.data.gene_ids = {'import': {r.id for r in SeqIO.parse(gui.wd / shared.IMPORT_MSA, 'fasta')}}
+    shared.get_cmd(shared.toalgo(gui.iface.msa_algo.get_active_text()), gui, False)
+    LOG.debug('using imported MSA')
 
 
 def refresh(gui):
@@ -230,10 +208,3 @@ def refresh(gui):
         get_help(None, gui)
     elif iface.align_stack.get_visible_child_name() == 'remote':
         get_help(None, gui, remote=True)
-
-
-def compare_hashes(gui):
-    msa_hash = shared.file_hash(gui.wd / shared.RAW_MSA)
-    if msa_hash != gui.data.msa_hash:
-        shared.set_changed(gui, PAGE)
-        gui.data.msa_hash = msa_hash

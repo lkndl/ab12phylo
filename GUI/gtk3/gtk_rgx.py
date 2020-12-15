@@ -310,16 +310,12 @@ def refresh(gui):
     # try matching reference files to genes
     data, iface = gui.data, gui.iface
 
-    data.genes = {gene for gene, is_ref, color in shared.get_column(data.trace_store, (4, 5, 7))
-                  if not is_ref and color is not iface.RED and gene != ''}
-    if not data.genes or data.genes == {''}:
+    data.genes = sorted({gene for gene, is_ref, color in shared.get_column(data.trace_store, (4, 5, 7))
+                         if not is_ref and color is not iface.RED and gene != ''})
+    if not data.genes or data.genes == ['']:
         return
-    # LOG.debug('found genes %s' % ':'.join(data.genes))
-
-    if len(data.genes) == 1:
-        single_gene = data.agene()
-    else:
-        single_gene = False
+    LOG.debug('genes %s' % ':'.join(data.genes))
+    single_gene = data.genes[0] if len(data.genes) == 1 else False
 
     for i, row in enumerate(data.trace_store):
         # iterate over reference sequences and mark them blue if they are ok
@@ -391,7 +387,7 @@ def do_read(gui):
     data, iface = gui.data, gui.iface
     iface.text = ''
     iface.i = 0
-    iface.k = len(data.trace_store) + len(data.plate_store)
+    iface.k = len(data.trace_store) + len(data.plate_store) + 1
     data.csvs.clear()
     data.seqdata.clear()
     data.record_order.clear()
@@ -441,7 +437,7 @@ def do_read(gui):
             if gene not in data.seqdata:
                 data.seqdata[gene] = dict()
                 data.metadata[gene] = dict()
-                data.genes.add(gene)
+                data.genes = sorted(set(data.genes) | {gene})
             elif record.id in data.seqdata[gene]:
                 warnings.add('duplicate ID %s' % record.id)
                 # add suffix to duplicate IDs
@@ -513,6 +509,20 @@ def do_read(gui):
 
         iface.i += 1
 
+    iface.text = 'search missing samples'
+    LOG.debug(iface.text)
+    data.gene_ids = {g: set(gd.keys()) for g, gd in data.seqdata.items()}
+    all_ids = set.union(*data.gene_ids.values())
+    missing = {g: ', '.join(sorted(all_ids - ids))
+               for g, ids in data.gene_ids.items() if all_ids - ids}
+    if missing:
+        with open(shared.MISSING, 'w') as fh:
+            fh.write('gene\tmissing samples\n')
+            for k, v in missing.items():
+                fh.write('%s\t%s\n' % (k, v))
+                warnings.add('%s missing %s' % (k, v))
+
+    shared.init_gene_roll(gui)
     iface.text = 'idle'
     iface.frac = 1
     LOG.debug('reading done')
@@ -541,5 +551,5 @@ def stop_read(gui, errors, warnings):
 
     # *Now* go back to where you came from
     if iface.run_after:
-        [do_func(gui)for do_func in iface.run_after]
+        [do_func(gui) for do_func in iface.run_after]
     return

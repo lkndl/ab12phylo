@@ -1,9 +1,8 @@
 # 2020 Leo Kaindl
 
 import logging
-import numpy as np
-from pathlib import Path
 from argparse import Namespace
+from pathlib import Path
 
 import gi
 
@@ -11,7 +10,7 @@ import gtk_proj
 from GUI.gtk3 import shared
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
@@ -226,7 +225,7 @@ def add_new_entries(model, new_paths, gui, *args):
 def scroll_to_end(widget, rectangle, iface, tv, mo):
     """After new entries have been added to it, the TreeView will scroll to its end."""
     if mo not in iface.file_nums or len(mo) > iface.file_nums[mo]:
-        LOG.debug('scrolling to end')
+        # LOG.debug('scrolling to end')
         adj = tv.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
     iface.file_nums[mo] = len(mo)

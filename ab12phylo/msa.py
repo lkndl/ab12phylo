@@ -52,10 +52,9 @@ class msa_build:
         # concat MSAs
         self.concat_msa()
 
-    def reset_paths(self, dir, msa, missing):
-        self.dir = dir
+    def reset_paths(self, _dir, msa):
+        self.dir = _dir
         self.msa = msa
-        self.missing_samples = missing
 
     def build_local(self, gene, no_run=False, new_arg=False):
         """Build MSAs locally using a pre-installed binary."""
@@ -185,7 +184,7 @@ class msa_build:
                 gaps = ['n', 'h', 'a'][0]
                 self.log.info('running strict Gblocks')
 
-            # create base call  # TODO -p=s for GUI version
+            # create base call
             arg = '%s %s -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=.txt -d=n -s=y -p=n; exit 0' \
                   % (binary, raw_msa, flank, cons, b4, gaps)  # don't swap order!
             # MARK -t=d sets the mode to nucleotides ... adapt?
@@ -195,10 +194,9 @@ class msa_build:
     def concat_msa(self, gui=False):
         """Reads all trimmed MSAs to memory, then iterates over samples, writes concatenated MSA."""
         self.log.debug('concatenating per-gene MSAs')
-        insert = '_raw' if gui else ''
         # read in all MSAs using SeqIO
         all_records = {gene: {record.id: record.upper() for record in SeqIO.parse(
-            path.join(self.dir, gene, gene + '%s_msa.fasta' % insert), 'fasta')} for gene in self.genes}
+            path.join(self.dir, gene, gene + '_msa.fasta'), 'fasta')} for gene in self.genes}
 
         # get the length of the trimmed concat MSA
         msa_len = 0
@@ -210,7 +208,8 @@ class msa_build:
         with open(self.msa, 'w') as msa:
             shared = 0
             # iterate over samples available for first gene
-            for sample_id in set(all_records[self.genes[0]]):
+            _ids = gui if gui else set(all_records[self.genes[0]])
+            for sample_id in _ids:
                 # get SeqRecord for first gene
                 record = all_records[self.genes[0]].pop(sample_id)
 
@@ -238,22 +237,26 @@ class msa_build:
             if msa_len == 0:
                 msg = 'No conserved sites found. Please try a more relaxed trimming mode!'
                 self.log.error(msg)
-                raise ValueError(msg) if gui else exit(1)
+                if not gui:
+                    raise ValueError(msg) if gui else exit(1)
             self.log.info('copied MSA to result root')
         self.log.info('MSA shape: %dx%d' % (msa_len, shared))
+
+        if gui:
+            return msa_len, shared
 
         # any remaining samples were missing from first gene
         [missing_genes[self.genes[0]].extend(all_records[gene].keys()) for gene in self.genes[1:]]
 
         # write info about missing samples to file and log
-        with open(self.missing_samples, 'w') as fh:
-            fh.write('gene\tmissing samples\n')
-            for gene, samples in missing_genes.items():
-                _collect = ', '.join(set(samples))
-                if _collect == '':
-                    _collect = 'None'
-                fh.write('%s\t%s\n' % (gene, _collect))
-                self.log.info('samples missing from %s: %s' % (gene, _collect))
+        missing = {gene: ', '.join(set(samples)) for gene, samples
+                   in missing_genes.items() if set(samples)}
+        if missing:
+            with open(self.missing_samples, 'w') as fh:
+                fh.write('gene\tmissing samples\n')
+                for k, v in missing.items():
+                    fh.write('%s\t%s\n' % (k, v))
+                    self.log.info('samples missing from %s: %s' % (k, v))
 
     def _run(self, arg, log_file, info, no_exit=False):
         """Runs a command and writes output to log-file."""

@@ -1,10 +1,9 @@
 # 2020 Leo Kaindl
 
-
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.3a.09'
-__date__ = '13 December 2020'
+__version__ = '0.3a.10'
+__date__ = '15 December 2020'
 __license__ = 'MIT'
 __status__ = 'Alpha'
 
@@ -52,7 +51,7 @@ class app(Gtk.Application):
         Gtk.Application.do_startup(self)
         # connect menu actions and shortcuts
         for act, acc in zip(['new', 'open', 'save', 'save_as', 'help', 'about', 'on_quit'],
-                            ['n', 'o', 's', '<Shift>s', 'h', '', 'q']):
+                            ['n', 'o', 's', '<Shift>s', 'h', '<Shift>h', 'q']):
             action = Gio.SimpleAction.new(act)
             action.connect('activate', self.__getattribute__(act))  # can pass parameters here
             self.add_action(action)
@@ -173,19 +172,11 @@ class app(Gtk.Application):
         gtk_msa.init(self)
         gtk_gbl.init(self)
 
-        # self.load('/home/quirin/PYTHON/AB12PHYLO/projects/stam.proj')
-        self.load('/home/quirin/PYTHON/outputwd/concat.proj')
-
-        # TODO trim MSAs separately!
-        # DONE gbl png sizing + max size!
-        # TODO png saving for qal
-        # TODO keep selection in window
-        # TODO check Gblocks dropping separator
-        # TODO reconsider saving of empty data structure
+        # self.load('stam.proj')
+        self.load('concat.proj')
 
         # TODO gtk_qal do not re-read if some were removed
         # TODO gtk_qal not accepting reverse doesn't work
-        # TODO trimming: initial settings and run
 
     def new(self, action, confirm=True, *args):
         """
@@ -240,6 +231,7 @@ class app(Gtk.Application):
                 new_data = pickle.load(proj)
             # overwrite content in old dataset in-place rather than re-pointing everything
             self.data.overwrite(new_data)
+            shared.init_gene_roll(self)
             self.wd = self.project_path.parent / self.project_path.stem
             Path.mkdir(self.wd, exist_ok=True)
             self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
@@ -282,7 +274,7 @@ class app(Gtk.Application):
 
             # tell the MSA pre-set about it
             if 'aligner' in self.iface:
-                self.iface.aligner.reset_paths(self.wd, self.wd / shared.RAW_MSA, self.wd / shared.MISSING)
+                self.iface.aligner.reset_paths(self.wd, self.wd / shared.MSA)
 
         self.wd = self.project_path.parent / self.project_path.stem
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)

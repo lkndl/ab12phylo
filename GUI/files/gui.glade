@@ -1530,8 +1530,8 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
-                          <object class="GtkScrolledWindow" id="parallel_viewer">
-                            <property name="name">parallel_viewer</property>
+                          <object class="GtkScrolledWindow" id="parallel_qal">
+                            <property name="name">parallel_qal</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="hexpand">True</property>
@@ -1557,7 +1557,7 @@
                                         <property name="height-request">30</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Underlined records did not contain any phred scores, and strikethrough indicates deletion.</property>
+                                        <property name="tooltip-text" translatable="yes">Underlining indicates the record did not contain any phred scores, and may therefore be discarded depending on the settings below. All samples with wavy underlining or strikethrough will be discarded, as they were missing from some genes or of too low quality.</property>
                                         <property name="hexpand">False</property>
                                         <property name="vexpand">False</property>
                                         <property name="hscrollbar-policy">never</property>
@@ -2364,7 +2364,7 @@
                                         <property name="name">msa_cmd</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">You can run this command externally of course, but you will have to replace the &lt;b&gt;%s&lt;/b&gt; with the gene you run it for!</property>
+                                        <property name="tooltip-markup" translatable="yes">You can run this command externally of course, but you will have to replace the &lt;b&gt;%s&lt;/b&gt; with the gene you run it for!</property>
                                         <property name="wrap-mode">word</property>
                                         <property name="left-margin">10</property>
                                         <property name="right-margin">10</property>
@@ -2764,8 +2764,8 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
-                          <object class="GtkScrolledWindow" id="parallel_viewer1">
-                            <property name="name">parallel_viewer</property>
+                          <object class="GtkScrolledWindow" id="parallel_gbl">
+                            <property name="name">parallel_gbl</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="hexpand">True</property>
@@ -2790,6 +2790,7 @@
                                         <property name="height-request">30</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">'---' marks deleted samples.</property>
                                         <property name="hexpand">False</property>
                                         <property name="hscrollbar-policy">never</property>
                                         <property name="vscrollbar-policy">never</property>
@@ -3906,6 +3907,7 @@
                         <property name="width-request">10</property>
                         <property name="sensitive">False</property>
                         <property name="can-focus">False</property>
+                        <property name="no-show-all">True</property>
                         <property name="halign">start</property>
                         <property name="hexpand">False</property>
                       </object>
