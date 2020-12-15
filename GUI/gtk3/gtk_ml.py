@@ -47,7 +47,7 @@ def check_MSA(widget, gui, algo):
     pass
 
 
-def start_ML(widget, gui):
+def start_ML(gui):
     """Set-up the Gblocks thread."""
     pass
 

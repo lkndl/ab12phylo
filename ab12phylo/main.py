@@ -7,10 +7,10 @@ between them. The `--visualize` and `--view` entry points are in the :class:`phy
 """
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.2b.12b'
-__date__ = '21 September 2020'
+__version__ = '0.3a.10'
+__date__ = '15 December 2020'
 __license__ = 'MIT'
-__status__ = 'Beta'
+__status__ = 'Alpha'
 
 import sys
 from ab12phylo import cli, i_o, msa, blast, raxml, phylo

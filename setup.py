@@ -7,10 +7,10 @@ if sys.version_info[0] < 3:
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.2b.12b'
-__date__ = '21 September 2020'
+__version__ = '0.3a.10'
+__date__ = '15 December 2020'
 __license__ = 'MIT'
-__status__ = 'Beta'
+__status__ = 'Alpha'
 
 setup(name='ab12phylo',
       version=__version__,

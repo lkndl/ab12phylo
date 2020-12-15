@@ -281,7 +281,7 @@ class blast_build(threading.Thread):
                 # save as .xml
                 with open(self.www_XML[run], 'w') as fh:
                     fh.write(handle.read())
-                self.log.info('remote BLAST %d:%d complete after %.2f sec' % (run, runs, time() - start))
+                self.log.info('remote BLAST %d:%d complete after %.2f sec' % (run + 1, runs, time() - start))
                 sleep(11)
                 self._parse_remote_result([self.www_XML[run]])
             except urllib.error.URLError as offline:
@@ -326,7 +326,7 @@ class blast_build(threading.Thread):
             self.log.warning('no valid paths.')
             return
         # read in metadata tsv
-        df = pandas.read_csv(self.TSV, sep='\t', dtype={'id': str})
+        df = pandas.read_csv(self.TSV, sep='\t', dtype={'id': str, 'BLAST_species': str})
         df.set_index('id', inplace=True)
 
         # parse .xml and write best hits info to metadata

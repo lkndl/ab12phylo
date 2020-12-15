@@ -296,7 +296,8 @@ def do_gbl(gui):
 
     iface.text = 'concatenating MSAs'
     if 'aligner' not in iface:
-        shared.get_cmd(shared.toalgo(iface.msa_algo.get_active_text()), gui, False)
+        iface.aligner, cmd = shared.get_msa_build_cmd(
+            shared.toalgo(iface.msa_algo.get_active_text()), gui.wd, data.genes)
     iface.aligner.reset_paths(gui.wd, gui.wd / shared.MSA)
     data.msa_shape[2], data.msa_shape[3] = iface.aligner.concat_msa(gui=shared_ids)
     iface.text = 'computing SHA256 hash'

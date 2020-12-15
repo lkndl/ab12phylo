@@ -13,7 +13,7 @@ from gtk_msa import PAGE
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 
-from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_ml
+from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml
 
 LOG = logging.getLogger(__name__)
 TOOLS = Path(__file__).resolve().parents[2] / 'ab12phylo' / 'tools'
@@ -23,6 +23,7 @@ RAW_MSA = Path('Trim') / 'raw_msa.fasta'
 IMPORT_MSA = Path('import') / 'import_raw_msa.fasta'
 MSA = 'msa.fasta'
 MISSING = 'missing_samples.tsv'
+TSV = 'metadata.tsv'
 PREVIEW = Path('Trim') / 'trim_preview.png'
 CBAR = Path('Trim') / 'colorbar.png'
 LEFT = Path('Trim') / 'msa_gbl_pre.png'
@@ -44,7 +45,8 @@ KXLIN = {
 
 # TODO continue project variables
 # re-fresh page content. automatically called
-REFRESH = [gtk_io.refresh, gtk_rgx.refresh, gtk_qal.refresh, gtk_msa.refresh, gtk_gbl.refresh, gtk_ml.refresh]
+REFRESH = [module.refresh for module in [gtk_io, gtk_rgx, gtk_qal, gtk_msa,
+                                         gtk_gbl, gtk_blast, gtk_ml]]
 # re-run background threads. -> "REFRESH" button
 RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim, 4: gtk_gbl.start_gbl}
 # where the gene selector is visible
@@ -201,6 +203,10 @@ def proceed(widget, gui=None, page=None):
             return
         elif page == 4:
             gtk_gbl.start_gbl(gui)
+        elif page == 5:
+            gtk_blast.start_BLAST(gui)
+        elif page == 6:
+            gtk_ml.start_ML(gui)
         set_changed(gui, page, False)
 
     # then proceed
@@ -587,7 +593,7 @@ def keep_visible(sel, adj, ns):
         adj.value = tp / (len(mo) + 1) * adj.upper
 
 
-def get_cmd(algo, gui, remote=False):
+def get_msa_build_cmd(algo, wd, genes, remote=False):
     """
     Initializes a commandline msa_build object
     :param algo:
@@ -595,19 +601,18 @@ def get_cmd(algo, gui, remote=False):
     :param remote:
     :return:
     """
-    data, iface = gui.data, gui.iface
     args = Namespace(**{
-        'dir': gui.wd,
-        'genes': data.genes,
+        'dir': wd,
+        'genes': genes,
         'msa_algo': algo,
         'user': USER,
-        'msa': gui.wd / MSA,
+        'msa': wd / MSA,
         'sep': SEP,
         'missing_samples': None
     })
-    iface.aligner = msa.msa_build(args, None, no_run=True)
+    aligner = msa.msa_build(args, None, no_run=True)
     if remote:
-        cmd = iface.aligner.build_remote('%s', no_run=True)
+        cmd = aligner.build_remote('%s', no_run=True)
     else:
-        cmd = iface.aligner.build_local('%s', no_run=True)
-    return cmd
+        cmd = aligner.build_local('%s', no_run=True)
+    return aligner, cmd

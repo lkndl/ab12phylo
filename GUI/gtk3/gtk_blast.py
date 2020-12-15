@@ -31,6 +31,13 @@ PAGE = 5
 def init(gui):
     """Initialize the page. Connect buttons."""
     data, iface = gui.data, gui.iface
+
+
+
+    # get databases from
+    # update_blastdb.pl --source gcp --showall tsv
+    # BLASTDB   DESCRIPTION SIZE (GB)   LAST_UPDATED
+
     pass
 
 
@@ -39,7 +46,7 @@ def refresh(gui):
     pass
 
 
-def start_BLAST(widget, gui):
+def start_BLAST(gui):
     """Set-up the BLAST thread."""
     pass
 

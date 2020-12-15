@@ -21,7 +21,7 @@ PAGE = 3
 
 def init(gui):
     data, iface = gui.data, gui.iface
-    iface.plates = True
+    # iface.plates = True  # TODO delete
 
     iface.msa_algo.set_entry_text_column(0)
     iface.msa = Namespace()
@@ -85,7 +85,7 @@ def set_helpers(gui, cmdline, help_view, help_dict, algo, remote, cmd_view):
     # get the suggested command and allow user modification in the left field
     txt = help_dict.get(algo, '')  # fetch saved
     if txt == '':  # deleting all content will also get you back the original
-        txt = shared.get_cmd(algo, gui, remote)  # fetch new
+        gui.iface.aligner, txt = shared.get_msa_build_cmd(algo, gui.wd, gui.data.genes, remote)  # fetch new
         help_dict[algo] = txt  # save
 
     cmd_view.get_buffer().props.text = help_dict[algo]  # show
@@ -185,6 +185,7 @@ def stop_align(gui, errors):
 
 
 def load_msa(widget, gui):
+    data, iface = gui.data, gui.iface
     try:
         Path.mkdir(gui.wd / shared.IMPORT_MSA.parent, exist_ok=True)
         shutil.copy(widget.get_filename(), gui.wd / shared.IMPORT_MSA)
@@ -194,9 +195,10 @@ def load_msa(widget, gui):
         shared.show_notification(gui, str(ex))
         LOG.error(ex)
     shared.get_hashes(gui, shared.IMPORT_MSA)
-    gui.data.genes = ['import']
-    gui.data.gene_ids = {'import': {r.id for r in SeqIO.parse(gui.wd / shared.IMPORT_MSA, 'fasta')}}
-    shared.get_cmd(shared.toalgo(gui.iface.msa_algo.get_active_text()), gui, False)
+    data.genes = ['import']
+    data.gene_ids = {'import': {r.id for r in SeqIO.parse(gui.wd / shared.IMPORT_MSA, 'fasta')}}
+    iface.aligner, cmd = shared.get_msa_build_cmd(
+        shared.toalgo(gui.iface.msa_algo.get_active_text()), gui.wd, data.genes)
     LOG.debug('using imported MSA')
 
 
