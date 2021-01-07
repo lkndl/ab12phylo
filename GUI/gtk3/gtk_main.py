@@ -2,28 +2,28 @@
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.3a.10'
-__date__ = '15 December 2020'
+__version__ = '0.3a.11'
+__date__ = '06 January 2021'
 __license__ = 'MIT'
 __status__ = 'Alpha'
 
 import logging
-import sys
 import pickle
+import shutil
+import sys
 import threading
 import warnings
-import shutil
 from argparse import Namespace
 from pathlib import Path
 
 import gi
 
-from GUI.gtk3 import gtk_proj, shared, gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl
+from GUI.gtk3 import gtk_proj, shared, gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_blast
+from static import PATHS, BASE_DIR
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Gio, GdkPixbuf
 
-BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 __verbose__, __info__ = 1, 0
 
@@ -46,6 +46,7 @@ class app(Gtk.Application):
         if self.wd == Path.cwd() / 'untitled':
             LOG.info('shutdown: delete prelim data')
             shutil.rmtree(path=self.wd)
+        Gtk.Application.do_shutdown(self)
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -107,8 +108,12 @@ class app(Gtk.Application):
         css = b'''
         .seqid { font-size: xx-small; }
         separator.wide { min-width: 18px }
-        progressbar trough progress { min-height: 6px; border-radius: 1px; background-color: @success_color; }
+        progressbar trough progress { 
+            min-height: 6px; 
+            border-radius: 1px; 
+            background-color: @success_color; }
         progressbar trough { min-height: 6px; }
+        .hint { opacity: .6; } 
         #prog_label { font-size: x-small }
         button:active { background-color: #17f }
         notebook header { background-color: transparent; }
@@ -123,8 +128,9 @@ class app(Gtk.Application):
         css_provider.load_from_data(css)
         # CSS also supports key bindings
         # treeview {background-color: darker(@bg_color);} separator has margin-left
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css_provider,
-                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(), css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         # get some colors
         iface.RED = '#FF0000'
         iface.BLUE = '#2374AF'
@@ -154,11 +160,13 @@ class app(Gtk.Application):
         iface.refresh.connect('clicked', shared.re_run, self)
         shared.bind_accelerator(self.accelerators, iface.refresh, 'Return')
         # connect gene switcher
-        iface.gene_handler = iface.gene_roll.connect('changed', shared.select_gene_and_redo, self)
+        iface.gene_handler = iface.gene_roll.connect(
+            'changed', shared.select_gene_and_redo, self)
         # any page change
         iface.notebook.connect_after('switch-page', shared.refresh, self)
 
-        iface.dismiss.connect('clicked', lambda *args: iface.revealer.set_reveal_child(False))
+        iface.dismiss.connect(
+            'clicked', lambda *args: iface.revealer.set_reveal_child(False))
         shared.bind_accelerator(self.accelerators, iface.dismiss, 'Escape')
         shared.bind_accelerator(self.accelerators, iface.dismiss, 'Return')
 
@@ -171,6 +179,7 @@ class app(Gtk.Application):
         gtk_qal.init(self)
         gtk_msa.init(self)
         gtk_gbl.init(self)
+        gtk_blast.init(self)
 
         # self.load('stam.proj')
         self.load('concat.proj')
@@ -274,7 +283,7 @@ class app(Gtk.Application):
 
             # tell the MSA pre-set about it
             if 'aligner' in self.iface:
-                self.iface.aligner.reset_paths(self.wd, self.wd / shared.MSA)
+                self.iface.aligner.reset_paths(self.wd, self.wd / PATHS.msa)
 
         self.wd = self.project_path.parent / self.project_path.stem
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)

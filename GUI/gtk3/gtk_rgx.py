@@ -2,6 +2,7 @@
 
 import json
 import logging
+import random
 import re
 import string
 import threading
@@ -10,9 +11,10 @@ from time import sleep
 
 import gi
 import pandas as pd
-import random
 import requests
 from Bio import SeqIO
+
+import static
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
@@ -516,7 +518,7 @@ def do_read(gui):
     missing = {g: ', '.join(sorted(all_ids - ids))
                for g, ids in data.gene_ids.items() if all_ids - ids}
     if missing:
-        with open(shared.MISSING, 'w') as fh:
+        with open(static.PATHS.missing, 'w') as fh:
             fh.write('gene\tmissing samples\n')
             for k, v in missing.items():
                 fh.write('%s\t%s\n' % (k, v))

@@ -3,12 +3,11 @@
 import hashlib
 import logging
 from argparse import Namespace
-from pathlib import Path
 
 import gi
 
 from ab12phylo import msa
-from gtk_msa import PAGE
+from static import PATHS, USER, SEP, BUF_SIZE
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
@@ -16,34 +15,7 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml
 
 LOG = logging.getLogger(__name__)
-TOOLS = Path(__file__).resolve().parents[2] / 'ab12phylo' / 'tools'
-USER = 'leo.kaindl@tum.de'
-SEP = '?*?'
-RAW_MSA = Path('Trim') / 'raw_msa.fasta'
-IMPORT_MSA = Path('import') / 'import_raw_msa.fasta'
-MSA = 'msa.fasta'
-MISSING = 'missing_samples.tsv'
-TSV = 'metadata.tsv'
-PREVIEW = Path('Trim') / 'trim_preview.png'
-CBAR = Path('Trim') / 'colorbar.png'
-LEFT = Path('Trim') / 'msa_gbl_pre.png'
-RIGHT = Path('Trim') / 'msa_gbl_post.png'
-ALPHA = .25
-DPI = 300
-BUF_SIZE = 128 * 1024
-NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S']
-KXLIN = {
-    'A': (0.92, 1, 0.4, 1),
-    'C': (0.46, 1, 0.44, 1),
-    'G': (0.16, 0.44, 0.8, 1),
-    'T': (1, 0.47, 0.66, 1),
-    'N': (0.84, 0.84, 0.84, 0.6),
-    'else': (0, 0, 0, 1),
-    '-': (1, 1, 1, 0),
-    ' ': (1, 1, 1, 0),
-    'S': (1, 1, 1, 0)}
 
-# TODO continue project variables
 # re-fresh page content. automatically called
 REFRESH = [module.refresh for module in [gtk_io, gtk_rgx, gtk_qal, gtk_msa,
                                          gtk_gbl, gtk_blast, gtk_ml]]
@@ -51,21 +23,6 @@ REFRESH = [module.refresh for module in [gtk_io, gtk_rgx, gtk_qal, gtk_msa,
 RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim, 4: gtk_gbl.start_gbl}
 # where the gene selector is visible
 SELECT = {2}
-algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
-         'RAxML-NG': 'raxml-ng', 'IQ-Tree': 'iqtree', 'FastTree': 'FastTree'}
-
-# LAMBDAS
-toalgo = lambda c: algos[c]
-toint_map = dict(zip(NUCLEOTIDES, range(len(NUCLEOTIDES))))
-toint = lambda c: toint_map.get(c, 5)
-seqtoint = lambda s: list(map(toint, s))
-
-togray_map = dict(zip(NUCLEOTIDES, seqtoint('N') * 5 + list(range(5, 9))))
-togray = lambda c: togray_map.get(c, 5)
-seqtogray = lambda s: list(map(togray, s))
-
-tohex = lambda c: '#' + ''.join([(hex(min(255, int(round(a * 256))))[2:] + '0')[:2].upper() for a in c])
-colors = list(map(tohex, map(KXLIN.get, NUCLEOTIDES)))
 
 
 def get_errors(gui, page):
@@ -148,10 +105,10 @@ def delete_rows(widget, gui, page, selection, delete_all=False):
     REFRESH[page](gui)
 
 
-def get_hashes(gui, msa_path):
+def get_hashes(gui, msa_path, page):
     msa_hash = file_hash(gui.wd / msa_path)
     if msa_hash != gui.data.msa_hash:
-        set_changed(gui, PAGE)
+        set_changed(gui, page)
         gui.data.msa_hash = msa_hash
 
 
@@ -269,6 +226,8 @@ def select_gene_and_redo(gui, *args):
     if page == 2:  # trim preview
         gtk_qal.parse(gui.iface.gene_roll, None, gui)
         gtk_qal.start_trim(gui)
+    # elif page == 5:  # BLAST marker gene change
+    #     gtk_blast.start_BLAST(gui)
     # TODO continue for new pages
 
 
@@ -303,7 +262,7 @@ def load_image(zoom_ns, page, gtk_bin, img_path, width, height):
 
 def load_colorbar(gtk_image, wd):
     gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
-        str(wd / CBAR), width=250, height=100, preserve_aspect_ratio=True))
+        str(wd / PATHS.cbar), width=250, height=100, preserve_aspect_ratio=True))
 
 
 def get_height_resize(widget, event, spacer, scroll_wins, lower=0):
@@ -370,12 +329,12 @@ def x_scale(adj, gui, zoom_ns):
             a.value = min(a.upper, a.value + 2 * a.step_increment)
             x = a.value / zoom_ns.bak
             if page == 2:
-                load_image(zoom_ns, page, iface.qal_eventbox, gui.wd / PREVIEW,
+                load_image(zoom_ns, page, iface.qal_eventbox, gui.wd / PATHS.preview,
                            data.qal_shape[0] * a.value * 2, h_now)
             elif page == 4:
-                load_image(zoom_ns, page, iface.gbl_left_vp, gui.wd / LEFT,
+                load_image(zoom_ns, page, iface.gbl_left_vp, gui.wd / PATHS.left,
                            data.msa_shape[0] * a.value * 2, h_now)
-                load_image(zoom_ns, page, iface.gbl_right_vp, gui.wd / RIGHT,
+                load_image(zoom_ns, page, iface.gbl_right_vp, gui.wd / PATHS.right,
                            data.msa_shape[2] * a.value * 2, h_now)
             zoom_ns.sizes[page] = [w_now * x, min_h, w_now * x, h_now]
         else:
@@ -432,12 +391,12 @@ def xy_scale(widget, event, gui, page):
                     new = a.value / bak
                     LOG.debug('re-loading images, scale xy: %.2f fold, %.1f' % (new, a.value))
                     if page == 2:
-                        load_image(iface.zoom, page, iface.qal_eventbox, gui.wd / PREVIEW,
+                        load_image(iface.zoom, page, iface.qal_eventbox, gui.wd / PATHS.preview,
                                    data.qal_shape[0] * a.value * 2, data.qal_shape[1])
                     elif page == 4:
-                        load_image(iface.zoom, page, iface.gbl_left_vp, gui.wd / LEFT,
+                        load_image(iface.zoom, page, iface.gbl_left_vp, gui.wd / PATHS.left,
                                    data.msa_shape[0] * a.value * 2, data.gbl_shape[1])
-                        load_image(iface.zoom, page, iface.gbl_right_vp, gui.wd / RIGHT,
+                        load_image(iface.zoom, page, iface.gbl_right_vp, gui.wd / PATHS.right,
                                    data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
                 else:
                     LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
@@ -606,7 +565,7 @@ def get_msa_build_cmd(algo, wd, genes, remote=False):
         'genes': genes,
         'msa_algo': algo,
         'user': USER,
-        'msa': wd / MSA,
+        'msa': wd / PATHS.msa,
         'sep': SEP,
         'missing_samples': None
     })

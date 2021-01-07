@@ -14,10 +14,14 @@ from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCan
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 
+import static
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject
 
+from static import PATHS
 from GUI.gtk3 import shared, gtk_rgx
+
 from ab12phylo.filter import trim_ends, mark_bad_stretches
 
 LOG = logging.getLogger(__name__)
@@ -81,12 +85,12 @@ def init(gui):
 
 def refresh(gui):
     data, iface = gui.data, gui.iface
-    if not (gui.wd / shared.PREVIEW).exists() or 0 in data.qal_shape:
+    if not (gui.wd / PATHS.preview).exists() or 0 in data.qal_shape:
         start_trim(gui)
         return
 
     # place the png preview
-    shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / shared.PREVIEW,
+    shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
                       data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
     shared.load_colorbar(iface.palplot, gui.wd)
     gui.win.show_all()
@@ -201,17 +205,17 @@ def do_trim(gui):
                 record = trim_ends(record, p.min_phred, (p.trim_out, p.trim_of), trim_preview=True)
                 record = mark_bad_stretches(record, p.min_phred, p.bad_stretch)
                 has_qal, is_bad = True, False
-                row = shared.seqtoint(record)
+                row = static.seqtoint(record)
             except AttributeError:
                 # accept references anyway, but maybe skip no-phred ones
                 is_ref = data.metadata[gene][record_id]['is_ref']
                 if not is_ref and not p.accept_nophred:
                     continue
                 has_qal, is_bad = is_ref, False
-                row = shared.seqtoint(record)
+                row = static.seqtoint(record)
             except ValueError:
                 has_qal, is_bad = True, True
-                row = shared.seqtogray(record)
+                row = static.seqtogray(record)
             rows.append(row)
             underline = not has_qal if record.id in shared_ids else 4
             data.qal_model.append([record.id, underline, is_bad])
@@ -229,9 +233,9 @@ def do_trim(gui):
     iface.text = 'tabularize'
     LOG.debug(iface.text)
     max_len = max(map(len, rows))
-    array = np.array([row + shared.seqtoint(' ') * (max_len - len(row)) for row in rows])
+    array = np.array([row + static.seqtoint(' ') * (max_len - len(row)) for row in rows])
     # make gaps transparent
-    array = np.ma.masked_where(array > shared.toint('else'), array)
+    array = np.ma.masked_where(array > static.toint('else'), array)
     iface.i += 1
     iface.text = 'plot'
     LOG.debug(iface.text)
@@ -244,20 +248,20 @@ def do_trim(gui):
 
     f = Figure()
     f.set_facecolor('none')
-    f.set_figheight(array.shape[0] / shared.DPI)
-    f.set_figwidth(array.shape[1] / shared.DPI)
+    f.set_figheight(array.shape[0] / static.DPI)
+    f.set_figwidth(array.shape[1] / static.DPI)
     ax = f.add_subplot(111)
     ax.axis('off')
     f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-    mat = ax.matshow(array, alpha=1, cmap=ListedColormap(shared.colors),
-                     vmin=-.5, vmax=len(shared.colors) - .5, aspect='auto')
+    mat = ax.matshow(array, alpha=1, cmap=ListedColormap(static.colors),
+                     vmin=-.5, vmax=len(static.colors) - .5, aspect='auto')
 
     iface.i += 1
     iface.text = 'save PNG'
     LOG.debug(iface.text)
-    Path.mkdir(gui.wd / shared.PREVIEW.parent, exist_ok=True)
-    f.savefig(gui.wd / shared.PREVIEW, transparent=True,
-              dpi=scale * shared.DPI, bbox_inches='tight', pad_inches=0.00001)
+    Path.mkdir(gui.wd / PATHS.preview.parent, exist_ok=True)
+    f.savefig(gui.wd / PATHS.preview, transparent=True,
+              dpi=scale * static.DPI, bbox_inches='tight', pad_inches=0.00001)
 
     data.qal_shape[0] = array.shape[1]
     data.qal_shape[1] = shared.get_height_resize(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
@@ -265,7 +269,7 @@ def do_trim(gui):
     if iface.rasterize.props.active:
         iface.text = 'place PNG'
         LOG.debug(iface.text)
-        shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / shared.PREVIEW,
+        shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
                           data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
     else:
         iface.text = 'place vector'
@@ -287,10 +291,10 @@ def do_trim(gui):
         LOG.debug(iface.text)
         fig = plt.figure(figsize=(4, 2))
         cax = fig.add_subplot(111)
-        cbar = plt.colorbar(mat, ax=cax, ticks=range(len(shared.colors)), orientation='horizontal')
-        cbar.ax.set_xticklabels(shared.NUCLEOTIDES)
+        cbar = plt.colorbar(mat, ax=cax, ticks=range(len(static.colors)), orientation='horizontal')
+        cbar.ax.set_xticklabels(static.NUCLEOTIDES)
         cax.remove()
-        fig.savefig(gui.wd / shared.CBAR, transparent=True,
+        fig.savefig(gui.wd / PATHS.cbar, transparent=True,
                     bbox_inches='tight', pad_inches=0, dpi=600)
         del fig
     shared.load_colorbar(iface.palplot, gui.wd)

@@ -4,20 +4,23 @@ import logging
 import shutil
 import subprocess
 import threading
-from Bio import SeqIO
-from pathlib import Path
 from argparse import Namespace
+from pathlib import Path
 
 import gi
+from Bio import SeqIO
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import GObject
 
 from GUI.gtk3 import shared
+from static import PATHS, TOOLS, toalgo
 
 LOG = logging.getLogger(__name__)
 PAGE = 3
 
+
+# TODO moving back to this page immediately blocks later pages without any change
 
 def init(gui):
     data, iface = gui.data, gui.iface
@@ -29,9 +32,9 @@ def init(gui):
     iface.msa.remote_cmd = dict()
 
     iface.msa_cmd.connect('focus_out_event', lambda widget, *args: iface.msa.cmd.update(
-        {shared.toalgo(iface.msa_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
+        {toalgo(iface.msa_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
     iface.remote_cmd.connect('focus_out_event', lambda widget, *args: iface.msa.remote_cmd.update(
-        {shared.toalgo(iface.remote_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
+        {toalgo(iface.remote_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
 
     iface.msa_algo.connect('changed', get_help, gui)
     iface.remote_algo.connect('changed', get_help, gui, True)
@@ -53,12 +56,12 @@ def get_help(widget, gui, remote=False, try_path=False):
     shared.set_changed(gui, PAGE, True)
 
     if remote:
-        iface.msa.algo = shared.toalgo(iface.remote_algo.get_active_text())
-        client = shared.TOOLS / 'MSA_clients' / (iface.msa.algo + '.py')
+        iface.msa.algo = toalgo(iface.remote_algo.get_active_text())
+        client = TOOLS / 'MSA_clients' / (iface.msa.algo + '.py')
         set_helpers(gui, 'python3 %s ' % client, iface.remote_help,
                     iface.msa.remote_cmd, iface.msa.algo, True, iface.remote_cmd)
     else:
-        iface.msa.algo = shared.toalgo(iface.msa_algo.get_active_text())
+        iface.msa.algo = toalgo(iface.msa_algo.get_active_text())
         exe = shutil.which(iface.msa.algo)
         exe = widget.get_active_text() if try_path else exe
         if exe:
@@ -147,7 +150,7 @@ def do_align(gui, remote=False):
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
                                             % tuple([gene] * (4 - remote)))  # interpreting bool as int here
             except FileNotFoundError:
-                iface.aligner.reset_paths(gui.wd, gui.wd / shared.MSA)
+                iface.aligner.reset_paths(gui.wd, gui.wd / PATHS.msa)
                 # try again once more
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
                                             % tuple([gene] * 4))
@@ -187,18 +190,18 @@ def stop_align(gui, errors):
 def load_msa(widget, gui):
     data, iface = gui.data, gui.iface
     try:
-        Path.mkdir(gui.wd / shared.IMPORT_MSA.parent, exist_ok=True)
-        shutil.copy(widget.get_filename(), gui.wd / shared.IMPORT_MSA)
+        Path.mkdir(gui.wd / PATHS.import_msa.parent, exist_ok=True)
+        shutil.copy(widget.get_filename(), gui.wd / PATHS.import_msa)
     except shutil.SameFileError:
         pass
     except Exception as ex:
         shared.show_notification(gui, str(ex))
         LOG.error(ex)
-    shared.get_hashes(gui, shared.IMPORT_MSA)
+    shared.get_hashes(gui, PATHS.import_msa, PAGE)
     data.genes = ['import']
-    data.gene_ids = {'import': {r.id for r in SeqIO.parse(gui.wd / shared.IMPORT_MSA, 'fasta')}}
+    data.gene_ids = {'import': {r.id for r in SeqIO.parse(gui.wd / PATHS.import_msa, 'fasta')}}
     iface.aligner, cmd = shared.get_msa_build_cmd(
-        shared.toalgo(gui.iface.msa_algo.get_active_text()), gui.wd, data.genes)
+        toalgo(gui.iface.msa_algo.get_active_text()), gui.wd, data.genes)
     LOG.debug('using imported MSA')
 
 

@@ -330,6 +330,7 @@ class blast_build(threading.Thread):
         df.set_index('id', inplace=True)
 
         # parse .xml and write best hits info to metadata
+        # TODO return list for gui instead of writing to file
         with open(self.bad_seqs, 'a') as fh:
             for xml in xmls:
                 for entry in SearchIO.parse(xml, 'blast-xml'):

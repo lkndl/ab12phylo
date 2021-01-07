@@ -46,6 +46,7 @@ class project_dataset:
         self.msa_hash = ''
         self.gene_ids = dict()
         self.gene_for_preview = ''
+        self.blast_path = None  # for non-$PATH BLAST+ executable
 
     def new_project(self):
         self.overwrite(project_dataset())

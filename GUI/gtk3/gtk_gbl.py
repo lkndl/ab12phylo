@@ -16,10 +16,13 @@ from matplotlib.backends.backend_gtk3agg import (
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 
+import static
+
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GObject, GdkPixbuf
+from gi.repository import Gtk, GObject
 
 from GUI.gtk3 import shared
+from static import PATHS
 
 LOG = logging.getLogger(__name__)
 PAGE = 4
@@ -69,7 +72,8 @@ def refresh(gui):
     data, iface = gui.data, gui.iface
 
     # start the first re-plotting
-    if 0 in data.msa_shape or not (gui.wd / shared.LEFT).exists() or not (gui.wd / shared.RIGHT).exists():
+    if 0 in data.msa_shape or not (gui.wd / PATHS.left).exists() \
+            or not (gui.wd / PATHS.right).exists():
         # fetch the MSA shape
         data.gbl_model.clear()
         shared_ids = sorted(set.intersection(*data.gene_ids.values()))
@@ -87,16 +91,16 @@ def refresh(gui):
     try:
         iface.msa_shape.set_text('%d : %d' % tuple(data.msa_shape[:2]))
         iface.msa_shape_trimmed.set_text(
-            '%d : %d' % (data.msa_shape[2] - (len(data.genes) - 1) * len(shared.SEP),
+            '%d : %d' % (data.msa_shape[2] - (len(data.genes) - 1) * len(static.SEP),
                          data.msa_shape[3]))
     except TypeError:
         pass
     # place the existing png
     x_ratio = data.msa_shape[2] / data.msa_shape[0]
-    shared.load_image(iface.zoom, PAGE, iface.gbl_left_vp, gui.wd / shared.LEFT,
+    shared.load_image(iface.zoom, PAGE, iface.gbl_left_vp, gui.wd / PATHS.left,
                       width=data.gbl_shape[0] * shared.get_hadj(iface),
                       height=data.gbl_shape[1])
-    shared.load_image(iface.zoom, PAGE, iface.gbl_right_vp, gui.wd / shared.RIGHT,
+    shared.load_image(iface.zoom, PAGE, iface.gbl_right_vp, gui.wd / PATHS.right,
                       width=data.gbl_shape[0] * shared.get_hadj(iface) * x_ratio,
                       height=data.gbl_shape[1])
     shared.load_colorbar(iface.palplot2, gui.wd)
@@ -179,7 +183,7 @@ def start_gbl(gui, run_after=None):
     elif iface.running:
         shared.show_notification(gui, 'Thread running')
         return
-    elif run_after and (gui.wd / shared.MSA).exists() \
+    elif run_after and (gui.wd / PATHS.msa).exists() \
             and not shared.get_errors(gui, PAGE):
         shared.set_changed(gui, PAGE, False)
         [do_func(gui) for do_func in run_after]
@@ -227,7 +231,7 @@ def do_gbl(gui):
         binary = shutil.which('Gblocks')
         local = bool(binary)
         # else pick deployed Gblocks
-        binary = binary if binary else shared.TOOLS / 'Gblocks_0.91b' / 'Gblocks'
+        binary = binary if binary else static.TOOLS / 'Gblocks_0.91b' / 'Gblocks'
         LOG.info('%s Gblocks' % ('local' if local else 'packaged'))
 
         # create base call MARK -t=d sets the mode to nucleotides ... adapt?
@@ -249,7 +253,7 @@ def do_gbl(gui):
         raw_msa = gui.wd / gene / ('%s_raw_msa.fasta' % gene)
         msa = gui.wd / gene / ('%s_msa.fasta' % gene)
         records = {r.id: r.seq.upper() for r in SeqIO.parse(raw_msa, 'fasta')}
-        ar = np.array([shared.seqtoint(records[_id]) for _id in shared_ids])
+        ar = np.array([static.seqtoint(records[_id]) for _id in shared_ids])
         assert ar.shape[0] == len(shared_ids)
         msa_lens.append(ar.shape[1])
         array = np.hstack((array, ar,))  # shared.SEP would need to be stacked here
@@ -297,12 +301,12 @@ def do_gbl(gui):
     iface.text = 'concatenating MSAs'
     if 'aligner' not in iface:
         iface.aligner, cmd = shared.get_msa_build_cmd(
-            shared.toalgo(iface.msa_algo.get_active_text()), gui.wd, data.genes)
-    iface.aligner.reset_paths(gui.wd, gui.wd / shared.MSA)
+            static.toalgo(iface.msa_algo.get_active_text()), gui.wd, data.genes)
+    iface.aligner.reset_paths(gui.wd, gui.wd / PATHS.msa)
     data.msa_shape[2], data.msa_shape[3] = iface.aligner.concat_msa(gui=shared_ids)
     iface.text = 'computing SHA256 hash'
     LOG.debug(iface.text)
-    shared.get_hashes(gui, shared.MSA)
+    shared.get_hashes(gui, PATHS.msa, PAGE)
 
     iface.i += 1
     iface.text = 'plot MSAs'
@@ -310,14 +314,14 @@ def do_gbl(gui):
 
     data.gbl_shape[0] = array.shape[1] * shared.get_hadj(iface)
     # make gaps transparent
-    array = np.ma.masked_where(array > shared.toint('else'), array)
+    array = np.ma.masked_where(array > static.toint('else'), array)
 
     # create a transparency mask
     blocks = set()
     while slices:
         blocks |= set(slices.pop())
     blocks = sorted(list(blocks))
-    gbl_mask = np.full(array.shape, shared.ALPHA)
+    gbl_mask = np.full(array.shape, static.ALPHA)
     gbl_mask[:, blocks] = 1
 
     data.msa_shape[2] = len(blocks)  # for completeness
@@ -335,24 +339,24 @@ def do_gbl(gui):
         for alpha, blocks, gtk_bin, png_path, x_ratio, width \
                 in zip([gbl_mask, 1], [range(array.shape[1]), blocks],
                        [iface.gbl_left_vp, iface.gbl_right_vp],
-                       [shared.LEFT, shared.RIGHT], [1, x_ratio],
+                       [PATHS.left, PATHS.right], [1, x_ratio],
                        [data.msa_shape[0], data.msa_shape[2]]):
             f = Figure()  # figsize=(width / shared.DPI, data.msa_shape[1] / shared.DPI), dpi=shared.DPI)  # figaspect(data.msa_shape[1] / width))
             f.set_facecolor('none')
-            f.set_figheight(data.msa_shape[1] / shared.DPI)
-            f.set_figwidth(max(1, width) / shared.DPI)
+            f.set_figheight(data.msa_shape[1] / static.DPI)
+            f.set_figwidth(max(1, width) / static.DPI)
             ax = f.add_subplot(111)
             ax.axis('off')
             f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-            mat = ax.matshow(array[:, blocks], alpha=alpha, cmap=ListedColormap(shared.colors),
-                             vmin=-.5, vmax=len(shared.colors) - .5, aspect='auto')
+            mat = ax.matshow(array[:, blocks], alpha=alpha, cmap=ListedColormap(static.colors),
+                             vmin=-.5, vmax=len(static.colors) - .5, aspect='auto')
 
             iface.i += 1
             iface.text = 'save PNG'
             LOG.debug(iface.text)
             Path.mkdir(gui.wd / png_path.parent, exist_ok=True)
             f.savefig(gui.wd / png_path, transparent=True,
-                      dpi=scale * shared.DPI, bbox_inches='tight', pad_inches=0.00001)
+                      dpi=scale * static.DPI, bbox_inches='tight', pad_inches=0.00001)
 
             # experimentally good point to re-size
             data.gbl_shape[1] = shared.get_height_resize(iface.view_gbl, None, iface.gbl_spacer,
@@ -418,10 +422,10 @@ def drop_seqs(gui):
     """
     if 'ignore_set' not in gui.iface.gbl:
         return
-    with open(gui.wd / (shared.MSA + '_TEMP'), 'w') as fasta:
-        for record in SeqIO.parse(gui.wd / shared.MSA, 'fasta'):
+    with open(gui.wd / (PATHS.msa + '_TEMP'), 'w') as fasta:
+        for record in SeqIO.parse(gui.wd / PATHS.msa, 'fasta'):
             if record.id not in gui.iface.gbl.ignore_set:
                 SeqIO.write(record, fasta, 'fasta')
     LOG.debug('dropped %d sequences from trimmed MSA' % len(gui.iface.gbl.ignore_set))
     del gui.iface.gbl.ignore_set
-    shutil.move(gui.wd / (shared.MSA + '_TEMP'), gui.wd / shared.MSA)
+    shutil.move(gui.wd / (PATHS.msa + '_TEMP'), gui.wd / PATHS.msa)
