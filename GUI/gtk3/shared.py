@@ -479,6 +479,14 @@ def select_seqs(event_box, loc, page, zoom_ns, tv, ns):
     ns.previous = idx
 
 
+def save_row_edits(cell, path, new_text, tv, col):
+    mo = tv.get_model()
+    old_text = mo[path][col]
+    if old_text == new_text:
+        return
+    mo[path][col] = new_text
+
+
 def delete_and_ignore_rows(widget, event, gui, page, sel, ns):
     """
     Keep track of the rows that will not be written to the next fasta and delete them from the treeview.
@@ -575,3 +583,15 @@ def get_msa_build_cmd(algo, wd, genes, remote=False):
     else:
         cmd = aligner.build_local('%s', no_run=True)
     return aligner, cmd
+
+
+class bump_log_level:
+
+    def __init__(self, log):
+        self.level = max(log.level, logging.DEBUG)
+
+    def __enter__(self):
+        logging.disable(self.level)
+
+    def __exit__(self, exit_type, exit_value, exit_traceback):
+        logging.disable(logging.NOTSET)

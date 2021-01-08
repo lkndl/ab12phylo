@@ -228,15 +228,12 @@ def parse_triple(widget, gui):
 
 
 def cell_edit(cell, path, new_text, gui, tv, col):
-    data, iface = gui.data, gui.iface
-    mo = tv.get_model()
-    old_text = mo[path][col]
-    if old_text == new_text:
-        return
-    mo[path][col] = new_text
+    shared.save_row_edits(cell, path, new_text, tv, col)
+    iface = gui.iface
     shared.set_changed(gui, PAGE, True)
     # set row to error-free. also for references
     if tv == iface.view_trace_regex:
+        mo = tv.get_model()
         mo[path][-1] = iface.BLUE if mo[path][5] else iface.FG
 
 
@@ -461,7 +458,7 @@ def do_read(gui):
                     else:
                         errors.add('missing wellsplate %s' % box)
 
-                attributes = {'file': file_path, 'wellsplate': box, 'is_ref': False, 'is_rev': is_rev}
+                attributes = {'file': file_path, 'box': box, 'is_ref': False, 'is_rev': is_rev}
                 # DONE continue here
 
                 if is_rev:

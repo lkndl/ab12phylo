@@ -48,9 +48,8 @@ class project_dataset:
         self.gene_for_preview = ''
         self.sp_model = picklable_liststore(str,  # id
                                             str,  # pid
-                                            str,  # ratio of hits
                                             str,  # species
-                                            str)  # other species?
+                                            str)  # extra_species
         self.blast_path = None  # for non-$PATH BLAST+ executable
 
     def new_project(self):
@@ -102,8 +101,6 @@ class picklable_liststore(Gtk.ListStore):
                 coltypes = [str, int, bool]
             elif cols == 7:
                 coltypes = [str, str, str, str, str, bool, bool, str]
-            elif cols == 5:
-                coltypes = [str, str, str, str, str]
             return _unpickle_liststore, (self.__class__, coltypes, rows)
         except Exception as ex:
             LOG.exception(ex)
