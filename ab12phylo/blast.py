@@ -17,7 +17,7 @@ import urllib.error
 from os import path
 from time import time, sleep
 
-import pandas
+import pandas as pd
 from numpy import nan
 from Bio import SearchIO
 from Bio.Blast import NCBIWWW
@@ -92,6 +92,8 @@ class blast_build(threading.Thread):
         self.db = _args.db
         self.remote_db = _args.remote_db
         self.timeout = _args.timeout
+        self.gui = 'gui' in _args
+        self.df = pd.DataFrame()
 
         # Files / Paths
         self.FASTA = path.join(_args.dir, self.gene, self.gene + '.fasta')
@@ -216,7 +218,7 @@ class blast_build(threading.Thread):
 
         # run BLAST+
         self.log.debug('BLASTing locally ...')
-        arg = '%s -db %s -query %s -num_threads 3 -max_target_seqs 5 -outfmt 5 -out %s' \
+        arg = '%s -db %s -query %s -num_threads 3 -max_target_seqs 10 -outfmt 5 -out %s' \
               % (path.join(self.blast_dir, 'blastn'),
                  path.join(self.dbpath, self.db),
                  self.FASTA, self.XML)
@@ -232,24 +234,30 @@ class blast_build(threading.Thread):
             return None
 
         # read in metadata tsv
-        df = pandas.read_csv(self.TSV, sep='\t', dtype={'id': str})
-        df.set_index('id', inplace=True)
-        df['BLAST_species'] = ''
-        df['pid'] = nan
+        self.df = pd.read_csv(self.TSV, sep='\t', dtype={'id': str})
+        self.df.set_index(['id', 'gene'], inplace=True)
+        self.df['BLAST_species'] = ''
+        self.df['pid'] = nan
+        self.df['hit_ratio'] = ''
+        self.df['extra_species'] = ''
 
         # parse .xml and write best hits info to metadata
         missing_seqs = list()
         for entry in SearchIO.parse(self.XML, 'blast-xml'):
             try:
                 res = self._parse(entry)
-                df.at[entry.id, 'BLAST_species'] = res[0]
-                df.at[entry.id, 'pid'] = res[1]
+                row = self.df.loc[entry.id, self.gene]
+                for i, j in enumerate(['pid', 'hit_ratio', 'BLAST_species']):
+                    row.at[j] = res[0][i]
+                res[1][0] = '%.2f' % res[1][0]
+                row.at['extra_species'] = ' : '.join(res[1])
+                self.df.loc[entry.id, self.gene] = row
             except ValueError:
                 # no hits found -> save seq_id for online NCBI BLAST
                 missing_seqs.append(entry.id)
 
         # write to TSV
-        df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)
+        self.df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)
         self.log.debug('wrote updated metadata to %s' % self.TSV)
 
         return missing_seqs
@@ -277,7 +285,7 @@ class blast_build(threading.Thread):
             try:
                 # raise urllib.error.URLError('testing')
                 handle = NCBIWWW.qblast(program='blastn', database=self.remote_db,
-                                        sequence=records, format_type='XML', hitlist_size=5)
+                                        sequence=records, format_type='XML', hitlist_size=10)
                 # save as .xml
                 with open(self.www_XML[run], 'w') as fh:
                     fh.write(handle.read())
@@ -293,20 +301,52 @@ class blast_build(threading.Thread):
         self.log.info('finished remote BLAST')
 
     def _parse(self, xml_entry):
-        """Parses genus and species from a 'Hit' in the XML entry. Raises a ValueError if no hits."""
+        """
+        Parse genus, species, pid, share of hits and other species from XML entry.
+        Raises a ValueError if no hits.
+        """
+        if not xml_entry:
+            raise ValueError
         try:
-            _def = xml_entry.hits[0].description.split(',')[0].strip().split(' ')
-            genus, species = _def[0], _def[1]
+            df = list()
+            for hit in xml_entry:
+                _def = hit.description.split(',')[0].strip().split(' ')
+                genus, species = _def[0], _def[1]
 
-            if species == 'cf.':
-                species += _def[2]
-                self.log.warning('found a cf. but that\'s fine')
+                if species == 'cf.':
+                    species += _def[2]
+                    self.log.warning('found a cf. but that\'s fine')
 
-            # parse % identity from high-scoring pair
-            _hsp = xml_entry.hsps[0]
-            pid = _hsp.ident_num * 100 / (_hsp.aln_span + _hsp.gap_num)
+                # parse % identity from high-scoring pair
+                _hsp = hit.hsps[0]
+                pid = _hsp.ident_num * 100 / (_hsp.aln_span + _hsp.gap_num)
+                df.append([' '.join([genus, species]), pid])
 
-            return ' '.join([genus, species]), pid
+            df = pd.DataFrame(columns=['species', 'pid'], data=df)
+
+            # best pid rows
+            a, b = list(df['pid'].nlargest(2))
+
+            finders = list()
+            for val in [a, b]:
+                sp_best_pid = df[df['pid'] == val].species
+                if len(sp_best_pid) == 1:
+                    # best pid occurs exactly once
+                    finders.append([val, '1/1', list(sp_best_pid)[0]])
+                else:
+                    # several entries have best pid
+                    out_of = len(sp_best_pid)
+                    most_freq = sp_best_pid.mode()
+                    best = most_freq[0]
+                    occurs = sp_best_pid.value_counts()[best]
+                    finders.append([val, '%d/%d' % (occurs, out_of), best])
+                    if len(most_freq) > 1:
+                        # second equally frequent sp with equally best pid
+                        best = most_freq[1]
+                        occurs = sp_best_pid.value_counts()[best]
+                        finders.append([val, '%d/%d' % (occurs, out_of), best])
+
+            return finders[:2]
         except IndexError:
             raise ValueError
 
@@ -326,27 +366,30 @@ class blast_build(threading.Thread):
             self.log.warning('no valid paths.')
             return
         # read in metadata tsv
-        df = pandas.read_csv(self.TSV, sep='\t', dtype={'id': str, 'BLAST_species': str})
-        df.set_index('id', inplace=True)
+        self.df = pd.read_csv(self.TSV, sep='\t', dtype={'id': str, 'BLAST_species': str})
+        self.df.set_index(['id', 'gene'], inplace=True)  # TODO add empty columns?
 
         # parse .xml and write best hits info to metadata
-        # TODO return list for gui instead of writing to file
         with open(self.bad_seqs, 'a') as fh:
             for xml in xmls:
                 for entry in SearchIO.parse(xml, 'blast-xml'):
                     try:
                         res = self._parse(entry)
-                        df.at[entry.id, 'BLAST_species'] = res[0]
-                        df.at[entry.id, 'pid'] = res[1]
+                        row = self.df.loc[entry.id, self.gene]
+                        for i, j in enumerate(['pid', 'hit_ratio', 'BLAST_species']):
+                            row.at[j] = res[0][i]
+                        res[1][0] = '%.2f' % res[1][0]
+                        row.at['extra_species'] = ' : '.join(res[1])
+                        self.df.loc[entry.id, self.gene] = row
                     except ValueError:
-                        if entry.id in df.index:
+                        if entry.id in self.df.index:
                             fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
-                                     % (df.at[entry.id, 'file'], entry.id,
-                                        df.at[entry.id, 'box'], self.gene))
+                                     % (self.df.at[entry.id, 'file'], entry.id,
+                                        self.df.at[entry.id, 'box'], self.gene))
                             self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
                         else:
                             self.log.error('no entry %s in metadata TSV' % entry.id)
 
         # write to TSV
-        df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)
+        self.df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)
         self.log.debug('wrote newly updated metadata to %s' % self.TSV)

@@ -46,6 +46,11 @@ class project_dataset:
         self.msa_hash = ''
         self.gene_ids = dict()
         self.gene_for_preview = ''
+        self.sp_model = picklable_liststore(str,  # id
+                                            str,  # pid
+                                            str,  # ratio of hits
+                                            str,  # species
+                                            str)  # other species?
         self.blast_path = None  # for non-$PATH BLAST+ executable
 
     def new_project(self):
@@ -56,7 +61,10 @@ class project_dataset:
             old = self.__getattribute__(attr)
             if type(old) == picklable_liststore:
                 old.clear()
-                [old.append(row[:]) for row in new_dataset.__getattribute__(attr)]
+                try:
+                    [old.append(row[:]) for row in new_dataset.__getattribute__(attr)]
+                except AttributeError:
+                    pass  # try to go without this model
             elif type(old) == dict:
                 old.clear()
                 try:
@@ -94,6 +102,8 @@ class picklable_liststore(Gtk.ListStore):
                 coltypes = [str, int, bool]
             elif cols == 7:
                 coltypes = [str, str, str, str, str, bool, bool, str]
+            elif cols == 5:
+                coltypes = [str, str, str, str, str]
             return _unpickle_liststore, (self.__class__, coltypes, rows)
         except Exception as ex:
             LOG.exception(ex)

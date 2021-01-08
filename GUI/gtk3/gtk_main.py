@@ -28,8 +28,8 @@ LOG = logging.getLogger(__name__)
 __verbose__, __info__ = 1, 0
 
 # set the icon theme
-Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Maia')
-Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
+Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
+Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
 
 
 class app(Gtk.Application):
@@ -182,10 +182,12 @@ class app(Gtk.Application):
         gtk_blast.init(self)
 
         # self.load('stam.proj')
-        self.load('concat.proj')
+        self.load('spin.proj')
 
         # TODO gtk_qal do not re-read if some were removed
         # TODO gtk_qal not accepting reverse doesn't work
+
+        # TODO keep metadata up-to-data with deletions
 
     def new(self, action, confirm=True, *args):
         """

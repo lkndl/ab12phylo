@@ -26,7 +26,15 @@ conda activate <your_python3_conda_env>
 Then install the external tools in one go:
 
 ```bash
-conda install -c bioconda "blast>=2.9.0" "raxml-ng>=1.01" "iqtree>=2.0.3" "fasttree>=2.1.10" "gblocks=0.91b" mafft clustalo muscle
+
+# might not work 
+conda install -c bioconda "blast>=2.9.0" "raxml-ng>=1.0.1" 
+
+# for development
+conda install -c conda-forge pygobject gtk3                        
+
+# but
+conda install -c bioconda "iqtree>=2.0.3" "fasttree>=2.1.10" "gblocks=0.91b" mafft clustalo muscle
 ```
 
 This will require you to `conda activate <your_python3_conda_env>` anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will suffice and should be easy.

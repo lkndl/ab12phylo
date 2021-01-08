@@ -13,6 +13,7 @@ PATHS = Namespace(**{
     'xml': Path('BLAST') / 'local_blast+_result.xml',
     'www_xml': Path('BLAST') / 'online_blast_result.xml',
     'missing_fasta': Path('BLAST') / 'missing.fasta',
+    'bad_seqs': 'bad_seqs.tsv',
     'preview': Path('Trim') / 'trim_preview.png',
     'cbar': Path('Trim') / 'colorbar.png',
     'left': Path('Trim') / 'msa_gbl_pre.png',

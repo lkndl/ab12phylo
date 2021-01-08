@@ -3522,7 +3522,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="halign">start</property>
                                 <property name="hexpand">False</property>
                                 <property name="vexpand">False</property>
-                                <property name="label" translatable="yes">Optionally include species annotation from a local BLAST+ in a &lt;a href="https://ftp.ncbi.nlm.nih.gov/blast/db/"&gt;pre-compiled&lt;/a&gt; or custom database, or by importing XML results of a manual web &lt;a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi"&gt;BLAST&lt;/a&gt;. Per default, &lt;a href="https://www.ncbi.nlm.nih.gov/nucleotide/"&gt;NCBI nt&lt;/a&gt; is searched for missing samples, but the public API should not be employed as main search strategy.</property>
+                                <property name="label" translatable="yes">Optionally include species annotation from a local BLAST+ in a &lt;a href="https://ftp.ncbi.nlm.nih.gov/blast/db/"&gt;pre-compiled&lt;/a&gt; or custom database, or by importing XML results of a manual web &lt;a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi"&gt;BLAST&lt;/a&gt;. Searching an online database such as &lt;a href="https://www.ncbi.nlm.nih.gov/nucleotide/"&gt;NCBI nt&lt;/a&gt; via the public BLAST API is also possible, but should not be the main search strategy.</property>
                                 <property name="use-markup">True</property>
                                 <property name="wrap">True</property>
                                 <property name="wrap-mode">word-char</property>
@@ -3559,11 +3559,10 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="hexpand">False</property>
                             <property name="vexpand">True</property>
                             <child>
-                              <!-- n-columns=2 n-rows=7 -->
+                              <!-- n-columns=2 n-rows=8 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">end</property>
                                 <property name="hexpand">False</property>
                                 <property name="row-spacing">10</property>
                                 <property name="column-spacing">10</property>
@@ -3572,14 +3571,15 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">blast_exe</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-markup" translatable="yes">Point to the directory containing &lt;i&gt;blastn&lt;/i&gt;, &lt;i&gt;blastdbcmd&lt;/i&gt;, &lt;i&gt;update_blastdb.pl&lt;/i&gt; and &lt;i&gt;makeblastdb&lt;/i&gt; on your system.</property>
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">False</property>
-                                    <property name="create-folders">False</property>
+                                    <property name="action">select-folder</property>
                                     <property name="title" translatable="yes"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
+                                    <property name="top-attach">2</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -3591,7 +3591,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">4</property>
+                                    <property name="top-attach">5</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -3637,7 +3637,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
-                                    <property name="top-attach">4</property>
+                                    <property name="top-attach">5</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -4013,7 +4013,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">6</property>
+                                    <property name="top-attach">7</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -4028,7 +4028,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
+                                    <property name="top-attach">4</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -4043,7 +4043,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
+                                    <property name="top-attach">3</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -4054,12 +4054,12 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="halign">start</property>
                                     <property name="hexpand">False</property>
                                     <property name="vexpand">False</property>
-                                    <property name="label" translatable="yes">executable:</property>
+                                    <property name="label" translatable="yes">BLAST+ installed in:</property>
                                     <property name="use-underline">True</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
+                                    <property name="top-attach">1</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -4071,7 +4071,53 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">5</property>
+                                    <property name="top-attach">6</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="spacing">10</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">end</property>
+                                        <property name="hexpand">True</property>
+                                        <property name="vexpand">False</property>
+                                        <property name="label" translatable="yes">marker gene:</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkComboBoxText" id="blast_gene">
+                                        <property name="name">blast_gene</property>
+                                        <property name="width-request">10</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="no-show-all">True</property>
+                                        <property name="hexpand">False</property>
+                                        <property name="vexpand">False</property>
+                                        <property name="active">0</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -4082,181 +4128,11 @@ Alternatively, a color legend would nicely fit here.</property>
                               </packing>
                             </child>
                             <child>
-                              <!-- n-columns=2 n-rows=5 -->
-                              <object class="GtkGrid">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="hexpand">False</property>
-                                <property name="row-spacing">10</property>
-                                <property name="column-spacing">10</property>
-                                <child>
-                                  <object class="GtkComboBoxText" id="remote_db">
-                                    <property name="name">remote_db</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="hexpand">True</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="active">0</property>
-                                    <property name="has-entry">True</property>
-                                    <items>
-                                      <item translatable="yes">nr</item>
-                                      <item translatable="yes">nt</item>
-                                    </items>
-                                    <child internal-child="entry">
-                                      <object class="GtkEntry">
-                                        <property name="can-focus">False</property>
-                                        <property name="tooltip-text" translatable="yes">Enter database name directly</property>
-                                        <property name="width-chars">6</property>
-                                      </object>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="blast_remote">
-                                    <property name="name">blast_remote</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="halign">end</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <child>
-                                      <object class="GtkBox">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="halign">center</property>
-                                        <property name="spacing">10</property>
-                                        <child>
-                                          <object class="GtkImage">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="icon-name">media-playback-start-symbolic</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="label" translatable="yes">Submit</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="pack-type">end</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                      </object>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="vexpand">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">4</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkBox">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="hexpand">False</property>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="hexpand">True</property>
-                                        <property name="vexpand">False</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="halign">end</property>
-                                        <property name="vexpand">False</property>
-                                        <property name="label" translatable="yes">&lt;a href="https://ftp.ncbi.nlm.nih.gov/blast/documents/blastdb.html"&gt;Available databases&lt;/a&gt;</property>
-                                        <property name="use-markup">True</property>
-                                        <property name="justify">right</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="label" translatable="yes">database:</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="name">remote</property>
-                                <property name="title" translatable="yes">remote</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
                               <!-- n-columns=2 n-rows=3 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="hexpand">True</property>
+                                <property name="hexpand">False</property>
                                 <property name="row-spacing">10</property>
                                 <property name="column-spacing">10</property>
                                 <child>
@@ -4311,13 +4187,216 @@ Alternatively, a color legend would nicely fit here.</property>
                               <packing>
                                 <property name="name">import</property>
                                 <property name="title" translatable="yes">import</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <!-- n-columns=2 n-rows=7 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="hexpand">False</property>
+                                <property name="row-spacing">10</property>
+                                <property name="column-spacing">10</property>
+                                <child>
+                                  <object class="GtkComboBoxText" id="remote_db">
+                                    <property name="name">remote_db</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="active">0</property>
+                                    <property name="has-entry">True</property>
+                                    <items>
+                                      <item translatable="yes">nr</item>
+                                      <item translatable="yes">nt</item>
+                                    </items>
+                                    <child internal-child="entry">
+                                      <object class="GtkEntry">
+                                        <property name="can-focus">False</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">3</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="blast_remote">
+                                    <property name="name">blast_remote</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">center</property>
+                                        <property name="spacing">10</property>
+                                        <child>
+                                          <object class="GtkImage">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="icon-name">media-playback-start-symbolic</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="label" translatable="yes">Submit</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="pack-type">end</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">5</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="vexpand">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">6</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">5</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="hexpand">False</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="hexpand">True</property>
+                                        <property name="vexpand">False</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="halign">end</property>
+                                        <property name="vexpand">False</property>
+                                        <property name="label" translatable="yes">&lt;a href="https://ftp.ncbi.nlm.nih.gov/blast/documents/blastdb.html"&gt;Available databases&lt;/a&gt;</property>
+                                        <property name="use-markup">True</property>
+                                        <property name="justify">right</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">4</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes">database:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="missing_fasta">
+                                    <property name="name">missing_fasta</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="create-folders">False</property>
+                                    <property name="filter">fastafilter</property>
+                                    <property name="title" translatable="yes"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes">&lt;i&gt;fasta&lt;/i&gt; with sequences:</property>
+                                    <property name="use-markup">True</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="name">remote</property>
+                                <property name="title" translatable="yes">remote</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">2</property>
+                            <property name="top-attach">1</property>
+                            <property name="height">2</property>
                           </packing>
                         </child>
                         <child>
@@ -4329,70 +4408,8 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
-                            <property name="top-attach">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">end</property>
-                            <property name="margin-end">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="hexpand">False</property>
-                            <property name="vexpand">False</property>
-                            <property name="spacing">10</property>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">end</property>
-                                <property name="hexpand">False</property>
-                                <property name="vexpand">False</property>
-                                <property name="label" translatable="yes">marker gene:</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkComboBoxText" id="blast_gene">
-                                <property name="name">blast_gene</property>
-                                <property name="width-request">10</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="no-show-all">True</property>
-                                <property name="hexpand">False</property>
-                                <property name="vexpand">False</property>
-                                <property name="active">0</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
                             <property name="top-attach">1</property>
-                            <property name="width">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkStackSwitcher">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="hexpand">False</property>
-                            <property name="vexpand">False</property>
-                            <property name="stack">blast_help_stack</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">3</property>
-                            <property name="top-attach">1</property>
+                            <property name="height">2</property>
                           </packing>
                         </child>
                         <child>
@@ -4451,6 +4468,20 @@ Alternatively, a color legend would nicely fit here.</property>
                           <packing>
                             <property name="left-attach">3</property>
                             <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkStackSwitcher">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-bottom">10</property>
+                            <property name="hexpand">False</property>
+                            <property name="vexpand">False</property>
+                            <property name="stack">blast_help_stack</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">3</property>
+                            <property name="top-attach">1</property>
                           </packing>
                         </child>
                       </object>
@@ -4950,15 +4981,45 @@ Alternatively, a color legend would nicely fit here.</property>
                     <property name="can-focus">False</property>
                     <property name="hexpand">True</property>
                     <child>
-                      <object class="GtkSpinner" id="blast_spinner">
-                        <property name="name">blast_spinner</property>
-                        <property name="width-request">20</property>
-                        <property name="height-request">20</property>
+                      <object class="GtkBox" id="spinbox">
+                        <property name="name">spinbox</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="hexpand">False</property>
-                        <property name="vexpand">False</property>
-                        <property name="active">True</property>
+                        <property name="no-show-all">True</property>
+                        <child>
+                          <object class="GtkSpinner" id="blast_spinner">
+                            <property name="name">blast_spinner</property>
+                            <property name="width-request">20</property>
+                            <property name="height-request">20</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="hexpand">False</property>
+                            <property name="vexpand">False</property>
+                            <property name="active">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="width-request">10</property>
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can-focus">False</property>
+                            <property name="no-show-all">True</property>
+                            <property name="halign">start</property>
+                            <property name="hexpand">False</property>
+                            <property name="label" translatable="yes"> BLAST</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -4979,7 +5040,7 @@ Alternatively, a color legend would nicely fit here.</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">1</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                     <child>
@@ -4991,7 +5052,7 @@ Alternatively, a color legend would nicely fit here.</property>
                       <packing>
                         <property name="expand">True</property>
                         <property name="fill">True</property>
-                        <property name="position">2</property>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                     <child>
@@ -5008,7 +5069,7 @@ Alternatively, a color legend would nicely fit here.</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                     <child>
@@ -5177,7 +5238,7 @@ Alternatively, a color legend would nicely fit here.</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">4</property>
+                        <property name="position">5</property>
                       </packing>
                     </child>
                   </object>
