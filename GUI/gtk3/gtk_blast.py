@@ -9,8 +9,8 @@ from pathlib import Path
 
 import gi
 import pandas as pd
-from numpy import isnan
 from Bio import SeqIO
+from numpy import isnan
 
 from ab12phylo import blast
 
@@ -41,6 +41,8 @@ def init(gui):
     iface.blast_import.connect('clicked', start_BLAST, gui, None)
     iface.xml_import.connect('file_set', start_BLAST, gui, None)
     iface.blast_exe.connect('file_set', lambda *args: start_prep(gui, iface.blast_exe.get_filename()))
+    iface.blast_gene.connect('button-release-event', lambda co, *args: co.
+                             popdown() if co.props.popup_shown else co.popup())
 
     # set up the species annotation table
     spi = iface.sp_info
@@ -77,15 +79,16 @@ def init(gui):
 
 
 def start_prep(gui, path):
+    data, iface = gui.data, gui.iface
     if not path:
         return False
     path = Path(path).resolve()
     if path.is_file():
         path = path.parent  # path is supposed to be a directory!
     gui.data.blast_path = path
-    gui.iface.thread = threading.Thread(target=do_prep, args=[gui, path])
-    gui.iface.running = True
-    gui.iface.thread.start()
+    iface.thread = threading.Thread(target=do_prep, args=[gui, path])
+    iface.running = True
+    iface.thread.start()
     return True
 
 

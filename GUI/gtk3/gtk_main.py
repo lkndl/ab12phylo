@@ -39,7 +39,7 @@ class app(Gtk.Application):
     def do_activate(self):
         self.add_window(self.win)
         self.win.show_all()
-        # self.win.present()  # useless alternative
+        # self.win.present()  # TODO useless alternative? Test once outside of PyCharm
 
     def do_shutdown(self):
         # delete data if it was in the prelim directory
@@ -60,7 +60,7 @@ class app(Gtk.Application):
             # self.add_accelerator(accelerator='<Control>h', action_name='app.help', parameter=None)
 
     def __init__(self):
-        Gtk.Application.__init__(self)
+        Gtk.Application.__init__(self, application_id='org.ab12phylo', flags=Gio.ApplicationFlags.FLAGS_NONE)
 
         # fetch all named objects from the .glade XML
         iface = dict()

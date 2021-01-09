@@ -12,13 +12,13 @@ from static import PATHS, USER, SEP, BUF_SIZE
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 
-from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml
+from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree
 
 LOG = logging.getLogger(__name__)
 
 # re-fresh page content. automatically called
 REFRESH = [module.refresh for module in [gtk_io, gtk_rgx, gtk_qal, gtk_msa,
-                                         gtk_gbl, gtk_blast, gtk_ml]]
+                                         gtk_gbl, gtk_blast, gtk_ml, gtk_tree]]
 # re-run background threads. -> "REFRESH" button
 RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim, 4: gtk_gbl.start_gbl}
 # where the gene selector is visible
