@@ -32,6 +32,9 @@ def init(gui):
     iface.blast_spinner.stop()
     iface.spinbox.set_visible(False)
 
+    iface.remote_db.set_model(data.remote_dbs)
+    iface.remote_db.get_child().connect('focus_out_event', _save_custom_remote_db)
+
     # connect buttons
     iface.blast_local.connect('clicked', start_BLAST, gui, 'local')
     iface.blast_remote.connect('clicked', start_BLAST, gui, 'remote')
@@ -54,24 +57,36 @@ def init(gui):
         spi.append_column(col)
     spi.columns_autosize()
 
-    # look for BLAST+ executable on the $PATH and start filling the db_info table
-    start_prep(gui, shutil.which('blastn'))
+    # look for BLAST+ executable on the $PATH and in the dataset; fill db_info table
+    for path in [shutil.which('blastn'), data.blast_path]:
+        if start_prep(gui, path):
+            break
 
-    # TODO iface.remote_db  # ComboBoxText: editable. handle db error?
-    # TODO self.blast_path = None  # for non-$PATH BLAST+ executable
     # TODO Test for import-only!
     # TODO early aborts?
+
+    # keep metadata up do date and write early
+    # # convert metadata dict do pandas DataFrame
+    # df = pd.concat({gene: pd.DataFrame.from_dict(
+    #     data.metadata[gene], orient='index') for gene in data.metadata.keys()})
+    # df.index.names = ['gene', 'id']
+    # df.reset_index(level=0, inplace=True)
+    # if 'wellsplate' in df.columns:
+    #     df.rename(columns={'wellsplate': 'box'}, inplace=True)
+    # df.to_csv(gui.wd / PATHS.tsv, sep='\t', na_rep='', header=True, index=True)
 
 
 def start_prep(gui, path):
     if not path:
-        return
+        return False
     path = Path(path).resolve()
     if path.is_file():
-        path = path.parent
+        path = path.parent  # path is supposed to be a directory!
+    gui.data.blast_path = path
     gui.iface.thread = threading.Thread(target=do_prep, args=[gui, path])
     gui.iface.running = True
     gui.iface.thread.start()
+    return True
 
 
 def do_prep(gui, path):
@@ -122,24 +137,24 @@ def do_prep(gui, path):
     except subprocess.CalledProcessError as ex:
         LOG.error(ex)
 
-    # look for only pre-compiled databases
+    # look for online pre-compiled databases
     try:
         output = subprocess.check_output('update_blastdb.pl --source gcp --showall tsv',
                                          shell=True).decode('utf-8')
-        for db in output.strip().split('\n')[1:]:
+        data.remote_dbs.clear()
+        for i, db in enumerate(output.strip().split('\n')[1:]):
             db = db.split('\t')
             mo.append([None, db[0], human_bytes(
                 2 ** 30 * float(db[2].strip())), db[1], False])
+            # also fill remote_db
+            data.remote_dbs.append([db[0], i, True])
+            if db[0] == 'nt':
+                iface.remote_db.set_active(i)
     except subprocess.CalledProcessError as ex:
         LOG.error(ex)
 
-    # setup blast_db selection ComboBox.
+    # setup blast_db selection ComboBox
     iface.blast_db.set_model(mo)
-    crt = Gtk.CellRendererText()
-    iface.blast_db.pack_start(crt, True)
-    iface.blast_db.add_attribute(crt, 'text', 1)
-    iface.blast_db.add_attribute(crt, 'underline', 4)
-    # iface.blast_db.set_active(0)
 
     # sync db selection in db_info TreeView and blast_db ComboBox
     sel = iface.db_info.get_selection()
@@ -184,47 +199,49 @@ def start_BLAST(widget, gui, mode, *args):
         iface.pill2kill.set()
         if iface.blaster.is_alive():
             iface.blaster.stop()
-        shared.show_notification(gui, 'stopped BLAST')
-        return
-
-    gene = gui.iface.blast_gene.get_active_text()
-    fasta = gui.wd / gene / (gene + '.fasta')
-    if not fasta.is_file():
-        shared.show_notification(gui, '%s with sequences for BLAST does not exist' % fasta)
+        shared.show_notification(gui, 'stopped BLAST%s' %
+                                 (':\nremote might not die' if mode == 'remote' else ''))
         return
 
     iface.blast_spinner.start()
     iface.spinbox.set_visible(True)
+    gene = gui.iface.blast_gene.get_active_text()
+    if mode == 'local':
+        fasta = gui.wd / gene / (gene + '.fasta')
+        if not fasta.is_file():
+            shared.show_notification(gui, '%s with sequences for BLAST does not exist' % fasta)
+            iface.blast_spinner.stop()
+            iface.spinbox.set_visible(False)
+            return
+        pars = [True, False, False]
+        adapt_button = iface.blast_local, mode
+        # re-read all sequence data
+        seqdata = {g: {r.id: r for r in SeqIO.parse(
+            gui.wd / g / (g + '_all.fasta'), 'fasta')} for g in data.genes}
 
-    # re-read all sequence data
-    seqdata = {g: {r.id: r for r in SeqIO.parse(gui.wd / g / (g + '_all.fasta'), 'fasta')} for g in data.genes}
-    reader = Namespace(**{'seqdata': seqdata, 'metadata': None})
+    elif mode == 'remote':
+        fasta = iface.missing_fasta.get_filename()
+        if not fasta and mode == 'remote':
+            shared.show_notification(gui, 'select a FASTA with sequence data first')
+            iface.blast_spinner.stop()
+            iface.spinbox.set_visible(False)
+            return
+        pars = [False, True, False]
+        adapt_button = iface.blast_remote, mode
+        # read seqdata from selected file
+        seqdata = {gene: {r.id: r for r in SeqIO.parse(fasta, 'fasta')}}
 
-    # convert metadata dict do pandas DataFrame
-    df = pd.concat({gene: pd.DataFrame.from_dict(
-        data.metadata[gene], orient='index') for gene in data.metadata.keys()})
-    df.index.names = ['gene', 'id']
-    df.reset_index(level=0, inplace=True)
-    if 'wellsplate' in df.columns:
-        df.rename(columns={'wellsplate': 'box'}, inplace=True)
-    df.to_csv(gui.wd / PATHS.tsv, sep='\t', na_rep='', header=True, index=True)
+    else:  # XML import
+        pars = [True, True, iface.xml_import.get_filenames()]
+        adapt_button = iface.blast_import, 'Load'
+        # re-read all sequence data
+        seqdata = {g: {r.id: r for r in SeqIO.parse(
+            gui.wd / g / (g + '_all.fasta'), 'fasta')} for g in data.genes}
 
-    # define mode-dependant parameters
-    pars = [True, True, iface.xml_import.get_filenames()]
-    adapt_button = iface.blast_import, 'Load'
-    if type(mode) == str:
-        if mode == 'local':
-            pars = [True, False, False]
-            adapt_button = iface.blast_local, mode
-        elif mode == 'remote':
-            pars = [False, True, False]
-            adapt_button = iface.blast_remote, mode
     pars = dict(zip(['no_remote', 'no_local', 'BLAST_xml'], pars))
-
     (im, la), tx = adapt_button[0].get_child().get_children(), adapt_button[1]
     im.set_from_icon_name('media-playback-stop-symbolic', 4)
     la.set_text('Stop')
-
     db_row = iface.blast_db.get_model()[iface.blast_db.get_active()]
 
     # define static parameters
@@ -232,7 +249,7 @@ def start_BLAST(widget, gui, mode, *args):
             'no_BLAST': False,
             'genes': [gene],
             'db': db_row[1],
-            'remote_db': iface.remote_db.get_active_text(),
+            'remote_db': data.remote_dbs[iface.remote_db.get_active()][0],
             'timeout': 20,
             'dir': gui.wd,
             'xml': gui.wd / PATHS.xml,
@@ -240,14 +257,15 @@ def start_BLAST(widget, gui, mode, *args):
             'tsv': gui.wd / PATHS.tsv,
             'bad_seqs': gui.wd / PATHS.bad_seqs,
             'missing_fasta': gui.wd / PATHS.missing_fasta,
-            'dbpath': Path(db_row[0]).parent}
+            'dbpath': Path(db_row[0]).parent if db_row[0] else None}
     args.update(pars)
     args = Namespace(**args)
+    reader = Namespace(**{'seqdata': seqdata, 'metadata': None})
 
     iface.blaster = blast.blast_build(args, reader)
     iface.blast_wrapper = threading.Thread(
         # iface.blaster = multiprocessing.Process(
-        target=do_BLAST, args=[gui, (im, la, tx)])
+        target=do_BLAST, args=[gui, (im, la, tx, gene)])
     iface.blast_wrapper.start()
     return
     # return to main loop
@@ -265,33 +283,44 @@ def do_BLAST(gui, tup):
             pill2kill.set()
 
     blaster.stop()
-    if len(blaster.df) > 0:
-        # fill the table
-        blaster.df.reset_index('gene', inplace=True)
-        df = blaster.df.loc[blaster.df['gene'] == blaster.gene]
-        for sample, r in df.iterrows():
-            pid = '' if isnan(r.pid) else '%.2f' % r.pid if r.pid < 100 else '100'
-            gui.data.sp_model.append([sample, pid, r.BLAST_species, r.extra_species])
-        # flip the stack
-        gui.iface.blast_help_stack.set_visible_child_name('sp_info')
-
     GObject.idle_add(stop_BLAST, gui, tup)
 
 
 def stop_BLAST(gui, tup):
     """Finish the BLAST thread"""
     data, iface = gui.data, gui.iface
-    iface.blast_spinner.stop()
-    iface.spinbox.set_visible(False)
-    im, la, tx = tup
-    im.set_from_icon_name('media-playback-start-symbolic', 4)
-    la.set_text(tx)
     del iface.blast_wrapper
     iface.pill2kill.clear()
+    im, la, tx, gene = tup
+
+    # re-fill the table
+    gui.data.sp_model.clear()
+    df = pd.read_csv(gui.wd / PATHS.tsv, sep='\t', dtype={'id': str})
+    df = df.set_index('id')
+    df = df.loc[df['gene'] == gene]
+    df.extra_species.fillna('', inplace=True)
+    df.BLAST_species.fillna('', inplace=True)
+    for sample, r in df.iterrows():
+        pid = '' if isnan(r.pid) else '%.2f' % r.pid if r.pid < 100 else '100'
+        gui.data.sp_model.append([sample, pid, r.BLAST_species, r.extra_species])
+    gui.iface.blast_help_stack.set_visible_child_name('sp_info')
+
+    iface.blast_spinner.stop()
+    iface.spinbox.set_visible(False)
+    im.set_from_icon_name('media-playback-start-symbolic', 4)
+    la.set_text(tx)
     LOG.info('BLAST finished')
     shared.set_changed(gui, PAGE, False)
     if iface.notebook.get_current_page() != PAGE:
         shared.show_notification(gui, msg='BLAST finished')
+
+
+def _save_custom_remote_db(entry, *args):
+    combo = entry.get_parent().get_parent()
+    if not combo.get_active_iter():
+        tx = entry.get_text()
+        combo.get_model().append([tx, -1, True])
+        LOG.debug('entered remote_db %s' % tx)
 
 
 def human_bytes(num):

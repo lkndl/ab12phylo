@@ -14,13 +14,14 @@ import subprocess
 import sys
 import threading
 import urllib.error
+from math import ceil
 from os import path
 from time import time, sleep
 
 import pandas as pd
-from numpy import nan
 from Bio import SearchIO
 from Bio.Blast import NCBIWWW
+from numpy import nan
 
 from ab12phylo import cli, phylo
 
@@ -155,6 +156,7 @@ class blast_build(threading.Thread):
 
             # online BLAST for seqs missing from local db
             self._blast_remote(not_found)
+            return
 
     def stop(self, timeout=0):
         if self._stop_event.is_set():
@@ -255,8 +257,9 @@ class blast_build(threading.Thread):
             self.df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)
             self.log.debug('wrote updated metadata to %s' % self.TSV)
 
-            return missing_seqs
-        return []
+            return missing_seqs  # regular
+
+        return []  # on thread kill
 
     def _blast_remote(self, missing_seqs):
         """
@@ -264,22 +267,23 @@ class blast_build(threading.Thread):
         Updates non-seq data .csv again.
         :return:
         """
-        while not self._stop_event.wait(1):
-            self.log.warning('online BLAST: %d seq%s missing from %s'
-                             % (len(missing_seqs), 's' if len(missing_seqs) > 1 else '', self.db))
+        self.log.warning('online BLAST: %d seq%s missing from %s'
+                         % (len(missing_seqs), 's' if len(missing_seqs) > 1 else '', self.db))
 
-            # run remote NCBI BLAST via Biopython
-            runs = round(len(missing_seqs) / 10)
-            self.log.debug('BLASTing online in %d runs.' % runs)
-            # prep file paths
-            self.www_XML = [self.www_XML[:-4] + '_%d.xml' % run for run in range(1, runs + 1)]
+        # run remote NCBI BLAST via Biopython
+        runs = ceil(len(missing_seqs) / 10)
+        self.log.debug('BLASTing online in %d runs.' % runs)
+        # prep file paths
+        self.www_XML = [self.www_XML[:-4] + '_%d.xml' % run for run in range(1, runs + 1)]
 
-            for run in range(runs):
-                start = time()
-                # create query search string
-                records = '\n'.join([self.seqdata[self.gene][seq_id].format('fasta')
-                                     for seq_id in missing_seqs[run * 10: run * 10 + 10]])
-                try:
+        sleep_time = 11 if runs > 1 else 0
+        for run in range(runs):
+            start = time()
+            # create query search string
+            records = '\n'.join([self.seqdata[self.gene][seq_id].format('fasta')
+                                 for seq_id in missing_seqs[run * 10: run * 10 + 10]])
+            try:
+                while not self._stop_event.wait(1):
                     # raise urllib.error.URLError('testing')
                     handle = NCBIWWW.qblast(program='blastn', database=self.remote_db,
                                             sequence=records, format_type='XML', hitlist_size=10)
@@ -287,15 +291,17 @@ class blast_build(threading.Thread):
                     with open(self.www_XML[run], 'w') as fh:
                         fh.write(handle.read())
                     self.log.info('remote BLAST %d:%d complete after %.2f sec' % (run + 1, runs, time() - start))
-                    sleep(11)
                     self._parse_remote_result([self.www_XML[run]])
-                except urllib.error.URLError as offline:
-                    self.log.warning('online BLAST aborted, no internet connection')
-                    return
-                except Exception as e:
-                    self.log.exception(e)
-                    sleep(11)
+                    sleep(sleep_time)
+            except urllib.error.URLError as offline:
+                self.log.warning('online BLAST aborted, no internet connection')
+                return
+            except Exception as e:
+                self.log.exception(e)
+                sleep(sleep_time)
+
         self.log.info('finished remote BLAST')
+        return
 
     def _parse(self, xml_entry):
         """

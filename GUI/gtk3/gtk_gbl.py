@@ -149,6 +149,7 @@ def re_preset(gbl_preset, gui):
         good_block = 10
         bad_block = 8
     else:
+        LOG.error('illegal mode: ' + str(mode))
         assert False
 
     # configure(value, lower, upper, step-increment=1, page-increment=0, page-size=0)

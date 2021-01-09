@@ -50,6 +50,9 @@ class project_dataset:
                                             str,  # pid
                                             str,  # species
                                             str)  # extra_species
+        self.remote_dbs = picklable_liststore(str,  # name
+                                              int,  # id
+                                              bool)  # spare
         self.blast_path = None  # for non-$PATH BLAST+ executable
 
     def new_project(self):
