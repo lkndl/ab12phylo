@@ -13,6 +13,7 @@ from Bio import SeqIO
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
+from matplotlib.colorbar import ColorbarBase
 
 import static
 
@@ -34,11 +35,12 @@ PAGE = 2
 def init(gui):
     data, iface = gui.data, gui.iface
 
+    iface.accept_rev.set_active(data.accept_rev)
     iface.rev_handler = iface.accept_rev.connect('toggled', parse, None, gui)
     iface.accept_nophred.set_active(True)
     iface.accept_nophred.connect('toggled', parse, None, gui)
 
-    iface.min_phred.set_adjustment(Gtk.Adjustment(value=30, upper=60, lower=0,
+    iface.min_phred.set_adjustment(Gtk.Adjustment(value=30, upper=61, lower=0,
                                                   step_increment=1, page_increment=1))
     iface.min_phred.set_numeric(True)
     iface.min_phred.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
@@ -49,21 +51,21 @@ def init(gui):
     for w_name in ['min_phred', 'trim_out', 'trim_of', 'bad_stretch']:
         wi = iface.__getattribute__(w_name)
         iface.qal.__setattr__(w_name, int(wi.get_text()))
-        wi.connect('changed', edit, data, iface)
+        wi.connect('changed', _edit_numerical_entry)
         wi.connect('focus_out_event', parse, gui)
-        # wi.connect('activate', parse, None, gui)
+    iface.min_phred.disconnect_by_func(parse)  # MARK leave this line alone
 
     for w_name in ['accept_rev', 'accept_nophred']:
         iface.qal.__setattr__(w_name, iface.__getattribute__(w_name).get_active())
 
     for wi in [iface.trim_out, iface.trim_of, iface.bad_stretch]:
-        wi.connect('key-press-event', keypress, data, iface)
+        wi.connect('key-press-event', _edit_numerical_entry_up_down)
 
     # init row annotation
     iface.view_qal.set_model(data.qal_model)
     iface.view_qal.set_headers_visible(False)
     iface.view_qal.append_column(Gtk.TreeViewColumn(
-        title='id', cell_renderer=Gtk.CellRendererText(), text=0, underline=1, strikethrough=2))
+        title='id', cell_renderer=Gtk.CellRendererText(), text=0, underline=2, strikethrough=3))
     # crt = Gtk.CellRendererToggle(radio=False)
     # crt.props.indicator_size = 13
     # iface.view_qal.append_column(Gtk.TreeViewColumn(
@@ -88,6 +90,10 @@ def refresh(gui):
     if not (gui.wd / PATHS.preview).exists() or 0 in data.qal_shape:
         start_trim(gui)
         return
+
+    with iface.accept_rev.handler_block(iface.rev_handler):
+        iface.accept_rev.set_active(iface.reverse_rx_chk.get_active() and iface.accept_rev.get_active())
+        iface.accept_rev.set_sensitive(iface.reverse_rx_chk.get_active())
 
     # place the png preview
     shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
@@ -125,7 +131,7 @@ def parse(widget, event, gui):
 
     # cause re-drawing if something changed
     if pre == now:
-        LOG.debug('no change, skip re-draw')
+        LOG.debug('no change at parsing')
         return
     iface.qal.__setattr__(widget.get_name(), now)
     if iface.qal.trim_out > iface.qal.trim_of:
@@ -134,7 +140,6 @@ def parse(widget, event, gui):
         widget.set_text('0')
     else:
         shared.set_changed(gui, PAGE)
-        # start_trim(gui)
 
 
 def start_trim(gui):
@@ -154,9 +159,8 @@ def start_trim(gui):
         gtk_rgx.start_read(gui, run_after=[start_trim])
         return
 
-    with iface.accept_rev.handler_block(iface.rev_handler):
-        iface.accept_rev.set_active(iface.reverse_rx_chk.get_active())
-        iface.accept_rev.set_sensitive(iface.reverse_rx_chk.get_active())
+    data.accept_rev = iface.accept_rev.get_active()
+    parse(iface.min_phred, None, gui)  # annoying SpinButton
 
     LOG.debug('start-up redraw')
     data.qal_model.clear()
@@ -182,17 +186,19 @@ def do_trim(gui):
     rows = list()
     data.gene_for_preview = p.gene_roll
     genes_for_preview = data.genes if p.gene_roll == 'all' else {p.gene_roll}
-    ignore_ids = iface.qal.ignore_set if 'ignore_set' in iface.qal else set()
+    ignore_ids = iface.qal.ignore_ids if 'ignore_ids' in iface.qal \
+        else {g: dict() for g in data.genes}  # regulated at delete_and_ignore_rows
     iface.text = 'creating matrix'
     LOG.debug(iface.text)
     iface.i = 0
-    iface.k = sum([len(data.seqdata[gene]) for gene in genes_for_preview]) + 3
+    iface.k = sum([len(data.seqdata[gene]) for gene in genes_for_preview]) + 4  # number of all records + extra
     shared_ids = set.intersection(*data.gene_ids.values())
 
     try:
         for record_id, gene in data.record_order:
             # skip records from other genes for the trimming preview
-            if gene not in genes_for_preview or record_id in ignore_ids:
+            if gene not in genes_for_preview or \
+                    gene in ignore_ids and record_id in ignore_ids[gene]:
                 continue
 
             iface.i += 1
@@ -208,7 +214,7 @@ def do_trim(gui):
                 row = static.seqtoint(record)
             except AttributeError:
                 # accept references anyway, but maybe skip no-phred ones
-                is_ref = data.metadata[gene][record_id]['is_ref']
+                is_ref = 'accession' in data.metadata[gene][record_id]
                 if not is_ref and not p.accept_nophred:
                     continue
                 has_qal, is_bad = is_ref, False
@@ -218,10 +224,10 @@ def do_trim(gui):
                 row = static.seqtogray(record)
             rows.append(row)
             underline = not has_qal if record.id in shared_ids else 4
-            data.qal_model.append([record.id, underline, is_bad])
+            data.qal_model.append([record.id, gene, underline, is_bad])
 
     except KeyError as ke:
-        exit(ke)
+        LOG.error(ke)
 
     if not rows:
         LOG.warning('no sequence data remains')
@@ -229,7 +235,6 @@ def do_trim(gui):
         GObject.idle_add(stop_trim, gui)
         return True
 
-    # else: # todo sigsev?
     iface.text = 'tabularize'
     LOG.debug(iface.text)
     max_len = max(map(len, rows))
@@ -262,6 +267,7 @@ def do_trim(gui):
     Path.mkdir(gui.wd / PATHS.preview.parent, exist_ok=True)
     f.savefig(gui.wd / PATHS.preview, transparent=True,
               dpi=scale * static.DPI, bbox_inches='tight', pad_inches=0.00001)
+    plt.close(f)
 
     data.qal_shape[0] = array.shape[1]
     data.qal_shape[1] = shared.get_height_resize(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
@@ -275,8 +281,6 @@ def do_trim(gui):
         iface.text = 'place vector'
         LOG.debug(iface.text)
         canvas = FigureCanvas(f)  # a Gtk.DrawingArea
-        # canvas.mpl_connect('pick_event', onpick)
-        # canvas.mpl_connect('button_press_event', onclick)
         canvas.set_size_request(data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
         try:
             iface.qal_eventbox.get_child().destroy()
@@ -289,14 +293,16 @@ def do_trim(gui):
     with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
         iface.text = 'colorbar'
         LOG.debug(iface.text)
-        fig = plt.figure(figsize=(4, 2))
+        fig = plt.figure(figsize=(4, .5))
         cax = fig.add_subplot(111)
-        cbar = plt.colorbar(mat, ax=cax, ticks=range(len(static.colors)), orientation='horizontal')
-        cbar.ax.set_xticklabels(static.NUCLEOTIDES)
-        cax.remove()
+        i = static.NUCLEOTIDES.index('-')
+        cbar = ColorbarBase(ax=cax, cmap=ListedColormap(static.colors[:i]),
+                            ticks=[(j + .5) / i for j in range(i)], orientation='horizontal')
+        cbar.ax.set_xticklabels(static.NUCLEOTIDES[:i])
         fig.savefig(gui.wd / PATHS.cbar, transparent=True,
                     bbox_inches='tight', pad_inches=0, dpi=600)
-        del fig
+        plt.close(fig)
+        del fig, cbar
     shared.load_colorbar(iface.palplot, gui.wd)
 
     iface.text = 'idle'
@@ -320,7 +326,7 @@ def delete_event(widget, event):
     return False
 
 
-def keypress(widget, event, data, iface):
+def _edit_numerical_entry_up_down(widget, event):
     key = Gdk.keyval_name(event.keyval)
     if key == 'Up':
         widget.set_text(str(1 + int(widget.get_text())))
@@ -330,10 +336,7 @@ def keypress(widget, event, data, iface):
         return True
 
 
-def edit(widget, data, iface):
-    """
-    Edit a parameter entry and save the result
-    """
+def _edit_numerical_entry(widget):
     LOG.debug('editing')
     # filter for numbers only
     value = ''.join([c for c in widget.get_text() if c.isdigit()])
@@ -342,11 +345,13 @@ def edit(widget, data, iface):
 
 def trim_all(gui, run_after=None):
     """
-    Trim all SeqRecords in project_dataset.seqdata to sequence strings and write collated .fasta files.
-    Deleting SeqRecords will make the project file tiny again. If necessary, re-read trace files.
-    Also place the png preview in the trim preview window.
+    Trim all SeqRecords in project_dataset.seqdata to sequence strings
+    and write two collated .fasta files per gene, one only containing
+    the records shared across all genes. If necessary, trace files are
+    re-read before and will be deleted from memory afterwards for a
+    smaller project file. Plot and place png previews of trimming result.
     :param gui:
-    :param run_after: the function to run after finishing. usually flip to next page.
+    :param run_after: [functions(gui)] when finished, usually flip page.
     :return:
     """
     data, iface = gui.data, gui.iface
@@ -357,56 +362,62 @@ def trim_all(gui, run_after=None):
         return
 
     p = iface.qal
-    LOG.debug('writing collated .fasta files')
-    shared_ids = set.intersection(*data.gene_ids.values())
+    ignore_ids = iface.qal.ignore_ids if 'ignore_ids' in iface.qal \
+        else {g: dict() for g in data.genes}  # regulated at delete_and_ignore_rows
+    LOG.debug('trim and filter all sequences')
     for gene, genedata in data.seqdata.items():
         Path.mkdir(gui.wd / gene, exist_ok=True)
+        genemeta = data.metadata[gene]
 
         # do actual trimming
         for _id in data.gene_ids[gene]:
             record = genedata.pop(_id)
+            record_meta = genemeta[_id]
+
+            if _id in ignore_ids[gene]:
+                record_meta['quality'] = 'manually dropped at trim_data'
+                continue
+            if not p.accept_rev and record_meta['is_rev']:
+                record_meta['quality'] = 'disallowed reverse reads'
+                continue
             try:
                 record = trim_ends(record, p.min_phred, (p.trim_out, p.trim_of))
                 record = mark_bad_stretches(record, p.min_phred, p.bad_stretch)
             except ValueError:
+                record_meta['quality'] = 'low quality'
                 continue
             except AttributeError:
-                pass
+                if not p.accept_nophred and 'accession' not in record_meta:
+                    continue
+                record_meta['quality'] = 'no phreds'
             # put back only the good records
             genedata[_id] = record
 
+        # update dict of legal ids
+        data.gene_ids[gene] = set(genedata.keys())
+
+    # re-filter for shared entries
+    shared_ids = set.intersection(*data.gene_ids.values())
+    # re-loop seqdata
+    LOG.debug('writing collated .fasta files')
+    for gene, genedata in data.seqdata.items():
         # write to file
         with open(str(gui.wd / gene / (gene + '_all.fasta')), 'w') as fasta:
             SeqIO.write(genedata.values(), fasta, 'fasta')
-        # write only shared records to fasta for MSA
+        # write only records shared across all genes to fasta for MSA
         with open(str(gui.wd / gene / (gene + '.fasta')), 'w') as fasta:
             SeqIO.write([record for _id, record in genedata.items()
                          if _id in shared_ids], fasta, 'fasta')
 
-    LOG.debug('deleting seqdata')
-    # delete now bloaty data
+        genemeta = data.metadata[gene]
+        for _id in {_id for _id in genedata.keys() if _id not in shared_ids}:
+            genemeta[_id]['quality'] = 'not in all genes'
+
+    LOG.debug('writing metadata, deleting seqdata')
+    shared.write_metadata(gui)
     data.seqdata.clear()
 
     shared.set_changed(gui, PAGE, False)
     if run_after:
         [run(gui) for run in run_after]
     return
-
-
-def onpick(event):
-    thisline = event.artist
-    xdata = thisline.get_xdata()
-    ydata = thisline.get_ydata()
-    ind = event.ind
-    points = tuple(zip(xdata[ind], ydata[ind]))
-    print('onpick points:', points)
-    print('This would be useful after the next big restructuring')
-    return True
-
-
-def onclick(event):
-    print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-          ('double' if event.dblclick else 'single', event.button,
-           event.x, event.y, event.xdata, event.ydata))
-    print('This would be useful after the next big restructuring')
-    return True

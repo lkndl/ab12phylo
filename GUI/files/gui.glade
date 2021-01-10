@@ -4839,6 +4839,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="tooltip-markup" translatable="yes">Show tree in &lt;b&gt;rectangular&lt;/b&gt;, &lt;b&gt;circular&lt;/b&gt; or &lt;b&gt;unrooted&lt;/b&gt; (TBD) layout.</property>
                             <child>
                               <object class="GtkRadioButton" id="rect">
+                                <property name="name">rect</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
@@ -4862,6 +4863,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             </child>
                             <child>
                               <object class="GtkRadioButton" id="circ">
+                                <property name="name">circ</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
@@ -4886,6 +4888,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             </child>
                             <child>
                               <object class="GtkRadioButton" id="unro">
+                                <property name="name">unro</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
                                 <property name="no-show-all">True</property>
@@ -4924,6 +4927,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="can-focus">False</property>
                             <child>
                               <object class="GtkToggleButton" id="supp">
+                                <property name="name">supp</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
@@ -4945,6 +4949,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             </child>
                             <child>
                               <object class="GtkToggleButton" id="spec">
+                                <property name="name">spec</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
@@ -4981,6 +4986,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="tooltip-markup" translatable="yes">Export Tree as &lt;b&gt;PDF&lt;/b&gt;, &lt;b&gt;SVG&lt;/b&gt; or &lt;b&gt;PNG&lt;/b&gt;</property>
                             <child>
                               <object class="GtkRadioButton" id="topdf">
+                                <property name="name">topdf</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
@@ -5004,6 +5010,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             </child>
                             <child>
                               <object class="GtkRadioButton" id="tosvg">
+                                <property name="name">tosvg</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
@@ -5027,6 +5034,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             </child>
                             <child>
                               <object class="GtkRadioButton" id="topng">
+                                <property name="name">topng</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
@@ -5181,6 +5189,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="hadjustment">tree_scroll_adj</property>
                                             <child>
                                               <object class="GtkEventBox" id="tree_eventbox">
+                                                <property name="name">tree_eventbox</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="hexpand">True</property>
@@ -5194,6 +5203,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                                     <property name="wide-handle">True</property>
                                                     <child>
                                                       <object class="GtkScrolledWindow" id="tree_left">
+                                                        <property name="name">tree_left</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="hexpand">True</property>
@@ -5202,7 +5212,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                                         <property name="shadow-type">in</property>
                                                         <child>
                                                           <object class="GtkViewport" id="tree_left_vp">
-                                                            <property name="name">gbl_left_vp</property>
+                                                            <property name="name">tree_left_vp</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <child>
@@ -5223,6 +5233,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                                     </child>
                                                     <child>
                                                       <object class="GtkScrolledWindow" id="tree_right">
+                                                        <property name="name">tree_right</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="hexpand">True</property>
@@ -5231,7 +5242,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                                         <property name="shadow-type">in</property>
                                                         <child>
                                                           <object class="GtkViewport" id="tree_right_vp">
-                                                            <property name="name">gbl_right_vp</property>
+                                                            <property name="name">tree_right_vp</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <child>

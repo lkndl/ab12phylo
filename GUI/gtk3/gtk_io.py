@@ -75,10 +75,10 @@ def init(gui):
             pass  # wellsplate whitelist not planned
 
         iface.__getattribute__('remove_%s' % file_type) \
-            .connect('clicked', shared.delete_rows, gui, PAGE, sel)
+            .connect('clicked', shared.delete_files_from_input_selection, gui, PAGE, sel)
         tv.connect('key-press-event', shared.tv_keypress, gui, PAGE, sel)
         iface.__getattribute__('delete_all_%s' % file_type) \
-            .connect('clicked', shared.delete_rows, gui, PAGE, sel, mo)
+            .connect('clicked', shared.delete_files_from_input_selection, gui, PAGE, sel, mo)
 
     iface.rasterize.set_visible(False)
     # horizontal scaling
@@ -245,19 +245,3 @@ def refresh(gui, page=PAGE):
     else:
         iface.trace_number.set_label('0 files')
         iface.trace_number.set_visible(False)
-
-    # toggle _reading_plates
-    has_plates_now = len(data.plate_store) > 0
-    if iface.plates != has_plates_now:
-        iface.plates = has_plates_now
-
-        shared.set_changed(gui, page, not iface.plates or shared.get_changed(gui, page))
-
-        # close and inactivate the expander
-        iface.wp_expander.set_expanded(iface.plates)
-        iface.wp_expander.set_sensitive(iface.plates)
-
-        # inactivate the line for the matching single regex
-        if not iface.triple_rt.get_active():
-            [iface.__getattribute__(name).set_sensitive(False) for name in
-             ['plate_rx', 'plate_regex_label']]

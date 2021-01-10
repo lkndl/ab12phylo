@@ -5,6 +5,7 @@ import logging
 from argparse import Namespace
 
 import gi
+import pandas as pd
 
 from ab12phylo import msa
 from static import PATHS, USER, SEP, BUF_SIZE
@@ -46,15 +47,17 @@ def set_changed(gui, page, changed=True):
     :return:
     """
     data, iface = gui.data, gui.iface
+    nb = iface.notebook
     if changed:
         # disable later pages
-        [page.set_sensitive(False) for page in iface.notebook.get_children()[page + 1: iface.notebook.get_n_pages()]]
+        [page.set_sensitive(False) for page in nb.get_children()[page + 1: nb.get_n_pages()]]
         # set later pages to 'changed'
-        data.change_indicator[page:] = [True] * (iface.notebook.get_n_pages() - page)
+        data.change_indicator[page:] = [True] * (nb.get_n_pages() - page)
+        data.change_indicator[:page] = [False] * page  # TODO check/see if this is bad
         # gui.iface.next.get_style_context().remove_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
     else:
         # enable the next page
-        iface.notebook.get_children()[page + 1].set_sensitive(True)
+        nb.get_children()[page + 1].set_sensitive(True)
         # set earlier pages to 'unchanged'
         data.change_indicator[:page + 1] = [False] * (page + 1)
         # gui.iface.next.get_style_context().remove_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
@@ -91,18 +94,9 @@ def show_notification(gui, msg, items=None):
 def tv_keypress(widget, event, gui, page, selection):
     if Gdk.keyval_name(event.keyval) == 'Delete':
         LOG.debug('delete selected row')
-        delete_rows(widget, gui, page, selection)
-
-
-def delete_rows(widget, gui, page, selection, delete_all=False):
-    data, iface = gui.data, gui.iface
-    if delete_all:
-        delete_all.clear()
+        delete_files_from_input_selection(widget, gui, page, selection)
     else:
-        model, iterator = selection.get_selected_rows()
-        [model.remove(model.get_iter(row)) for row in reversed(sorted(iterator))]
-    set_changed(gui, page, True)
-    REFRESH[page](gui)
+        LOG.debug('registered keypress, did nothig')
 
 
 def get_hashes(gui, msa_path, page):
@@ -145,7 +139,8 @@ def proceed(widget, gui=None, page=None):
 
     if get_changed(gui, page):
         if page == 0:
-            gtk_rgx.reset(gui, do_parse=True)
+            gtk_io.refresh(gui)  # TODO still might reconsider
+            gtk_rgx.reset_columns(gui, do_parse=True)
         elif page == 1:
             if 1 < sum(iface.rx_fired) < 5:
                 show_notification(gui, 'Make sure all columns have been parsed.')
@@ -168,9 +163,8 @@ def proceed(widget, gui=None, page=None):
 
     # then proceed
     iface.notebook.next_page()
-    # # hide old notifications
-    # gui.iface.revealer.set_reveal_child(False)
-    LOG.debug('proceeded to page %d' % iface.notebook.get_current_page())
+    data.page = iface.notebook.get_current_page()
+    LOG.debug('proceeded to page %d' % data.page)
 
 
 def step_back(widget, gui):
@@ -261,8 +255,11 @@ def load_image(zoom_ns, page, gtk_bin, img_path, width, height):
 
 
 def load_colorbar(gtk_image, wd):
-    gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
-        str(wd / PATHS.cbar), width=250, height=100, preserve_aspect_ratio=True))
+    try:
+        gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            str(wd / PATHS.cbar), width=250, height=100, preserve_aspect_ratio=True))
+    except FileNotFoundError:
+        pass  # TODO check if enough
 
 
 def get_height_resize(widget, event, spacer, scroll_wins, lower=0):
@@ -449,6 +446,7 @@ def select_seqs(event_box, loc, page, zoom_ns, tv, ns):
     :param args:
     :return:
     """
+    LOG.debug('select_seqs')
     if tv.props.visible:
         tv.grab_focus()
     sel = tv.get_selection()
@@ -480,6 +478,7 @@ def select_seqs(event_box, loc, page, zoom_ns, tv, ns):
 
 
 def save_row_edits(cell, path, new_text, tv, col):
+    LOG.debug('save_row_edits')
     mo = tv.get_model()
     old_text = mo[path][col]
     if old_text == new_text:
@@ -487,19 +486,35 @@ def save_row_edits(cell, path, new_text, tv, col):
     mo[path][col] = new_text
 
 
+def delete_files_from_input_selection(widget, gui, page, selection, delete_all=False):
+    if delete_all:
+        delete_all.clear()
+    else:
+        model, iterator = selection.get_selected_rows()
+        [model.remove(model.get_iter(row)) for row in reversed(sorted(iterator))]
+    set_changed(gui, page, True)
+    REFRESH[page](gui)
+
+
 def delete_and_ignore_rows(widget, event, gui, page, sel, ns):
     """
     Keep track of the rows that will not be written to the next fasta and delete them from the treeview.
     """
     if Gdk.keyval_name(event.keyval) == 'Delete':
+        LOG.debug('delete_and_ignore_rows')
         model, tree_path_iterator = sel.get_selected_rows()
-        if 'ignore_set' not in ns:
-            ns.ignore_set = set()
+        if 'ignore_ids' not in ns:
+            ns.ignore_ids = set() if page == 4 else dict()
         for row in reversed(sorted(tree_path_iterator)):
-            ns.ignore_set.add(model[row[:]][0])
             if page == 2:
+                _id, gene = model[row][:2]
+                if gene in ns.ignore_ids:
+                    ns.ignore_ids[gene].add(_id)
+                else:
+                    ns.ignore_ids[gene] = {_id}
                 model.remove(model.get_iter(row))
             elif page == 4:
+                ns.ignore_ids.add(model[row][0])
                 model[row][0] = '---'
 
         set_changed(gui, page, True)
@@ -511,6 +526,22 @@ def delete_and_ignore_rows(widget, event, gui, page, sel, ns):
             gtk_gbl.drop_seqs(gui)
 
 
+def write_metadata(gui):
+    """
+    Write the metadata dictionary to the metadata.tsv
+    """
+    md = gui.data.metadata
+    # convert metadata dict do pandas DataFrame
+    df = pd.concat({gene: pd.DataFrame.from_dict(
+        md[gene], orient='index') for gene in md.keys()})
+    df.index.names = ['gene', 'id']
+    df.reset_index(level=0, inplace=True)
+    if 'wellsplate' in df.columns:  # TODO decide, maybe delete?
+        df.rename(columns={'wellsplate': 'box'}, inplace=True)
+    # write to file
+    df.to_csv(gui.wd / PATHS.tsv, sep='\t', na_rep='', header=True, index=True)
+
+
 def init_gene_roll(gui):
     """
     Initialize gene switcher combo box with the previously selected gene from the dataset.
@@ -519,6 +550,8 @@ def init_gene_roll(gui):
     with iface.gene_roll.handler_block(iface.gene_handler):
         iface.gene_roll.remove_all()
         genes = list(data.genes)
+        if not genes:
+            return
         [iface.gene_roll.append_text(gene) for gene in genes]
         if len(genes) > 1:
             iface.gene_roll.insert_text(0, 'all')

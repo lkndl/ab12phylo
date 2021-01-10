@@ -6,6 +6,7 @@ import subprocess
 import threading
 from argparse import Namespace
 from pathlib import Path
+from time import sleep
 
 import gi
 import pandas as pd
@@ -108,8 +109,9 @@ def do_prep(gui, path):
     if missing:
         shared.show_notification(gui, msg='Necessary scripts could not be '
                                           'found on the $PATH:', items=missing)
+        sleep(.1)
         GObject.idle_add(stop_prep, gui)
-        return
+        return True
 
     iface.blast_exe.set_filename(str(path))
     mo = Gtk.ListStore(str, str, str, str, bool)
@@ -150,7 +152,7 @@ def do_prep(gui, path):
             mo.append([None, db[0], human_bytes(
                 2 ** 30 * float(db[2].strip())), db[1], False])
             # also fill remote_db
-            data.remote_dbs.append([db[0], i, True])
+            data.remote_dbs.append([db[0], i])
             if db[0] == 'nt':
                 iface.remote_db.set_active(i)
     except subprocess.CalledProcessError as ex:
@@ -166,7 +168,9 @@ def do_prep(gui, path):
     sel.select_path(0)
     iface.blast_db.connect('changed', lambda *args: sel.select_path(iface.blast_db.get_active()))
 
+    sleep(.1)
     GObject.idle_add(stop_prep, gui)
+    return True
 
 
 def stop_prep(gui):

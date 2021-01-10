@@ -29,24 +29,25 @@ ERRORS = ['groups?', 'no match', 'use groups!']
 
 def init(gui):
     data, iface = gui.data, gui.iface
-    iface.plates = True
 
-    iface.single_rt.connect('toggled', rx_toggle, gui)
-    iface.triple_rt.connect('toggled', rx_toggle, gui)
+    iface.single_rt.connect('toggled', _switch_single_or_triple_regex, gui)
+    iface.triple_rt.connect('toggled', _switch_single_or_triple_regex, gui)
     iface.triple_rt.join_group(iface.single_rt)
     iface.single_rt.set_active(True)
 
-    iface.regex_apply.connect('clicked', parse_triple, gui)
-    iface.wp_apply.connect('clicked', parse_single, gui, iface.wp_rx, 2)
-    iface.single_rx.connect('activate', parse_triple, gui)
+    iface.regex_apply.connect('clicked', parse_all, gui)
+    iface.wp_apply.connect('clicked', parse_single_group, gui, iface.wp_rx, 2)
+    iface.single_rx.connect('activate', parse_all, gui)
 
     for thing, col in zip(['well', 'gene', 'plate', 'wp'], [2, 4, 3, 2]):
         entry = iface.__getattribute__('%s_rx' % thing)
-        entry.connect('activate', parse_single, gui, entry, col)
-        entry.connect('focus_out_event', parse_single, gui, entry, col)
+        entry.connect('activate', parse_single_group, gui, entry, col)
+        entry.connect('focus_out_event', parse_single_group, gui, entry, col)
 
-    iface.reverse_rx_chk.connect('toggled', rev_adjust, gui)
-    iface.reverse_rx.connect('activate', parse_single, gui, iface.reverse_rx, 6)
+    iface.view_trace_regex.set_model(data.trace_store)
+    iface.view_csv_regex.set_model(data.plate_store)
+    iface.reverse_rx_chk.connect('toggled', _switch_search_reverse_reads, gui)
+    iface.reverse_rx.connect('activate', parse_single_group, gui, iface.reverse_rx, 6)
     iface.regex_try_online.connect('clicked', try_online, gui)
 
     # allow deletion
@@ -54,19 +55,19 @@ def init(gui):
                           [iface.view_trace_regex, iface.view_csv_regex]):
         sel = tv.get_selection()
         sel.set_mode(Gtk.SelectionMode.MULTIPLE)
-        widget.connect('clicked', shared.delete_rows, gui, PAGE, sel)
+        widget.connect('clicked', shared.delete_files_from_input_selection, gui, PAGE, sel)
         tv.connect('key-press-event', shared.tv_keypress, gui, PAGE, sel)
 
-    reset(gui)
+    reset_columns(gui)
 
 
-def reset(gui, do_parse=False):
+def reset_columns(gui, do_parse=False):
     data, iface = gui.data, gui.iface
-    iface.view_trace_regex.set_model(data.trace_store)
-    iface.view_csv_regex.set_model(data.plate_store)
+    check_for_plates(gui)
+
     # remove old columns:
-    for tree_view in [iface.view_trace_regex, iface.view_csv_regex]:
-        [tree_view.remove_column(col) for col in tree_view.get_columns()]
+    for tv in [iface.view_trace_regex, iface.view_csv_regex]:
+        [tv.remove_column(col) for col in tv.get_columns()]
 
     # iface.rx_fired stores if these columns have been parsed before:
     # [bool] with trace and then plate columns. sum(iface.rx_fired) = 5
@@ -74,41 +75,41 @@ def reset(gui, do_parse=False):
 
     # columns depend on if we are reading plates
     if iface.plates:
-        for title, column in zip(['well', 'plate', 'gene', 'file'], [2, 3, 4, 1]):
+        for title, j in zip(['well', 'plate', 'gene', 'file'], [2, 3, 4, 1]):
             crt = Gtk.CellRendererText(editable=True)
-            crt.connect('edited', cell_edit, gui, iface.view_trace_regex, column)
-            iface.view_trace_regex.append_column(
-                Gtk.TreeViewColumn(title=title, cell_renderer=crt, text=column, foreground=7))
+            crt.connect('edited', cell_edit, gui, iface.view_trace_regex, j)
+            col = Gtk.TreeViewColumn(title=title, cell_renderer=crt, text=j, foreground=7)
+            col.set_sort_column_id(j)
+            iface.view_trace_regex.append_column(col)
         # wellsplates:
-        for title, column in zip(['plate ID', 'file'], [2, 1]):
+        for title, j in zip(['plate ID', 'file'], [2, 1]):
             crm = Gtk.CellRendererText(editable=True)
-            crm.connect('edited', cell_edit, gui, iface.view_csv_regex, column)
-            iface.view_csv_regex.append_column(
-                Gtk.TreeViewColumn(title=title, cell_renderer=crm, text=column, foreground=3))
+            crm.connect('edited', cell_edit, gui, iface.view_csv_regex, j)
+            col = Gtk.TreeViewColumn(title=title, cell_renderer=crm, text=j, foreground=3)
+            col.set_sort_column_id(j)
+            iface.view_csv_regex.append_column(col)
     else:
-        for title, column in zip(['sample', 'gene', 'file'], [2, 4, 1]):
+        for title, j in zip(['sample', 'gene', 'file'], [2, 4, 1]):
             crt = Gtk.CellRendererText(editable=True)
-            crt.connect('edited', cell_edit, gui, iface.view_trace_regex, column)
-            iface.view_trace_regex.append_column(
-                Gtk.TreeViewColumn(title=title, cell_renderer=crt, text=column, foreground=7))
+            crt.connect('edited', cell_edit, gui, iface.view_trace_regex, j)
+            col = Gtk.TreeViewColumn(title=title, cell_renderer=crt, text=j, foreground=7)
+            col.set_sort_column_id(j)
+            iface.view_trace_regex.append_column(col)
         # set regex for plate_id column as already fired
         iface.rx_fired[-2] = True
 
     iface.reverse_rx_chk.set_active(False)
     iface.rx_fired[6] = True
 
-    if do_parse:
-        # fire the initial parse
-        parse_single(iface.wp_rx, gui, iface.wp_rx, 2)
-        parse_triple(None, gui)
+    if do_parse:  # fire the initial parse
+        parse_all(None, gui)
 
 
-def parse_single(widget, gui, entry, col, fifth=None):
+def parse_single_group(widget, gui, entry, col, fifth=None):
     if fifth:  # caught a focus_out_event, therefore shifted arguments
         gui, entry, col = entry, col, fifth
-
     data, iface = gui.data, gui.iface
-    LOG.debug('parsing from %s' % entry.get_name())
+    LOG.debug('single')
     try:
         regex = re.compile(entry.get_text())
     except re.error:
@@ -162,13 +163,15 @@ def parse_single(widget, gui, entry, col, fifth=None):
                 if not changed:
                     changed = row[col] is not True
                 model[i][col] = True
-                model[i][-1] = iface.FG
+                if model[i][-1] != iface.RED:
+                    model[i][-1] = iface.FG
             except AttributeError as ae:
                 # forward read
                 if not changed:
                     changed = row[col] is not False
                 model[i][col] = False
-                model[i][-1] = iface.FG
+                if model[i][-1] != iface.RED:
+                    model[i][-1] = iface.FG
             except (IndexError, ValueError):
                 errors, changed = True, True
                 model[i][-1] = iface.RED
@@ -176,13 +179,12 @@ def parse_single(widget, gui, entry, col, fifth=None):
                 assert False
     shared.set_changed(gui, PAGE, changed)
     shared.set_errors(gui, PAGE, errors)
-    refresh(gui)
 
 
-def parse_triple(widget, gui):
+def parse_all(widget, gui):
     data, iface = gui.data, gui.iface
     if iface.single_rt.get_active():
-        LOG.debug('parsing with single regex')
+        LOG.debug('triple')
         try:
             regex = re.compile(iface.single_rx.get_text())
         except re.error:
@@ -211,19 +213,19 @@ def parse_triple(widget, gui):
                 data.trace_store[idx][2:5] = [ERRORS[1], '', '']
             except IndexError as ie:
                 data.trace_store[idx][2:5] = [ERRORS[2], '', '']
-            data.trace_store[idx][-1] = iface.RED
+            data.trace_store[idx][7] = iface.RED
             errors, changed = True, True
         shared.set_changed(gui, PAGE, changed)
         shared.set_errors(gui, PAGE, errors)
         iface.rx_fired[2:5] = [True] * 3
         refresh(gui)
     else:
-        parse_single(None, gui, iface.well_rx, 2)
-        parse_single(None, gui, iface.gene_rx, 4)
+        parse_single_group(None, gui, iface.well_rx, 2)
+        parse_single_group(None, gui, iface.gene_rx, 4)
         if iface.plates:
-            parse_single(None, gui, iface.plate_rx, 3)
+            parse_single_group(None, gui, iface.plate_rx, 3)
     if iface.reverse_rx_chk.get_active():
-        parse_single(None, gui, iface.reverse_rx, 6)
+        parse_single_group(None, gui, iface.reverse_rx, 6)
     LOG.debug('parse_triple done')
 
 
@@ -235,12 +237,14 @@ def cell_edit(cell, path, new_text, gui, tv, col):
     if tv == iface.view_trace_regex:
         mo = tv.get_model()
         mo[path][-1] = iface.BLUE if mo[path][5] else iface.FG
+    refresh(gui)
 
 
-def rx_toggle(widget, gui):
+def _switch_single_or_triple_regex(widget, gui):
     data, iface = gui.data, gui.iface
     # (In)activates the Entry fields and causes a parse event
     if widget.get_active():
+        shared.set_errors(gui, PAGE, False)  # important, do not pre-suppose it will fail
         three = ['plate_rx', 'gene_rx', 'well_rx', 'plate_regex_label', 'gene_regex_label', 'well_regex_label']
         if widget == iface.single_rt:
             iface.single_rx.set_sensitive(True)
@@ -254,25 +258,30 @@ def rx_toggle(widget, gui):
             iface.plate_regex_label.set_sensitive(False)
         LOG.debug('toggled radiobutton %s' % widget.get_name())
         # parse again
-        parse_triple(widget, gui)
+        parse_all(widget, gui)
 
 
-def rev_adjust(widget, gui):
+def _switch_search_reverse_reads(widget, gui):
     data, iface = gui.data, gui.iface
     n_cols = iface.view_trace_regex.get_n_columns()
     if widget.get_active():
+        # save in data
+        data.search_rev = True
         # enable entry field
         iface.reverse_rx.set_sensitive(True)
         # create new column
         crt = Gtk.CellRendererToggle(radio=False)
-        crt.connect('toggled', rev_toggled, gui)
-        iface.view_trace_regex.insert_column(
-            Gtk.TreeViewColumn(title='rev', cell_renderer=crt, active=6), n_cols - 1)
+        crt.connect('toggled', _manual_mark_as_reversed, gui)
+        col = Gtk.TreeViewColumn(title='rev', cell_renderer=crt, active=6)
+        col.set_sort_column_id(6)
+        iface.view_trace_regex.insert_column(col, n_cols - 1)
         # set regex as not yet fired
         iface.rx_fired[6] = False
         # cause parsing
-        parse_single(None, gui, iface.reverse_rx, 6)
+        parse_single_group(None, gui, iface.reverse_rx, 6)
     else:
+        # save in data
+        data.search_rev = False
         iface.reverse_rx.set_sensitive(False)
         for col in iface.view_trace_regex.get_columns():
             if col.get_title() == 'rev':
@@ -281,34 +290,50 @@ def rev_adjust(widget, gui):
         iface.rx_fired[6] = True
 
 
-def rev_toggled(widget, path, gui):
+def _manual_mark_as_reversed(widget, path, gui):
+    """Mark a record as reverse or not."""
     data, iface = gui.data, gui.iface
     data.trace_store.set(data.trace_store.get_iter(path), [6], [not data.trace_store[path][6]])
     shared.set_changed(gui, PAGE)
+    refresh(gui)
+
+
+def check_for_plates(gui):
+    data, iface = gui.data, gui.iface
+    plates_now = len(data.plate_store) > 0
+    if 'plates' not in iface or plates_now != iface.plates:
+        iface.plates = plates_now
+
+        # close and inactivate the expander
+        iface.wp_expander.set_expanded(iface.plates)
+        iface.wp_expander.set_sensitive(iface.plates)
+        reset_columns(gui)
+
+    if not iface.plates:
+        # inactivate the line for the matching single regex
+        if not iface.triple_rt.get_active():
+            [iface.__getattribute__(name).set_sensitive(False) for name in
+             ['plate_rx', 'plate_regex_label']]
 
 
 def refresh(gui):
     data, iface = gui.data, gui.iface
+    check_for_plates(gui)
     # make all columns sortable
-    for tree_view in [iface.view_trace_regex, iface.view_csv_regex]:
-        tree_view.columns_autosize()
-        for col_index in range(tree_view.get_n_columns()):
-            tree_view.get_column(col_index).set_sort_column_id(col_index)
+    for tv in [iface.view_trace_regex, iface.view_csv_regex]:
+        tv.columns_autosize()
 
     # check the dataset for red lines
     if iface.RED not in shared.get_column(data.trace_store, -1) \
             and iface.AQUA not in shared.get_column(data.trace_store, - 1) \
             and iface.RED not in shared.get_column(data.plate_store, -1):
         shared.set_errors(gui, PAGE, False)
-        # LOG.debug('found no errors')
+        LOG.debug('found no errors')
     else:
         LOG.debug('found errors')
         assert shared.get_errors(gui, PAGE) or sum(iface.rx_fired) < 5
 
-    # search genes
     # try matching reference files to genes
-    data, iface = gui.data, gui.iface
-
     data.genes = sorted({gene for gene, is_ref, color in shared.get_column(data.trace_store, (4, 5, 7))
                          if not is_ref and color is not iface.RED and gene != ''})
     if not data.genes or data.genes == ['']:
@@ -386,7 +411,7 @@ def do_read(gui):
     data, iface = gui.data, gui.iface
     iface.text = ''
     iface.i = 0
-    iface.k = len(data.trace_store) + len(data.plate_store) + 1
+    iface.k = len(data.trace_store) + len(data.plate_store) + 2
     data.csvs.clear()
     data.seqdata.clear()
     data.record_order.clear()
@@ -458,8 +483,7 @@ def do_read(gui):
                     else:
                         errors.add('missing wellsplate %s' % box)
 
-                attributes = {'file': file_path, 'box': box, 'is_ref': False, 'is_rev': is_rev}
-                # DONE continue here
+                attributes = {'file': file_path, 'box': box, 'is_rev': is_rev}
 
                 if is_rev:
                     record = record.reverse_complement(record.id, description='')
@@ -494,8 +518,7 @@ def do_read(gui):
                     record = record.reverse_complement(record.id)
 
                 # save original id+description
-                attributes = {'file': file_path, 'accession': accession,
-                              'is_rev': is_rev, 'is_ref': True,
+                attributes = {'file': file_path, 'accession': accession, 'is_rev': is_rev,
                               'reference_species': species + ' strain ' + strain}
                 record.id = _id
                 record.description = ''  # do not delete deletion
@@ -503,7 +526,7 @@ def do_read(gui):
             # save SeqRecord
             data.seqdata[gene][record.id] = record
             data.metadata[gene][record.id] = attributes
-            # save the order of all records
+            # save the order of all records, and whether they are skipped
             data.record_order.append((record.id, gene))
 
         iface.i += 1
@@ -520,6 +543,11 @@ def do_read(gui):
             for k, v in missing.items():
                 fh.write('%s\t%s\n' % (k, v))
                 warnings.add('%s missing %s' % (k, v))
+
+    iface.i += 1
+    iface.text = 'writing metadata'
+    LOG.debug(iface.text)
+    shared.write_metadata(gui)
 
     shared.init_gene_roll(gui)
     iface.text = 'idle'
@@ -545,10 +573,10 @@ def stop_read(gui, errors, warnings):
     if errors or warnings:
         shared.show_notification(gui, 'File troubles', ['error: %s' % f for f in errors] +
                                  ['warning: %s' % f for f in warnings])
-    # now finally flip to next page
     shared.set_changed(gui, PAGE, False)
 
     # *Now* go back to where you came from
     if iface.run_after:
         [do_func(gui) for do_func in iface.run_after]
+    refresh(gui)
     return

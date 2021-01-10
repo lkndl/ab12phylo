@@ -32,8 +32,11 @@ class project_dataset:
         self.seed = 0
         self.record_order = list()
         self.qal_model = picklable_liststore(str,  # id
+                                             str,  # gene
                                              int,  # has phreds
                                              bool)  # low quality
+        self.search_rev = True
+        self.accept_rev = True
         self.gbl_model = picklable_liststore(str)  # id
         # set up indicator of changes, tabs are not disabled initially
         self.change_indicator = [False] * 20
@@ -44,15 +47,14 @@ class project_dataset:
         self.msa_shape = [0, 0, 0, 0]  # width-height before and after trimming
         self.msa_lens = list()
         self.msa_hash = ''
-        self.gene_ids = dict()
+        self.gene_ids = dict()  # {gene: {seq_ids}}
         self.gene_for_preview = ''
         self.sp_model = picklable_liststore(str,  # id
                                             str,  # pid
                                             str,  # species
                                             str)  # extra_species
         self.remote_dbs = picklable_liststore(str,  # name
-                                              int,  # id
-                                              bool)  # spare
+                                              int)
         self.blast_path = None  # for non-$PATH BLAST+ executable
 
     def new_project(self):
@@ -65,7 +67,7 @@ class project_dataset:
                 old.clear()
                 try:
                     [old.append(row[:]) for row in new_dataset.__getattribute__(attr)]
-                except AttributeError:
+                except (AttributeError, ValueError):
                     pass  # try to go without this model
             elif type(old) == dict:
                 old.clear()
@@ -85,28 +87,13 @@ class picklable_liststore(Gtk.ListStore):
     kudos go to samplebias on https://stackoverflow.com/a/5969700
     """
 
+    def __init__(self, *args):
+        Gtk.ListStore.__init__(self, *args)
+        self.col_types = args
+
     def __reduce__(self):
-        rows = list()
-        try:
-            rows = [list(row) for row in self]
-            coltypes = [type(c) for c in rows[0]]
-            return _unpickle_liststore, (self.__class__, coltypes, rows)
-        except IndexError as ex:
-            cols = self.get_n_columns()
-            # allow saving of empty data stores
-            if cols == 1:
-                coltypes = [str]
-            if cols == 2:
-                coltypes = [str, str]
-            elif cols == 4:
-                coltypes = [str, str, str, str]
-            elif cols == 3:
-                coltypes = [str, int, bool]
-            elif cols == 7:
-                coltypes = [str, str, str, str, str, bool, bool, str]
-            return _unpickle_liststore, (self.__class__, coltypes, rows)
-        except Exception as ex:
-            LOG.exception(ex)
+        rows = [list(row) for row in self]
+        return _unpickle_liststore, (self.__class__, self.col_types, rows)
 
 
 def _unpickle_liststore(cls, col_types, rows):

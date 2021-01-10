@@ -2,8 +2,8 @@
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.3a.11'
-__date__ = '06 January 2021'
+__version__ = '0.3a.12'
+__date__ = '10 January 2021'
 __license__ = 'MIT'
 __status__ = 'Alpha'
 
@@ -18,7 +18,8 @@ from pathlib import Path
 
 import gi
 
-from GUI.gtk3 import gtk_proj, shared, gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_blast
+from GUI.gtk3 import gtk_proj, shared, gtk_io, gtk_rgx, \
+    gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree
 from static import PATHS, BASE_DIR
 
 gi.require_version('Gtk', '3.0')
@@ -180,14 +181,16 @@ class app(Gtk.Application):
         gtk_msa.init(self)
         gtk_gbl.init(self)
         gtk_blast.init(self)
+        gtk_ml.init(self)
+        gtk_tree.init(self)
 
-        # self.load('stam.proj')
-        self.load('spin.proj')
+        # self.load('rtest.proj')
+        # self.load('spin.proj')
 
         # TODO gtk_qal do not re-read if some were removed
-        # TODO gtk_qal not accepting reverse doesn't work
-
-        # TODO keep metadata up-to-data with deletions
+        # TODO keep metadata up-to-data with gbl deletions
+        # TODO check saving accept_rev
+        # TODO data.search_rev integration and can still somehow break gtk_rgx page
 
     def new(self, action, confirm=True, *args):
         """

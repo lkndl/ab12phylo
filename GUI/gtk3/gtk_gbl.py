@@ -71,6 +71,9 @@ def refresh(gui):
     """Cause the initial plotting or load .png images for good responsiveness later on."""
     data, iface = gui.data, gui.iface
 
+    if not data.gene_ids:
+        return
+
     # start the first re-plotting
     if 0 in data.msa_shape or not (gui.wd / PATHS.left).exists() \
             or not (gui.wd / PATHS.right).exists():
@@ -421,12 +424,12 @@ def drop_seqs(gui):
     :param gui:
     :return:
     """
-    if 'ignore_set' not in gui.iface.gbl:
+    if 'ignore_ids' not in gui.iface.gbl:
         return
     with open(gui.wd / (PATHS.msa + '_TEMP'), 'w') as fasta:
         for record in SeqIO.parse(gui.wd / PATHS.msa, 'fasta'):
-            if record.id not in gui.iface.gbl.ignore_set:
+            if record.id not in gui.iface.gbl.ignore_ids:
                 SeqIO.write(record, fasta, 'fasta')
-    LOG.debug('dropped %d sequences from trimmed MSA' % len(gui.iface.gbl.ignore_set))
-    del gui.iface.gbl.ignore_set
+    LOG.debug('dropped %d sequences from trimmed MSA' % len(gui.iface.gbl.ignore_ids))
+    del gui.iface.gbl.ignore_ids
     shutil.move(gui.wd / (PATHS.msa + '_TEMP'), gui.wd / PATHS.msa)
