@@ -42,17 +42,16 @@ def init(gui):
     iface.gbl_preset.set_id_column(0)
     iface.gaps.set_id_column(0)
 
-    iface.gbl = Namespace()
-    iface.gbl.ignore_ids = set()
-    iface.gbl.params = list()
+    data.gbl.ignore_ids = set()
+    iface.tempspace.params = list()
     for w_name in ['conserved', 'flank', 'good_block', 'bad_block']:
         wi = iface.__getattribute__(w_name)
-        iface.gbl.__setattr__(w_name, wi.get_adjustment())
+        iface.tempspace.__setattr__(w_name, wi.get_adjustment())
         wi.connect('activate', lambda *args: start_gbl(gui))  # when hitting Enter, re-plot. overshadowed by Refresh
     for wi in [iface.conserved, iface.flank]:
         wi.connect_after('changed', edit, gui)  # when editing field, check adjustments
 
-    iface.gaps.connect('changed', lambda *args: iface.gbl.  # no assignment in lambda -> use __setattr__
+    iface.gaps.connect('changed', lambda *args: data.gbl.  # no assignment in lambda -> use __setattr__
                        __setattr__('gaps', iface.gaps.get_active_text()))
     iface.gbl_preset.connect_after('changed', re_preset, gui)
     iface.gbl_preset.set_active_id('balanced')
@@ -60,11 +59,11 @@ def init(gui):
     sel = iface.view_gbl.get_selection()
     sel.set_mode(Gtk.SelectionMode.MULTIPLE)
     sel.connect('changed', shared.keep_visible,
-                iface.parallel_gbl.props.vadjustment.props, iface.gbl)
+                iface.parallel_gbl.props.vadjustment.props, iface.tempspace)
     iface.view_gbl.connect('key_press_event', shared.delete_and_ignore_rows,
-                           gui, PAGE, sel, iface.gbl)  # in-preview deletion
+                           gui, PAGE, sel, iface.tempspace)  # in-preview deletion
     iface.gbl_eventbox.connect('button_press_event', shared.select_seqs, PAGE, iface.zoom,
-                               iface.view_gbl, iface.gbl)  # in-preview selection
+                               iface.view_gbl, iface.tempspace)  # in-preview selection
     iface.gbl_eventbox.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
 
 
@@ -112,13 +111,23 @@ def refresh(gui):
     gui.win.show_all()
 
 
+def reload_ui_state(gui):
+    data, iface = gui.data, gui.iface
+    iface.gbl_preset.set_active_id(data.gbl.preset)
+    iface.gaps.set_active_id(data.gbl.gaps)
+    for w_name in ['conserved', 'flank', 'good_block', 'bad_block']:
+        p = iface.tempspace.__getattribute__(w_name).props
+        p.value, p.lower, p.upper = data.gbl.__getattribute__(w_name)
+        # configure(value, lower, upper, step-increment=1, page-increment=0, page-size=0)
+
+
 def re_preset(gbl_preset, gui):
     """
     Apply a preset on toggling it.
     :param gbl_preset: the GtkComboBoxText with the presets
     """
     mode = gbl_preset.get_active_text()
-    gbl = gui.iface.gbl
+    g = gui.iface.tempspace
     n_sites, n_seqs = gui.data.msa_shape[:2]
 
     assert type(n_sites) == int
@@ -157,10 +166,10 @@ def re_preset(gbl_preset, gui):
         assert False
 
     # configure(value, lower, upper, step-increment=1, page-increment=0, page-size=0)
-    gbl.conserved.configure(conserved, n_seqs // 2 + 1, n_seqs, 1, 0, 0)
-    gbl.flank.configure(flank, n_seqs // 2 + 1, n_seqs, 1, 0, 0)
-    gbl.good_block.configure(good_block, 2, n_sites, 1, 0, 0)
-    gbl.bad_block.configure(bad_block, 0, n_sites, 1, 0, 0)
+    g.conserved.configure(conserved, n_seqs // 2 + 1, n_seqs, 1, 0, 0)
+    g.flank.configure(flank, n_seqs // 2 + 1, n_seqs, 1, 0, 0)
+    g.good_block.configure(good_block, 2, n_sites, 1, 0, 0)
+    g.bad_block.configure(bad_block, 0, n_sites, 1, 0, 0)
     gui.iface.gaps.set_active_id(gaps)
 
 
@@ -168,8 +177,8 @@ def edit(wi, gui):
     """Just make sure flank is never smaller than conserved."""
     LOG.debug('editing')
     adj = wi.get_adjustment()
-    flank = gui.iface.gbl.flank
-    conserved = gui.iface.gbl.conserved
+    flank = gui.iface.tempspace.flank
+    conserved = gui.iface.tempspace.conserved
     if adj == flank:
         return  # break some loops
     # conserved has changed
@@ -194,21 +203,28 @@ def start_gbl(gui, run_after=None):
 
     data.gbl_model.clear()
     if iface.gbl_preset.get_active_text() != 'skip':
-        shared.set_changed(gui, PAGE, True)  # TODO reconsider maybe also for skip or not at all
+        shared.set_changed(gui, PAGE, True)
         # get arguments from adjustments values
-        gbl = iface.gbl  # the param Namespace
+        g = iface.tempspace  # the param Namespace
         cons, flank, good, bad = [adj.get_value() for adj in
-                                  [gbl.conserved, gbl.flank, gbl.good_block, gbl.bad_block]]
+                                  [g.conserved, g.flank, g.good_block, g.bad_block]]
         gaps = iface.gaps.get_active_text()[0]
         # failsafe
         if flank < cons:
             flank = cons
         params = [cons, flank, bad, good, gaps]
         # check if they have changed
-        if iface.gbl.params == params:
+        if iface.tempspace.params == params:
             shared.show_notification(gui, 'MSA already trimmed, please proceed')
             return
-        iface.gbl.params = params
+        iface.tempspace.params = params
+
+    # save_ui_state from iface.tempspace into data.gbl
+    data.gbl.preset = iface.gbl_preset.get_active_text()
+    data.gbl.gaps = iface.gaps.get_active_text()
+    for w_name in ['conserved', 'flank', 'good_block', 'bad_block']:
+        p = iface.tempspace.__getattribute__(w_name).props
+        data.gbl.__setattr__(w_name, [p.value, p.lower, p.upper])
 
     iface.thread = threading.Thread(target=do_gbl, args=[gui])
     iface.run_after = run_after
@@ -240,11 +256,11 @@ def do_gbl(gui):
 
         # create base call MARK -t=d sets the mode to nucleotides ... adapt?
         arg = '%s %s -t=d -b1=%d -b2=%d -b3=%d -b4=%d -b5=%s -e=.txt -s=y -p=s; exit 0' \
-              % tuple([binary, '%s'] + iface.gbl.params)
+              % tuple([binary, '%s'] + iface.tempspace.params)
         LOG.debug(arg)
 
     # fetch IDs
-    shared_ids = sorted(set.intersection(*data.gene_ids.values()) - iface.gbl.ignore_ids)
+    shared_ids = sorted(set.intersection(*data.gene_ids.values()) - data.gbl.ignore_ids)
     array = np.empty(shape=(len(shared_ids), 0), dtype=int)
     [data.gbl_model.append([_id]) for _id in shared_ids]
     msa_lens = list()
@@ -257,8 +273,12 @@ def do_gbl(gui):
         raw_msa = gui.wd / gene / ('%s_raw_msa.fasta' % gene)
         msa = gui.wd / gene / ('%s_msa.fasta' % gene)
         records = {r.id: r.seq.upper() for r in SeqIO.parse(raw_msa, 'fasta')}
+        if sorted(records.keys()) != shared_ids:
+            errors.append('MSA for %s does not match the dataset, please re-build.' % gene)
+            sleep(.1)
+            GObject.idle_add(stop_gbl, gui, errors)
+            return True
         ar = np.array([static.seqtoint(records[_id]) for _id in shared_ids])
-        assert ar.shape[0] == len(shared_ids)
         msa_lens.append(ar.shape[1])
         array = np.hstack((array, ar,))  # shared.SEP would need to be stacked here
         data.msa_shape[:2] = array.shape[::-1]
@@ -398,7 +418,7 @@ def do_gbl(gui):
 
 def stop_gbl(gui, errors):
     """Finish the Gblocks thread"""
-    iface = gui.iface
+    data, iface = gui.data, gui.iface
     iface.running = False
     iface.thread.join()
     gui.win.show_all()
@@ -408,7 +428,7 @@ def stop_gbl(gui, errors):
     iface.msa_shape.set_text('%d : %d' % tuple(gui.data.msa_shape[:2]))
     iface.msa_shape_trimmed.set_text(
         '%d : %d' % (gui.data.msa_shape[2], gui.data.msa_shape[3]))
-    if iface.gbl.flank.props.upper != gui.data.msa_shape[1]:
+    if iface.tempspace.flank.props.upper != gui.data.msa_shape[1]:
         re_preset(iface.gbl_preset, gui)
     if errors:
         shared.show_notification(gui, 'Errors during MSA trimming', errors)
@@ -423,19 +443,19 @@ def drop_seqs(gui):
     On manually deleting samples from the trimmed MSA, overwrite 'old'
     trimmed MSA file, save in and write metadata.
     """
-    data, iface = gui.data, gui.iface
-    if not iface.gbl.ignore_ids:
+    ignore_ids, data, iface = gui.data.gbl.ignore_ids, gui.data, gui.iface
+    if not ignore_ids:
         return
     # overwrite old MSA
     with open(gui.wd / (PATHS.msa + '_TEMP'), 'w') as fasta:
         for record in SeqIO.parse(gui.wd / PATHS.msa, 'fasta'):
-            if record.id not in iface.gbl.ignore_ids:
+            if record.id not in ignore_ids:
                 SeqIO.write(record, fasta, 'fasta')
-    LOG.debug('dropped %d sequences from trimmed MSA' % len(iface.gbl.ignore_ids))
+    LOG.debug('dropped %d sequences from trimmed MSA' % len(ignore_ids))
     shutil.move(gui.wd / (PATHS.msa + '_TEMP'), gui.wd / PATHS.msa)
 
     # save in metadata
-    for _id in iface.gbl.ignore_ids:
+    for _id in ignore_ids:
         for gene, genemeta in data.metadata.items():
             if _id in genemeta:
                 genemeta[_id]['quality'] = 'manually dropped at trim_MSA'

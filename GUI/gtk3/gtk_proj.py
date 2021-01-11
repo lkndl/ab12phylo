@@ -1,6 +1,7 @@
 # 2020 Leo Kaindl
 
 import logging
+from argparse import Namespace
 
 import gi
 
@@ -25,6 +26,9 @@ class project_dataset:
                                                str,  # filename
                                                str,  # plate ID
                                                str)  # errors
+        self.rx_fired = [False] * 12
+        # rx_fired stores if these columns have been parsed before:
+        # [bool] with trace and then plate columns. sum(iface.rx_fired) = 5
         self.genes = list()  # used also before seqdata exists
         self.csvs = dict()
         self.seqdata = dict()
@@ -35,8 +39,11 @@ class project_dataset:
                                              str,  # gene
                                              int,  # has phreds
                                              bool)  # low quality
-        self.search_rev = True
-        self.accept_rev = True
+        self.search_rev = False
+        self.rgx = Namespace()
+        self.qal = Namespace(gene_roll='all', accept_rev=False, accept_nophred=True)
+        self.msa = Namespace()
+        self.gbl = Namespace()
         self.gbl_model = picklable_liststore(str)  # id
         # set up indicator of changes, tabs are not disabled initially
         self.change_indicator = [False] * 20
@@ -83,9 +90,7 @@ class project_dataset:
 
 
 class picklable_liststore(Gtk.ListStore):
-    """
-    kudos go to samplebias on https://stackoverflow.com/a/5969700
-    """
+    """kudos go to samplebias on https://stackoverflow.com/a/5969700"""
 
     def __init__(self, *args):
         Gtk.ListStore.__init__(self, *args)

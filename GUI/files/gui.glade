@@ -470,9 +470,8 @@
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="qal_scroll_vert">
-    <property name="upper">100</property>
+    <property name="upper">1</property>
     <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="tree_scroll_adj">
     <property name="upper">100</property>
@@ -1800,6 +1799,7 @@ Alternatively, a color legend would nicely fit here.</property>
                               <object class="GtkViewport">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
+                                <property name="vadjustment">qal_scroll_vert</property>
                                 <child>
                                   <!-- n-columns=2 n-rows=3 -->
                                   <object class="GtkGrid" id="qal_grid">
@@ -1987,6 +1987,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-start">18</property>
                             <property name="margin-top">12</property>
                             <property name="margin-bottom">12</property>
                             <property name="spacing">10</property>
@@ -2041,6 +2042,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">min_phred</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">default: 30</property>
                                     <property name="halign">start</property>
                                     <property name="hexpand">False</property>
                                     <property name="vexpand">False</property>
@@ -2067,6 +2069,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="name">trim_out</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">default: 8 / 10</property>
                                         <property name="halign">start</property>
                                         <property name="vexpand">False</property>
                                         <property name="max-length">3</property>
@@ -2100,6 +2103,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="name">trim_of</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">default: 8 / 10</property>
                                         <property name="halign">start</property>
                                         <property name="vexpand">False</property>
                                         <property name="max-length">3</property>
@@ -2124,6 +2128,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">bad_stretch</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">default: 5</property>
                                     <property name="halign">start</property>
                                     <property name="vexpand">False</property>
                                     <property name="max-length">3</property>
@@ -2620,7 +2625,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="name">msa_cmd</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-markup" translatable="yes">You can run this command externally of course, but you will have to replace the &lt;b&gt;%s&lt;/b&gt; with the gene you run it for!</property>
+                                        <property name="tooltip-markup" translatable="yes">You can run this command externally of course, but you will have to replace the &lt;b&gt;%s&lt;/b&gt; with the gene you run it for! Clear the field and re-choose an algorithm to get back the default command.</property>
                                         <property name="wrap-mode">word</property>
                                         <property name="left-margin">10</property>
                                         <property name="right-margin">10</property>
@@ -2855,6 +2860,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="name">remote_cmd</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">Clear and re-choose algorithm to get back defaults.</property>
                                         <property name="wrap-mode">word</property>
                                         <property name="left-margin">10</property>
                                         <property name="right-margin">10</property>
@@ -3264,6 +3270,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-start">18</property>
                             <property name="margin-top">12</property>
                             <property name="margin-bottom">12</property>
                             <property name="hexpand">True</property>
@@ -3381,6 +3388,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">default: balanced</property>
                                         <property name="width-chars">7</property>
                                       </object>
                                     </child>
@@ -5995,6 +6003,7 @@ Alternatively, a color legend would nicely fit here.</property>
                       <object class="GtkScrolledWindow">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <property name="no-show-all">True</property>
                         <property name="hexpand">True</property>
                         <property name="vexpand">True</property>
                         <property name="shadow-type">in</property>
@@ -6007,6 +6016,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="name">reveal_list</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="no-show-all">True</property>
                             <property name="hexpand">True</property>
                             <property name="vexpand">True</property>
                             <property name="left-margin">12</property>

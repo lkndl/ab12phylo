@@ -40,7 +40,6 @@ class app(Gtk.Application):
     def do_activate(self):
         self.add_window(self.win)
         self.win.show_all()
-        # self.win.present()  # TODO useless alternative? Test once outside of PyCharm
 
     def do_shutdown(self):
         # delete data if it was in the prelim directory
@@ -137,6 +136,7 @@ class app(Gtk.Application):
         iface.BLUE = '#2374AF'
         iface.GREEN = '#23AF46'
         iface.AQUA = '#2EB398'
+        iface.tempspace = Namespace()
         sc = self.win.get_style_context()
         iface.FG = '#' + ''.join([(hex(min(int(c * mod2), 255))[2:]).upper()
                                   for c in list(sc.get_color(Gtk.StateFlags.ACTIVE))[:-1]])
@@ -150,8 +150,6 @@ class app(Gtk.Application):
 
         # connect to the window's delete event to close on x click
         self.win.connect('destroy', lambda *args: self.quit())
-        # shared.bind_accelerator(self.accelerators, iface.open, '<Control>o', 'activate')
-        # iface.save.connect('activate', self.save)
 
         # connect buttons
         iface.next.connect('clicked', shared.proceed, self)
@@ -185,11 +183,8 @@ class app(Gtk.Application):
         gtk_tree.init(self)
 
         self.load('atest.proj')
-        # self.load('spin.proj')
 
         # TODO gtk_qal do not re-read if some were removed
-        # TODO check saving accept_rev
-        # TODO data.search_rev integration and can still somehow break gtk_rgx page
 
     def new(self, action, confirm=True, *args):
         """
@@ -244,11 +239,21 @@ class app(Gtk.Application):
                 new_data = pickle.load(proj)
             # overwrite content in old dataset in-place rather than re-pointing everything
             self.data.overwrite(new_data)
-            shared.init_gene_roll(self)
+            try:
+                shared.init_gene_roll(self)
+            except ValueError as ve:
+                LOG.error(ve)
             self.wd = self.project_path.parent / self.project_path.stem
             Path.mkdir(self.wd, exist_ok=True)
             self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
             self.iface.notebook.set_current_page(self.data.page)
+
+            for module in [gtk_proj, shared, gtk_io, gtk_rgx, gtk_qal,
+                           gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree]:
+                try:
+                    module.reload_ui_state(self)
+                except AttributeError:
+                    pass  # TODO not elegant
         except Exception as e:
             LOG.exception(e)
             shared.show_notification(self, 'Project could not be loaded')
@@ -291,6 +296,7 @@ class app(Gtk.Application):
                 gtk_msa.refresh_paths(self)
 
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
+        shared.show_notification(self, 'saved project', transient=True)
 
     def save_as(self, *args):
         """

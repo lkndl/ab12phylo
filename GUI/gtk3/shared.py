@@ -3,6 +3,8 @@
 import hashlib
 import logging
 from argparse import Namespace
+from time import sleep
+import threading
 
 import gi
 import pandas as pd
@@ -83,12 +85,21 @@ def show_message_dialog(message, list_to_print=None):
     LOG.debug('showed a message')
 
 
-def show_notification(gui, msg, items=None):
-    gui.iface.reveal_title.set_text(msg)
-    gui.iface.reveal_list.props.parent.props.visible = items
+def show_notification(gui, msg, items=None, transient=False):
+    revealer, iface = gui.iface.revealer, gui.iface
+    iface.reveal_title.set_text(msg)
+    iface.reveal_list.props.parent.props.visible = items
     if items:
-        gui.iface.reveal_list.props.buffer.props.text = '\n'.join(items)
-    gui.iface.revealer.set_reveal_child(True)
+        iface.reveal_list.props.buffer.props.text = '\n'.join(items)
+    gui.iface.revealer.set_transition_duration(500 if transient else 250)
+    revealer.set_reveal_child(True)
+    if transient:
+        threading.Thread(target=hide, args=[revealer]).start()
+
+
+def hide(revealer):
+    sleep(2)
+    revealer.set_reveal_child(False)
 
 
 def tv_keypress(widget, event, gui, page, selection):

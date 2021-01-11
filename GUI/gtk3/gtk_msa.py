@@ -24,13 +24,15 @@ def init(gui):
     data, iface = gui.data, gui.iface
 
     iface.msa_algo.set_entry_text_column(0)
-    iface.msa = Namespace()
-    iface.msa.cmd = dict()
-    iface.msa.remote_cmd = dict()
+    iface.msa_algo.set_id_column(0)
+    iface.remote_algo.set_id_column(0)
+    data.msa.cmd = dict()
+    data.msa.remote_cmd = dict()
+    data.msa.last_cmd = ''
 
-    iface.msa_cmd.connect('focus_out_event', lambda widget, *args: iface.msa.cmd.update(
+    iface.msa_cmd.connect('focus_out_event', lambda widget, *args: data.msa.cmd.update(
         {toalgo(iface.msa_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
-    iface.remote_cmd.connect('focus_out_event', lambda widget, *args: iface.msa.remote_cmd.update(
+    iface.remote_cmd.connect('focus_out_event', lambda widget, *args: data.msa.remote_cmd.update(
         {toalgo(iface.remote_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
 
     iface.msa_algo.connect('changed', get_help, gui)
@@ -50,28 +52,26 @@ def get_help(widget, gui, remote=False, try_path=False):
 
     if not data.genes:
         return
-    # shared.set_changed(gui, PAGE, True)  # TODO see if avoiding this breaks anything
-
     if remote:
-        iface.msa.algo = toalgo(iface.remote_algo.get_active_text())
-        client = TOOLS / 'MSA_clients' / (iface.msa.algo + '.py')
+        data.msa.algo = toalgo(iface.remote_algo.get_active_text())
+        client = TOOLS / 'MSA_clients' / (data.msa.algo + '.py')
         set_helpers(gui, 'python3 %s ' % client, iface.remote_help,
-                    iface.msa.remote_cmd, iface.msa.algo, True, iface.remote_cmd)
+                    data.msa.remote_cmd, data.msa.algo, True, iface.remote_cmd)
     else:
-        iface.msa.algo = toalgo(iface.msa_algo.get_active_text())
-        exe = shutil.which(iface.msa.algo)
+        data.msa.algo = toalgo(iface.msa_algo.get_active_text())
+        exe = shutil.which(data.msa.algo)
         exe = widget.get_active_text() if try_path else exe
         if exe:
             # get the --help output and save it in the lookup field on the right
             iface.msa_exe.set_filename(exe)
             set_helpers(gui, '%s --help; exit 0' % exe, iface.msa_help,
-                        iface.msa.cmd, iface.msa.algo, False, iface.msa_cmd)
+                        data.msa.cmd, data.msa.algo, False, iface.msa_cmd)
         else:
             # no executable found; unselect in path box
             iface.msa_exe.unselect_all()
-            txt = iface.msa.algo + ' was not found on your system $PATH. You can try ' \
-                                   'manually specifying the path to the executable.'
-            iface.msa_help.get_buffer().props.text = txt  # show this snarky line
+            txt = data.msa.algo + ' was not found on your system $PATH. You can try ' \
+                                  'manually specifying the path to the executable.'
+            iface.msa_help.get_buffer().props.text = txt  # show this snarky line above
             iface.msa_cmd.get_buffer().props.text = ''  # no cmd suggestion
 
 
@@ -84,11 +84,23 @@ def set_helpers(gui, cmdline, help_view, help_dict, algo, remote, cmd_view):
 
     # get the suggested command and allow user modification in the left field
     txt = help_dict.get(algo, '')  # fetch saved
-    if txt == '':  # deleting all content will also get you back the original
+    if txt == '' or 'aligner' not in gui.iface:  # deleting all content will also get you back the original
         gui.iface.aligner, txt = shared.get_msa_build_cmd(algo, gui.wd, gui.data.genes, remote)  # fetch new
         help_dict[algo] = txt  # save
 
     cmd_view.get_buffer().props.text = help_dict[algo]  # show
+
+
+def refresh_paths(gui):
+    LOG.debug('refresh_paths')
+    data, iface = gui.data, gui.iface
+    old = str(iface.aligner.dir)
+    iface.aligner.reset_paths(gui.wd, gui.wd / PATHS.msa)
+    for algo, txt in data.msa.cmd.items():
+        data.msa.cmd[algo] = txt.replace(old, str(gui.wd))
+    # also replace it in the GtkTextView
+    bf = iface.msa_cmd.get_buffer()
+    bf.props.text = bf.props.text.replace(old, str(gui.wd))
 
 
 def start_align(widget, gui, remote=False, run_after=None):
@@ -110,7 +122,7 @@ def start_align(widget, gui, remote=False, run_after=None):
     if iface.running:  # a)
         shared.show_notification(gui, 'Thread running')
         return
-    elif not shared.get_changed(gui, PAGE):  # c)
+    elif data.msa.last_cmd == [data.msa.cmd, data.msa.remote_cmd][remote][data.msa.algo]:
         shared.show_notification(gui, 'MSA already generated, please proceed')
         return
     elif all([(gui.wd / gene / ('%s_raw_msa.fasta' % gene)).exists() for gene in data.genes]) \
@@ -120,6 +132,7 @@ def start_align(widget, gui, remote=False, run_after=None):
         return
     if 'aligner' not in iface:
         get_help(None, gui, remote)
+    save_ui_state(gui)
     data.msa_lens.clear()
     iface.align_stack.props.sensitive = False
     iface.thread = threading.Thread(target=do_align, args=[gui, remote])
@@ -131,18 +144,6 @@ def start_align(widget, gui, remote=False, run_after=None):
     # return to main loop
 
 
-def refresh_paths(gui):
-    LOG.debug('refresh_paths')
-    data, iface = gui.data, gui.iface
-    old = str(iface.aligner.dir)
-    iface.aligner.reset_paths(gui.wd, gui.wd / PATHS.msa)
-    for algo, txt in iface.msa.cmd.items():
-        iface.msa.cmd[algo] = txt.replace(old, str(gui.wd))
-    # also replace it in the GtkTextView
-    bf = iface.msa_cmd.get_buffer()
-    bf.props.text = bf.props.text.replace(old, str(gui.wd))
-
-
 def do_align(gui, remote=False):
     data, iface = gui.data, gui.iface
     errors = list()
@@ -150,19 +151,19 @@ def do_align(gui, remote=False):
     iface.i = 0
     iface.k = len(data.genes)
     funcs, arg_dicts = [iface.aligner.build_local, iface.aligner.build_remote], \
-                       [iface.msa.cmd, iface.msa.remote_cmd]
+                       [data.msa.cmd, data.msa.remote_cmd]
     try:
         for gene in data.genes:
             iface.text = 'aligning %s [%d/%d]' % (gene, iface.i + 1, iface.k)
             LOG.debug(iface.text)
+            arg = arg_dicts[remote][data.msa.algo]
+            data.msa.last_cmd = arg
             try:
-                funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
-                                            % tuple([gene] * (4 - remote)))  # interpreting bool as int here
+                funcs[remote](gene, new_arg=arg % tuple([gene] * (4 - remote)))  # interpreting bool as int here
             except (FileNotFoundError, subprocess.CalledProcessError):
                 refresh_paths(gui)
                 # try again once more
-                funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
-                                            % tuple([gene] * 4))
+                funcs[remote](gene, new_arg=arg % tuple([gene] * 4))
             # fetch MSA length
             for r in SeqIO.parse(gui.wd / gene / ('%s_raw_msa.fasta' % gene), 'fasta'):
                 data.msa_lens.append(len(r))
@@ -174,6 +175,8 @@ def do_align(gui, remote=False):
         errors.append('%s at task %d (%s). invalid command?' % (type(e), iface.i, iface.text))
     except FileNotFoundError:
         errors.append('MSA/sequences file not found. Did you just save somewhere new?')
+    except TypeError:
+        errors.append('TODO replace string formatting with something smarter')
     GObject.idle_add(stop_align, gui, errors)
 
 
@@ -192,7 +195,7 @@ def stop_align(gui, errors):
     if iface.run_after:
         [do_func(gui) for do_func in iface.run_after]
     else:
-        shared.show_notification(gui, 'MSA building finished')
+        shared.show_notification(gui, 'MSA building finished', items=None)
     return
 
 
@@ -212,6 +215,7 @@ def load_msa(widget, gui):
     iface.aligner, cmd = shared.get_msa_build_cmd(
         toalgo(gui.iface.msa_algo.get_active_text()), gui.wd, data.genes)
     LOG.debug('using imported MSA')
+    save_ui_state(gui)
 
 
 def refresh(gui):
@@ -219,3 +223,26 @@ def refresh(gui):
         get_help(None, gui)
     elif gui.iface.align_stack.get_visible_child_name() == 'remote':
         get_help(None, gui, remote=True)
+
+
+def save_ui_state(gui):
+    ns, iface = gui.data.msa, gui.iface
+    ns.stack_child_name = iface.align_stack.get_visible_child_name()
+    ns.msa_algo_id = iface.msa_algo.get_active_id()
+    ns.msa_exe_filename = iface.msa_exe.get_filename()
+    ns.remote_algo_id = iface.remote_algo.get_active_id()
+    ns.msa_import_filename = iface.msa_import.get_filename()
+
+
+def reload_ui_state(gui):
+    ns, iface = gui.data.msa, gui.iface
+    iface.align_stack.set_visible_child_name(ns.stack_child_name)
+    iface.msa_algo.set_active_id(ns.msa_algo_id)
+    if ns.msa_exe_filename:
+        iface.msa_exe.set_filename(ns.msa_exe_filename)
+    iface.remote_algo.set_active_id(ns.remote_algo_id)
+    if ns.msa_import_filename:
+        iface.msa_import.set_filename(ns.msa_import_filename)
+
+    iface.msa_cmd.get_buffer().props.text = ns.cmd.get(toalgo(ns.msa_algo_id), '')
+    iface.remote_cmd.get_buffer().props.text = ns.remote_cmd.get(toalgo(ns.remote_algo_id), '')

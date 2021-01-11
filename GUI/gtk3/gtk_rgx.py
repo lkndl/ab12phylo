@@ -46,6 +46,7 @@ def init(gui):
 
     iface.view_trace_regex.set_model(data.trace_store)
     iface.view_csv_regex.set_model(data.plate_store)
+    iface.reverse_rx_chk.set_active(data.search_rev)
     iface.reverse_rx_chk.connect('toggled', _switch_search_reverse_reads, gui)
     iface.reverse_rx.connect('activate', parse_single_group, gui, iface.reverse_rx, 6)
     iface.regex_try_online.connect('clicked', try_online, gui)
@@ -68,10 +69,6 @@ def reset_columns(gui, do_parse=False):
     # remove old columns:
     for tv in [iface.view_trace_regex, iface.view_csv_regex]:
         [tv.remove_column(col) for col in tv.get_columns()]
-
-    # iface.rx_fired stores if these columns have been parsed before:
-    # [bool] with trace and then plate columns. sum(iface.rx_fired) = 5
-    iface.rx_fired = [False] * (data.trace_store.get_n_columns() + data.plate_store.get_n_columns())
 
     # columns depend on if we are reading plates
     if iface.plates:
@@ -96,16 +93,16 @@ def reset_columns(gui, do_parse=False):
             col.set_sort_column_id(j)
             iface.view_trace_regex.append_column(col)
         # set regex for plate_id column as already fired
-        iface.rx_fired[-2] = True
+        data.rx_fired[-2] = True
 
     iface.reverse_rx_chk.set_active(False)
-    iface.rx_fired[6] = True
+    data.rx_fired[6] = True
 
     if do_parse:  # fire the initial parse
         parse_all(None, gui)
 
 
-def parse_single_group(widget, gui, entry, col, fifth=None):
+def parse_single_group(widget, gui, entry, col, fifth=None, refresh_after=True):
     if fifth:  # caught a focus_out_event, therefore shifted arguments
         gui, entry, col = entry, col, fifth
     data, iface = gui.data, gui.iface
@@ -122,11 +119,11 @@ def parse_single_group(widget, gui, entry, col, fifth=None):
     if widget in [iface.wp_rx, iface.wp_apply]:
         model = data.plate_store
         traces = False
-        iface.rx_fired[col + data.trace_store.get_n_columns()] = True
+        data.rx_fired[col + data.trace_store.get_n_columns()] = True
     else:
         model = data.trace_store
         traces = True
-        iface.rx_fired[col] = True
+        data.rx_fired[col] = True
 
     # parse each filename
     for i, row in enumerate(model):
@@ -179,6 +176,8 @@ def parse_single_group(widget, gui, entry, col, fifth=None):
                 assert False
     shared.set_changed(gui, PAGE, changed)
     shared.set_errors(gui, PAGE, errors)
+    if errors and sum(data.rx_fired) >= 5 and refresh_after:
+        refresh(gui)
 
 
 def parse_all(widget, gui):
@@ -217,16 +216,18 @@ def parse_all(widget, gui):
             errors, changed = True, True
         shared.set_changed(gui, PAGE, changed)
         shared.set_errors(gui, PAGE, errors)
-        iface.rx_fired[2:5] = [True] * 3
-        refresh(gui)
+        data.rx_fired[2:5] = [True] * 3
+        if shared.get_errors(gui, PAGE) and sum(data.rx_fired) >= 5:
+            refresh(gui)
     else:
-        parse_single_group(None, gui, iface.well_rx, 2)
-        parse_single_group(None, gui, iface.gene_rx, 4)
+        parse_single_group(None, gui, iface.well_rx, 2, False)
+        parse_single_group(None, gui, iface.gene_rx, 4, False)
         if iface.plates:
-            parse_single_group(None, gui, iface.plate_rx, 3)
+            parse_single_group(None, gui, iface.plate_rx, 3, False)
     if iface.reverse_rx_chk.get_active():
-        parse_single_group(None, gui, iface.reverse_rx, 6)
-    LOG.debug('parse_triple done')
+        parse_single_group(None, gui, iface.reverse_rx, 6, False)
+    if shared.get_errors(gui, PAGE) and sum(data.rx_fired) >= 5:
+        refresh(gui)
 
 
 def cell_edit(cell, path, new_text, gui, tv, col):
@@ -276,7 +277,7 @@ def _switch_search_reverse_reads(widget, gui):
         col.set_sort_column_id(6)
         iface.view_trace_regex.insert_column(col, n_cols - 1)
         # set regex as not yet fired
-        iface.rx_fired[6] = False
+        data.rx_fired[6] = False
         # cause parsing
         parse_single_group(None, gui, iface.reverse_rx, 6)
     else:
@@ -287,7 +288,7 @@ def _switch_search_reverse_reads(widget, gui):
             if col.get_title() == 'rev':
                 iface.view_trace_regex.remove_column(col)
         # set regex as already fired
-        iface.rx_fired[6] = True
+        data.rx_fired[6] = True
 
 
 def _manual_mark_as_reversed(widget, path, gui):
@@ -328,10 +329,8 @@ def refresh(gui):
             and iface.AQUA not in shared.get_column(data.trace_store, - 1) \
             and iface.RED not in shared.get_column(data.plate_store, -1):
         shared.set_errors(gui, PAGE, False)
-        LOG.debug('found no errors')
     else:
-        LOG.debug('found errors')
-        assert shared.get_errors(gui, PAGE) or sum(iface.rx_fired) < 5
+        assert shared.get_errors(gui, PAGE) or sum(data.rx_fired) < 5
 
     # try matching reference files to genes
     data.genes = sorted({gene for gene, is_ref, color in shared.get_column(data.trace_store, (4, 5, 7))
@@ -354,6 +353,14 @@ def refresh(gui):
                         data.trace_store[i][4] = gene
                         data.trace_store[i][7] = iface.BLUE
                         break
+
+
+def reload_ui_state(gui):
+    data, iface = gui.data, gui.iface
+    for w_name in ['single_rx', 'well_rx', 'gene_rx', 'plate_rx', 'reverse_rx', 'wp_rx']:
+        iface.__getattribute__(w_name).set_text(str(data.rgx.__getattribute__(w_name)))
+    for w_name in ['single_rt', 'triple_rt', 'reverse_rx_chk']:
+        iface.__getattribute__(w_name).set_active(data.rgx.__getattribute__(w_name))
 
 
 def try_online(widget, gui):
@@ -400,6 +407,12 @@ def start_read(gui, run_after=None):
         shared.show_notification('No sequence data!')
         return
     refresh(gui)  # try matching reference files to genes
+
+    # save_ui_state
+    for w_name in ['single_rx', 'well_rx', 'gene_rx', 'plate_rx', 'reverse_rx', 'wp_rx']:
+        data.rgx.__setattr__(w_name, iface.__getattribute__(w_name).get_text())
+    for w_name in ['single_rt', 'triple_rt', 'reverse_rx_chk']:
+        data.rgx.__setattr__(w_name, iface.__getattribute__(w_name).get_active())
 
     iface.thread = threading.Thread(target=do_read, args=[gui])
     iface.run_after = run_after
@@ -580,5 +593,4 @@ def stop_read(gui, errors, warnings):
     # *Now* go back to where you came from
     if iface.run_after:
         [do_func(gui) for do_func in iface.run_after]
-    refresh(gui)
     return

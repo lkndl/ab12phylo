@@ -35,7 +35,7 @@ PAGE = 2
 def init(gui):
     data, iface = gui.data, gui.iface
 
-    iface.accept_rev.set_active(data.accept_rev)
+    iface.accept_rev.set_active(data.qal.accept_rev)
     iface.rev_handler = iface.accept_rev.connect('toggled', parse, None, gui)
     iface.accept_nophred.set_active(True)
     iface.accept_nophred.connect('toggled', parse, None, gui)
@@ -45,18 +45,15 @@ def init(gui):
     iface.min_phred.set_numeric(True)
     iface.min_phred.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
 
-    # this is kept up-to-date by the signals below
-    iface.qal = Namespace(gene_roll='all')
-
     for w_name in ['min_phred', 'trim_out', 'trim_of', 'bad_stretch']:
         wi = iface.__getattribute__(w_name)
-        iface.qal.__setattr__(w_name, int(wi.get_text()))
+        data.qal.__setattr__(w_name, int(wi.get_text()))
         wi.connect('changed', _edit_numerical_entry)
         wi.connect('focus_out_event', parse, gui)
     iface.min_phred.disconnect_by_func(parse)  # MARK leave this line alone
 
     for w_name in ['accept_rev', 'accept_nophred']:
-        iface.qal.__setattr__(w_name, iface.__getattribute__(w_name).get_active())
+        data.qal.__setattr__(w_name, iface.__getattribute__(w_name).get_active())
 
     for wi in [iface.trim_out, iface.trim_of, iface.bad_stretch]:
         wi.connect('key-press-event', _edit_numerical_entry_up_down)
@@ -65,7 +62,8 @@ def init(gui):
     iface.view_qal.set_model(data.qal_model)
     iface.view_qal.set_headers_visible(False)
     iface.view_qal.append_column(Gtk.TreeViewColumn(
-        title='id', cell_renderer=Gtk.CellRendererText(), text=0, underline=2, strikethrough=3))
+        title='id', cell_renderer=Gtk.CellRendererText(),
+        text=0, underline=2, strikethrough=3))
     # crt = Gtk.CellRendererToggle(radio=False)
     # crt.props.indicator_size = 13
     # iface.view_qal.append_column(Gtk.TreeViewColumn(
@@ -74,32 +72,42 @@ def init(gui):
     sel = iface.view_qal.get_selection()
     sel.set_mode(Gtk.SelectionMode.MULTIPLE)
     sel.connect('changed', shared.keep_visible,
-                iface.parallel_qal.props.vadjustment.props, iface.qal)
+                iface.parallel_qal.props.vadjustment.props, iface.tempspace)
     iface.view_qal.connect('check-resize', shared.get_height_resize,
                            iface.qal_spacer, [iface.qal_win])
     # in-preview deletion
-    iface.view_qal.connect('key_press_event', shared.delete_and_ignore_rows,
-                           gui, PAGE, sel, iface.qal)
-    iface.qal_eventbox.connect_after('button_press_event', shared.select_seqs, PAGE, iface.zoom,
-                                     iface.view_qal, iface.qal)  # in-preview selection
+    iface.view_qal.connect('key_press_event',
+                           shared.delete_and_ignore_rows,
+                           gui, PAGE, sel, data.qal)
+    iface.qal_eventbox.connect_after('button_press_event',
+                                     shared.select_seqs, PAGE, iface.zoom,
+                                     iface.view_qal, iface.tempspace)  # in-preview selection
     iface.qal_win.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
 
 
 def refresh(gui):
     data, iface = gui.data, gui.iface
+    with iface.accept_rev.handler_block(iface.rev_handler):
+        iface.accept_rev.set_active(data.search_rev and iface.accept_rev.get_active())
+        iface.accept_rev.set_sensitive(data.search_rev)
+
     if not (gui.wd / PATHS.preview).exists() or 0 in data.qal_shape:
         start_trim(gui)
         return
-
-    with iface.accept_rev.handler_block(iface.rev_handler):
-        iface.accept_rev.set_active(iface.reverse_rx_chk.get_active() and iface.accept_rev.get_active())
-        iface.accept_rev.set_sensitive(iface.reverse_rx_chk.get_active())
 
     # place the png preview
     shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
                       data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
     shared.load_colorbar(iface.palplot, gui.wd)
     gui.win.show_all()
+
+
+def reload_ui_state(gui):
+    data, iface = gui.data, gui.iface
+    for w_name in ['min_phred', 'trim_out', 'trim_of', 'bad_stretch']:
+        iface.__getattribute__(w_name).set_text(str(data.qal.__getattribute__(w_name)))
+    for w_name in ['accept_rev', 'accept_nophred']:
+        iface.__getattribute__(w_name).set_active(data.qal.__getattribute__(w_name))
 
 
 def parse(widget, event, gui):
@@ -112,11 +120,12 @@ def parse(widget, event, gui):
     """
     data, iface = gui.data, gui.iface
     LOG.debug('parsing for re-draw')
+    w_name = widget.get_name()
     pre = None
     try:
-        pre = iface.qal.__getattribute__(widget.get_name())
+        pre = data.qal.__getattribute__(w_name)
     except KeyError:
-        exit('%s not in q_params' % widget.get_name())
+        exit('%s not in q_params' % w_name)
     # getting new value depends on widget type
     if widget == iface.gene_roll:
         now = widget.get_active_text()
@@ -133,10 +142,10 @@ def parse(widget, event, gui):
     if pre == now:
         LOG.debug('no change at parsing')
         return
-    iface.qal.__setattr__(widget.get_name(), now)
-    if iface.qal.trim_out > iface.qal.trim_of:
+    data.qal.__setattr__(w_name, now)
+    if data.qal.trim_out > data.qal.trim_of:
         shared.show_notification(gui, 'cannot draw %d from %d' %
-                                 (iface.qal.trim_out, iface.qal.trim_of))
+                                 (data.qal.trim_out, data.qal.trim_of))
         widget.set_text('0')
     else:
         shared.set_changed(gui, PAGE)
@@ -159,7 +168,7 @@ def start_trim(gui):
         gtk_rgx.start_read(gui, run_after=[start_trim])
         return
 
-    data.accept_rev = iface.accept_rev.get_active()
+    data.qal.accept_rev = iface.accept_rev.get_active()
     parse(iface.min_phred, None, gui)  # annoying SpinButton
 
     LOG.debug('start-up redraw')
@@ -181,12 +190,12 @@ def do_trim(gui):
     """
     data, iface = gui.data, gui.iface
     # parameters are up-to-date
-    LOG.debug('re-draw with %s' % str(iface.qal))
-    p = iface.qal
+    LOG.debug('re-draw trim preview')
+    p = data.qal
     rows = list()
     data.gene_for_preview = p.gene_roll
     genes_for_preview = data.genes if p.gene_roll == 'all' else {p.gene_roll}
-    ignore_ids = iface.qal.ignore_ids if 'ignore_ids' in iface.qal \
+    ignore_ids = data.qal.ignore_ids if 'ignore_ids' in data.qal \
         else {g: dict() for g in data.genes}  # regulated at delete_and_ignore_rows
     iface.text = 'creating matrix'
     LOG.debug(iface.text)
@@ -270,7 +279,8 @@ def do_trim(gui):
     plt.close(f)
 
     data.qal_shape[0] = array.shape[1]
-    data.qal_shape[1] = shared.get_height_resize(iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
+    data.qal_shape[1] = shared.get_height_resize(
+        iface.view_qal, None, iface.qal_spacer, [iface.qal_win])
 
     if iface.rasterize.props.active:
         iface.text = 'place PNG'
@@ -286,7 +296,6 @@ def do_trim(gui):
         try:
             iface.qal_eventbox.get_child().destroy()
             iface.qal_eventbox.add(canvas)
-            # iface.qal_tools.attach(NavigationToolbar(canvas, gui.win), 1, 1, 1, 1)
         except Gtk.Error as ex:
             LOG.error(ex)
     iface.i += 1
@@ -362,8 +371,8 @@ def trim_all(gui, run_after=None):
         gtk_rgx.start_read(gui, run_after=[trim_all])
         return
 
-    p = iface.qal
-    ignore_ids = iface.qal.ignore_ids if 'ignore_ids' in iface.qal \
+    p = data.qal
+    ignore_ids = p.ignore_ids if 'ignore_ids' in p \
         else {g: dict() for g in data.genes}  # regulated at delete_and_ignore_rows
     LOG.debug('trim and filter all sequences')
     for gene, genedata in data.seqdata.items():
