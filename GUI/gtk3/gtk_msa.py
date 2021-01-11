@@ -20,11 +20,8 @@ LOG = logging.getLogger(__name__)
 PAGE = 3
 
 
-# TODO moving back to this page immediately blocks later pages without any change
-
 def init(gui):
     data, iface = gui.data, gui.iface
-    # iface.plates = True  # TODO delete
 
     iface.msa_algo.set_entry_text_column(0)
     iface.msa = Namespace()
@@ -53,7 +50,7 @@ def get_help(widget, gui, remote=False, try_path=False):
 
     if not data.genes:
         return
-    shared.set_changed(gui, PAGE, True)
+    # shared.set_changed(gui, PAGE, True)  # TODO see if avoiding this breaks anything
 
     if remote:
         iface.msa.algo = toalgo(iface.remote_algo.get_active_text())
@@ -134,6 +131,18 @@ def start_align(widget, gui, remote=False, run_after=None):
     # return to main loop
 
 
+def refresh_paths(gui):
+    LOG.debug('refresh_paths')
+    data, iface = gui.data, gui.iface
+    old = str(iface.aligner.dir)
+    iface.aligner.reset_paths(gui.wd, gui.wd / PATHS.msa)
+    for algo, txt in iface.msa.cmd.items():
+        iface.msa.cmd[algo] = txt.replace(old, str(gui.wd))
+    # also replace it in the GtkTextView
+    bf = iface.msa_cmd.get_buffer()
+    bf.props.text = bf.props.text.replace(old, str(gui.wd))
+
+
 def do_align(gui, remote=False):
     data, iface = gui.data, gui.iface
     errors = list()
@@ -149,8 +158,8 @@ def do_align(gui, remote=False):
             try:
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
                                             % tuple([gene] * (4 - remote)))  # interpreting bool as int here
-            except FileNotFoundError:
-                iface.aligner.reset_paths(gui.wd, gui.wd / PATHS.msa)
+            except (FileNotFoundError, subprocess.CalledProcessError):
+                refresh_paths(gui)
                 # try again once more
                 funcs[remote](gene, new_arg=arg_dicts[remote][iface.msa.algo]
                                             % tuple([gene] * 4))
@@ -206,10 +215,7 @@ def load_msa(widget, gui):
 
 
 def refresh(gui):
-    data, iface = gui.data, gui.iface
-    if gui.iface.notebook.get_current_page() != PAGE:
-        return
-    if iface.align_stack.get_visible_child_name() == 'local':
+    if gui.iface.align_stack.get_visible_child_name() == 'local':
         get_help(None, gui)
-    elif iface.align_stack.get_visible_child_name() == 'remote':
+    elif gui.iface.align_stack.get_visible_child_name() == 'remote':
         get_help(None, gui, remote=True)

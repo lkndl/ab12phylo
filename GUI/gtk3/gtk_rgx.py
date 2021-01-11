@@ -156,7 +156,7 @@ def parse_single_group(widget, gui, entry, col, fifth=None):
             model[i][-1] = iface.RED
             errors, changed = True, True
         else:
-            # reverse reads, save boolean values # TODO ?
+            # reverse reads, save boolean values
             try:
                 m = regex.search(file).groups()[0]
                 # reverse read
@@ -392,12 +392,14 @@ def try_online(widget, gui):
 
 
 def start_read(gui, run_after=None):
+    """Called from REFRESH button and shared.proceed"""
     data, iface = gui.data, gui.iface
 
     # stop if there are no traces
     if len(data.trace_store) == 0:
         shared.show_notification('No sequence data!')
         return
+    refresh(gui)  # try matching reference files to genes
 
     iface.thread = threading.Thread(target=do_read, args=[gui])
     iface.run_after = run_after
@@ -481,7 +483,7 @@ def do_read(gui):
                         else:
                             record.id = box + '_' + coords
                     else:
-                        errors.add('missing wellsplate %s' % box)
+                        errors.add('missing %s on wellsplate %s' % (coords, box))
 
                 attributes = {'file': file_path, 'box': box, 'is_rev': is_rev}
 

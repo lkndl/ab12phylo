@@ -96,6 +96,7 @@ class blast_build(threading.Thread):
         self.timeout = _args.timeout
         self.gui = 'gui' in _args
         self.df = pd.DataFrame()
+        self.update = False
 
         # Files / Paths
         self.FASTA = path.join(_args.dir, self.gene, self.gene + '.fasta')
@@ -198,7 +199,7 @@ class blast_build(threading.Thread):
 
             # update database
             if self.update:
-                self.log.debug('updating BLAST+ db ...')
+                self.log.debug('downloading or updating BLAST+ db ...')
                 arg = path.join(self.blast_dir, 'update_blastdb.pl') \
                       + ' --decompress %s --passive --timeout %d' % (self.db, self.timeout)
 

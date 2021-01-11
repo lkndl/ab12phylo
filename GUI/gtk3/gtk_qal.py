@@ -275,6 +275,7 @@ def do_trim(gui):
     if iface.rasterize.props.active:
         iface.text = 'place PNG'
         LOG.debug(iface.text)
+        sleep(.05)
         shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
                           data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
     else:

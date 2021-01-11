@@ -184,11 +184,10 @@ class app(Gtk.Application):
         gtk_ml.init(self)
         gtk_tree.init(self)
 
-        # self.load('rtest.proj')
+        self.load('atest.proj')
         # self.load('spin.proj')
 
         # TODO gtk_qal do not re-read if some were removed
-        # TODO keep metadata up-to-data with gbl deletions
         # TODO check saving accept_rev
         # TODO data.search_rev integration and can still somehow break gtk_rgx page
 
@@ -286,11 +285,11 @@ class app(Gtk.Application):
             if self.wd == Path.cwd() / 'untitled':
                 shutil.rmtree(path=self.wd)
 
+            self.wd = new_wd
             # tell the MSA pre-set about it
             if 'aligner' in self.iface:
-                self.iface.aligner.reset_paths(self.wd, self.wd / PATHS.msa)
+                gtk_msa.refresh_paths(self)
 
-        self.wd = self.project_path.parent / self.project_path.stem
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
 
     def save_as(self, *args):

@@ -139,7 +139,7 @@ def proceed(widget, gui=None, page=None):
 
     if get_changed(gui, page):
         if page == 0:
-            gtk_io.refresh(gui)  # TODO still might reconsider
+            gtk_io.refresh(gui)
             gtk_rgx.reset_columns(gui, do_parse=True)
         elif page == 1:
             if 1 < sum(iface.rx_fired) < 5:
@@ -620,11 +620,13 @@ def get_msa_build_cmd(algo, wd, genes, remote=False):
 
 class bump_log_level:
 
-    def __init__(self, log):
-        self.level = max(log.level, logging.DEBUG)
+    def __init__(self, log, off=True):
+        self.level = max(log.level, logging.INFO)
+        self.off = off
 
     def __enter__(self):
-        logging.disable(self.level)
+        if not self.off:
+            logging.disable(self.level)
 
     def __exit__(self, exit_type, exit_value, exit_traceback):
         logging.disable(logging.NOTSET)

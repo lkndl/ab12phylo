@@ -19,7 +19,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
 from GUI.gtk3 import shared
-from static import PATHS, BASE_DIR
+from static import PATHS, BASE_DIR, DOWNLOAD_TIMEOUT
 
 LOG = logging.getLogger(__name__)
 PAGE = 5
@@ -64,19 +64,6 @@ def init(gui):
     for path in [shutil.which('blastn'), data.blast_path]:
         if start_prep(gui, path):
             break
-
-    # TODO Test for import-only!
-    # TODO early aborts?
-
-    # keep metadata up do date and write early
-    # # convert metadata dict do pandas DataFrame
-    # df = pd.concat({gene: pd.DataFrame.from_dict(
-    #     data.metadata[gene], orient='index') for gene in data.metadata.keys()})
-    # df.index.names = ['gene', 'id']
-    # df.reset_index(level=0, inplace=True)
-    # if 'wellsplate' in df.columns:
-    #     df.rename(columns={'wellsplate': 'box'}, inplace=True)
-    # df.to_csv(gui.wd / PATHS.tsv, sep='\t', na_rep='', header=True, index=True)
 
 
 def start_prep(gui, path):
@@ -194,7 +181,7 @@ def refresh(gui):
         idx = 0
     iface.blast_gene.set_active(idx)
 
-    # allow skipping BLAST
+    # always allow skipping BLAST
     shared.set_changed(gui, PAGE, False)
 
 
@@ -257,7 +244,7 @@ def start_BLAST(widget, gui, mode, *args):
             'genes': [gene],
             'db': db_row[1],
             'remote_db': data.remote_dbs[iface.remote_db.get_active()][0],
-            'timeout': 20,
+            'timeout': DOWNLOAD_TIMEOUT,
             'dir': gui.wd,
             'xml': gui.wd / PATHS.xml,
             'www_xml': str(gui.wd / PATHS.www_xml),
@@ -296,7 +283,9 @@ def do_BLAST(gui, tup):
 def stop_BLAST(gui, tup):
     """Finish the BLAST thread"""
     data, iface = gui.data, gui.iface
-    del iface.blast_wrapper
+    if gui.iface.blaster.update:  # a local database was created
+        iface.blast_db.get_model()[iface.blast_db.get_active()][-1] = True
+    del iface.blast_wrapper, gui.iface.blaster
     iface.pill2kill.clear()
     im, la, tx, gene = tup
 
@@ -338,7 +327,7 @@ def human_bytes(num):
         num /= step_unit
 
 
-def pd_from_(metadata):
+def pd_from_(metadata):  # TODO delete
     # convert metadata dict do pandas DataFrame
     df = pd.concat({gene: pd.DataFrame.from_dict(
         metadata[gene], orient='index') for gene in metadata.keys()})

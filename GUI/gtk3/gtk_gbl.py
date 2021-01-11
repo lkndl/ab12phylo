@@ -43,6 +43,7 @@ def init(gui):
     iface.gaps.set_id_column(0)
 
     iface.gbl = Namespace()
+    iface.gbl.ignore_ids = set()
     iface.gbl.params = list()
     for w_name in ['conserved', 'flank', 'good_block', 'bad_block']:
         wi = iface.__getattribute__(w_name)
@@ -164,9 +165,7 @@ def re_preset(gbl_preset, gui):
 
 
 def edit(wi, gui):
-    """
-    Just make sure flank is never smaller than conserved
-    """
+    """Just make sure flank is never smaller than conserved."""
     LOG.debug('editing')
     adj = wi.get_adjustment()
     flank = gui.iface.gbl.flank
@@ -179,7 +178,7 @@ def edit(wi, gui):
 
 
 def start_gbl(gui, run_after=None):
-    """Set-up the Gblocks thread. This cannot be reached if Gblocks shall be skipped. """
+    """Set-up the Gblocks thread. This cannot be reached if Gblocks shall be skipped."""
     data, iface = gui.data, gui.iface
     if not data.genes:
         LOG.debug('abort Gblocks')
@@ -195,6 +194,7 @@ def start_gbl(gui, run_after=None):
 
     data.gbl_model.clear()
     if iface.gbl_preset.get_active_text() != 'skip':
+        shared.set_changed(gui, PAGE, True)  # TODO reconsider maybe also for skip or not at all
         # get arguments from adjustments values
         gbl = iface.gbl  # the param Namespace
         cons, flank, good, bad = [adj.get_value() for adj in
@@ -244,7 +244,7 @@ def do_gbl(gui):
         LOG.debug(arg)
 
     # fetch IDs
-    shared_ids = sorted(set.intersection(*data.gene_ids.values()))
+    shared_ids = sorted(set.intersection(*data.gene_ids.values()) - iface.gbl.ignore_ids)
     array = np.empty(shape=(len(shared_ids), 0), dtype=int)
     [data.gbl_model.append([_id]) for _id in shared_ids]
     msa_lens = list()
@@ -420,16 +420,23 @@ def stop_gbl(gui, errors):
 
 def drop_seqs(gui):
     """
-    Overwrite 'old' trimmed MSA file that still contained dropped records.
-    :param gui:
-    :return:
+    On manually deleting samples from the trimmed MSA, overwrite 'old'
+    trimmed MSA file, save in and write metadata.
     """
-    if 'ignore_ids' not in gui.iface.gbl:
+    data, iface = gui.data, gui.iface
+    if not iface.gbl.ignore_ids:
         return
+    # overwrite old MSA
     with open(gui.wd / (PATHS.msa + '_TEMP'), 'w') as fasta:
         for record in SeqIO.parse(gui.wd / PATHS.msa, 'fasta'):
-            if record.id not in gui.iface.gbl.ignore_ids:
+            if record.id not in iface.gbl.ignore_ids:
                 SeqIO.write(record, fasta, 'fasta')
-    LOG.debug('dropped %d sequences from trimmed MSA' % len(gui.iface.gbl.ignore_ids))
-    del gui.iface.gbl.ignore_ids
+    LOG.debug('dropped %d sequences from trimmed MSA' % len(iface.gbl.ignore_ids))
     shutil.move(gui.wd / (PATHS.msa + '_TEMP'), gui.wd / PATHS.msa)
+
+    # save in metadata
+    for _id in iface.gbl.ignore_ids:
+        for gene, genemeta in data.metadata.items():
+            if _id in genemeta:
+                genemeta[_id]['quality'] = 'manually dropped at trim_MSA'
+    shared.write_metadata(gui)

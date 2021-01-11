@@ -800,6 +800,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="can-focus">True</property>
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
+                                    <property name="reorderable">True</property>
                                     <property name="rubber-banding">True</property>
                                     <child internal-child="selection">
                                       <object class="GtkTreeSelection"/>
@@ -840,6 +841,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="can-focus">True</property>
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
+                                    <property name="reorderable">True</property>
                                     <property name="rubber-banding">True</property>
                                     <child internal-child="selection">
                                       <object class="GtkTreeSelection"/>
@@ -2250,7 +2252,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">palplot</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="stock">gtk-missing-image</property>
+                                    <property name="icon-name">image-missing</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
@@ -3594,7 +3596,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">palplot2</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="stock">gtk-missing-image</property>
+                                    <property name="icon-name">image-missing</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
@@ -3604,8 +3606,8 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <child>
                                   <object class="GtkTextView" id="gbl_cmd">
                                     <property name="name">gbl_cmd</property>
-                                    <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="no-show-all">True</property>
                                     <property name="vexpand">True</property>
                                     <property name="editable">False</property>
                                     <property name="wrap-mode">word</property>
