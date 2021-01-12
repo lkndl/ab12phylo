@@ -1,4 +1,4 @@
-# 2020 Leo Kaindl
+# 2021 Leo Kaindl
 
 """
 This module builds a multiple sequence alignment for each gene and concats

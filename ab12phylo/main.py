@@ -1,18 +1,13 @@
 #!/usr/bin/python3
-# 2020 Leo Kaindl
+# 2021 Leo Kaindl
 
 """
 Main module of the pipeline. Imports the other package modules and serves as the interface
 between them. The `--visualize` and `--view` entry points are in the :class:`phylo` module.
 """
-__author__ = 'Leo Kaindl'
-__email__ = 'leo.kaindl@tum.de'
-__version__ = '0.3a.11'
-__date__ = '06 January 2021'
-__license__ = 'MIT'
-__status__ = 'Alpha'
 
 import sys
+
 from ab12phylo import cli, i_o, msa, blast, raxml, phylo
 
 

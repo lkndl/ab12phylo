@@ -7,7 +7,7 @@ from pathlib import Path
 import gi
 
 import gtk_proj
-from GUI.gtk3 import shared
+import shared
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk

@@ -153,7 +153,7 @@ def proceed(widget, gui=None, page=None):
             gtk_io.refresh(gui)
             gtk_rgx.reset_columns(gui, do_parse=True)
         elif page == 1:
-            if 1 < sum(iface.rx_fired) < 5:
+            if 1 < sum(data.rx_fired) < 5:
                 show_notification(gui, 'Make sure all columns have been parsed.')
                 return
             gtk_rgx.start_read(gui, run_after=[proceed])

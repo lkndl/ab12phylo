@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# 2021 Leo Kaindl
 
 """
 Makes result HTML interactive by enabling motif search.

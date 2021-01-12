@@ -1,11 +1,5 @@
-# 2020 Leo Kaindl
-
-__author__ = 'Leo Kaindl'
-__email__ = 'leo.kaindl@tum.de'
-__version__ = '0.3a.12'
-__date__ = '10 January 2021'
-__license__ = 'MIT'
-__status__ = 'Alpha'
+#!/usr/bin/python3
+# 2021 Leo Kaindl
 
 import logging
 import pickle
@@ -17,6 +11,8 @@ from argparse import Namespace
 from pathlib import Path
 
 import gi
+
+from ab12phylo.__init__ import __version__, __author__, __email__
 
 from GUI.gtk3 import gtk_proj, shared, gtk_io, gtk_rgx, \
     gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree
@@ -326,7 +322,7 @@ class app(Gtk.Application):
 
     def about(self, *args):
         Gtk.AboutDialog(transient_for=self.win, modal=True, title='About AB12PHYLO',
-                        authors=[__author__ + '<leo.kaindl@tum.de>', 'Dr Remco Stam', 'Corinn Small'],
+                        authors=['%s<%s>' % (__author__, __email__), 'Dr Remco Stam', 'Corinn Small'],
                         comments='An integrated pipeline for Maximum Likelihood (ML) '
                                  'phylogenetic tree inference from ABI sequencing data',
                         program_name='AB12PHYLO', version=__version__,

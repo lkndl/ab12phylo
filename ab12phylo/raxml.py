@@ -1,4 +1,4 @@
-# 2020 Leo Kaindl
+# 2021 Leo Kaindl
 
 """
 Builds phylogenetic trees using raxml-ng, parallelized in threads.

@@ -44,6 +44,7 @@ class project_dataset:
         self.qal = Namespace(gene_roll='all', accept_rev=False, accept_nophred=True)
         self.msa = Namespace()
         self.gbl = Namespace()
+        self.ml = Namespace()
         self.gbl_model = picklable_liststore(str)  # id
         # set up indicator of changes, tabs are not disabled initially
         self.change_indicator = [False] * 20
@@ -63,6 +64,9 @@ class project_dataset:
         self.remote_dbs = picklable_liststore(str,  # name
                                               int)
         self.blast_path = None  # for non-$PATH BLAST+ executable
+        self.evo_models = picklable_liststore(str)  # id
+        [self.evo_models.append([evo]) for evo in ['GTR', 'JC', 'K80', 'K81', 'HKY', 'TN93', 'TPM2',
+                                                   'TPM3', 'TIM2', 'TIM3', 'TVM', 'SYM', 'from file']]
 
     def new_project(self):
         self.overwrite(project_dataset())

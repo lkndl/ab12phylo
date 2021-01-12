@@ -35,6 +35,11 @@ PAGE = 6
 def init(gui):
     """Initialize the page. Connect buttons."""
     data, iface = gui.data, gui.iface
+    iface.evo_model.set_model(data.evo_models)
+    iface.evo_model.connect('changed', _change_model, data.ml)
+
+
+def _change_model(combo, ns):
     pass
 
 
@@ -43,6 +48,7 @@ def refresh(gui):
     data, iface = gui.data, gui.iface
     algo = static.toalgo(iface.ml_stack.get_visible_child_name())
     check_MSA(None, gui, algo)
+
     pass
 
 

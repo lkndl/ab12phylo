@@ -1,4 +1,4 @@
-# 2020 Leo Kaindl
+# 2021 Leo Kaindl
 
 from Bio.Seq import MutableSeq
 import copy

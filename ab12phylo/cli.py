@@ -16,7 +16,8 @@ import logging
 import argparse
 
 from os import path
-from ab12phylo import main, phylo
+from ab12phylo.__init__ import __version__
+from ab12phylo.phylo import tree_build, tree_view
 
 
 class parser(argparse.ArgumentParser):
@@ -172,7 +173,7 @@ class parser(argparse.ArgumentParser):
 
         # [popgen]
         gen = parser.add_argument_group(self, title='POPULATION GENETICS')
-        gen.add_argument('-gap', '--gap_share',  type=self._valid_threshold,
+        gen.add_argument('-gap', '--gap_share', type=self._valid_threshold,
                          help='Maximum share of gaps at an MSA site that will be ignored.')
         gen.add_argument('-unk', '--unknown_share', type=self._valid_threshold,
                          help='Maximum acceptable proportion of unknown characters at an MSA site.')
@@ -195,7 +196,7 @@ class parser(argparse.ArgumentParser):
         self.args = self.parse_args(args[0])
 
         if self.args.version is True:
-            sys.exit('ab12phylo: %s' % main.__version__)
+            sys.exit('ab12phylo: %s' % __version__)
 
         # test: switch config + set verbose
         if self.args.test is True:
@@ -335,7 +336,7 @@ class parser(argparse.ArgumentParser):
             log.debug(' '.join(args[0]))
             # copy config
             shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
-            phylo.tree_build(self.args)
+            tree_build(self.args)
             sys.exit(0)
 
         if self.args.view:
@@ -346,7 +347,7 @@ class parser(argparse.ArgumentParser):
             log.debug(' '.join(args[0]))
             # copy config
             shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
-            phylo.tree_view(self.args.dir)
+            tree_view(self.args.dir)
             sys.exit(0)
 
         # configure logging:
@@ -358,7 +359,7 @@ class parser(argparse.ArgumentParser):
             self._init_log(self.args.log)
             log = logging.getLogger(__name__)
             log.debug('--ARGS-- %s' % ' '.join(args[0]))
-            log.debug('running AB12PHYLO v%s' % main.__version__)
+            log.debug('running AB12PHYLO v%s' % __version__)
             log.info('seed for this run: %s' % self.args.seed)
             if by_order is True:
                 log.info('will match references to genes by order')

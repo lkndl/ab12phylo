@@ -2,7 +2,6 @@
 
 import logging
 import threading
-from argparse import Namespace
 from pathlib import Path
 from time import sleep
 
@@ -428,6 +427,7 @@ def trim_all(gui, run_after=None):
     data.seqdata.clear()
 
     shared.set_changed(gui, PAGE, False)
+    shared.set_changed(gui, PAGE + 1, True)
     if run_after:
         [run(gui) for run in run_after]
     return

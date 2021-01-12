@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# 2020 Leo Kaindl
+# 2021 Leo Kaindl
 
 """
 Visualizes tree computed by RAxML-NG using toytree and toyplot.

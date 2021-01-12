@@ -20,7 +20,7 @@ import static
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from GUI.gtk3 import shared, gtk_qal
+import shared, gtk_qal
 from ab12phylo import raxml
 from static import PATHS
 

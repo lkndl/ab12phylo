@@ -21,7 +21,7 @@ PATHS = Namespace(**{
 })
 
 algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
-         'RAxML-NG': 'raxml-ng', 'IQ-Tree': 'iqtree', 'FastTree': 'FastTree'}
+         'RAxML-NG': 'raxml-ng', 'IQ-Tree': 'iqtree2', 'FastTree': 'FastTree'}
 toalgo = lambda c: algos[c]
 
 NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S']

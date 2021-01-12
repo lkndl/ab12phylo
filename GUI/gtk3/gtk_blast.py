@@ -42,7 +42,7 @@ def init(gui):
     iface.blast_import.connect('clicked', start_BLAST, gui, None)
     iface.xml_import.connect('file_set', start_BLAST, gui, None)
     iface.blast_exe.connect('file_set', lambda *args: start_prep(gui, iface.blast_exe.get_filename()))
-    iface.blast_gene.connect('button-release-event', lambda co, *args: co.
+    iface.blast_db.connect('button-release-event', lambda co, *args: co.
                              popdown() if co.props.popup_shown else co.popup())
 
     # set up the species annotation table
@@ -315,7 +315,7 @@ def _save_custom_remote_db(entry, *args):
     combo = entry.get_parent().get_parent()
     if not combo.get_active_iter():
         tx = entry.get_text()
-        combo.get_model().append([tx, -1, True])
+        combo.get_model().append([tx, -1])
         LOG.debug('entered remote_db %s' % tx)
 
 

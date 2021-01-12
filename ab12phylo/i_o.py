@@ -1,4 +1,4 @@
-# 2020 Leo Kaindl
+# 2021 Leo Kaindl
 
 """
 This module reads sequencing data to memory using the :class:`its_io.reader`,

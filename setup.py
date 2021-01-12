@@ -5,12 +5,7 @@ if sys.version_info[0] < 3:
     sys.stdout.write('package requires python3')
     sys.exit(1)
 
-__author__ = 'Leo Kaindl'
-__email__ = 'leo.kaindl@tum.de'
-__version__ = '0.3a.12'
-__date__ = '10 January 2021'
-__license__ = 'MIT'
-__status__ = 'Alpha'
+from ab12phylo.__init__ import __version__, __author__, __email__, __license__
 
 setup(name='ab12phylo',
       version=__version__,
@@ -31,7 +26,7 @@ setup(name='ab12phylo',
                                         'ab12phylo-view = ab12phylo.phylo:_view',
                                         'ab12phylo-add-xml = ab12phylo.blast:_add_xml']},
       install_requires=['biopython', 'pyyaml', 'jinja2', 'lxml', 'xmltramp2',
-                        'toyplot', 'toytree<2', 'numpy', 'pandas', 'matplotlib'],
+                        'toyplot', 'toytree<=1.2.0|>2.0.4', 'numpy', 'pandas', 'matplotlib'],
       classifiers=['Development Status :: 4 - Beta',
                    'Programming Language :: Python :: 3',
                    'License :: OSI Approved :: MIT License',

@@ -1,4 +1,4 @@
-# 2020 Leo Kaindl
+# 2021 Leo Kaindl
 
 """
 Runs a BLAST+ search on a local database and a remote NCBI BLAST search in the nucleotides

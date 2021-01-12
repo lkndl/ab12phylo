@@ -4,7 +4,6 @@ import logging
 import shutil
 import subprocess
 import threading
-from argparse import Namespace
 from pathlib import Path
 
 import gi
@@ -122,7 +121,8 @@ def start_align(widget, gui, remote=False, run_after=None):
     if iface.running:  # a)
         shared.show_notification(gui, 'Thread running')
         return
-    elif data.msa.last_cmd == [data.msa.cmd, data.msa.remote_cmd][remote][data.msa.algo]:
+    elif data.msa.last_cmd == [data.msa.cmd, data.msa.remote_cmd][remote][data.msa.algo]\
+            and not shared.get_changed(gui, PAGE):
         shared.show_notification(gui, 'MSA already generated, please proceed')
         return
     elif all([(gui.wd / gene / ('%s_raw_msa.fasta' % gene)).exists() for gene in data.genes]) \
