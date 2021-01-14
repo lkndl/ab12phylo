@@ -77,7 +77,7 @@ base_legend = '<svg class="toyplot-canvas-Canvas" xmlns:toyplot="http://www.sand
 
 
 def _visualize(*args):
-    """Entry point for re-visualization."""
+    """Entry point for re-visualization"""
     # if no argument -> default to cwd
     args = sys.argv[1:]
     if len(args) == 0:

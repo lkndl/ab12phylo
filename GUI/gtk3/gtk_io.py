@@ -222,7 +222,7 @@ def add_new_entries(model, new_paths, gui, *args):
 
 
 def scroll_to_end(widget, rectangle, iface, tv, mo):
-    """After new entries have been added to it, the TreeView will scroll to its end."""
+    """After new entries have been added to it, the TreeView will scroll to its end"""
     if iface.notebook.get_current_page() != 0:
         return
     if mo not in iface.file_nums or len(mo) > iface.file_nums[mo]:

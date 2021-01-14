@@ -30,13 +30,13 @@ PAGE = 7
 
 
 def init(gui):
-    """Initialize the page. Connect buttons."""
+    """Initialize the page. Connect buttons"""
     data, iface = gui.data, gui.iface
     pass
 
 
 def refresh(gui):
-    """Re-view the page. Get suggested commands for RAxML-NG and IQ-Tree."""
+    """Re-view the page. Get suggested commands for RAxML-NG and IQ-Tree"""
     data, iface = gui.data, gui.iface
     # algo = static.toalgo(iface.ml_stack.get_visible_child_name())
     # check_MSA(None, gui, algo)
@@ -48,12 +48,12 @@ def refresh(gui):
 #
 #
 # def start_ML(gui):
-#     """Set-up the Gblocks thread."""
+#     """Set-up the Gblocks thread"""
 #     pass
 #
 #
 # def do_ML(gui):
-#     """Run the Gblocks thread."""
+#     """Run the Gblocks thread"""
 #     pass
 #
 #

@@ -17,7 +17,8 @@ PATHS = Namespace(**{
     'preview': Path('Trim') / 'trim_preview.png',
     'cbar': Path('Trim') / 'colorbar.png',
     'left': Path('Trim') / 'msa_gbl_pre.png',
-    'right': Path('Trim') / 'msa_gbl_post.png'
+    'right': Path('Trim') / 'msa_gbl_post.png',
+    'RAxML': Path('raxml-ng_v1.0.1_linux_x86_64') / 'raxml-ng',
 })
 
 algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
@@ -47,7 +48,7 @@ KXLIN = {
 
 colors = list(map(tohex, map(KXLIN.get, NUCLEOTIDES)))
 USER = 'leo.kaindl@tum.de'
-SEP = '?*?'
+SEP = '??'
 ALPHA = .25
 DPI = 300
 BUF_SIZE = 128 * 1024

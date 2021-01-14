@@ -291,7 +291,7 @@ def _switch_search_reverse_reads(widget, gui):
 
 
 def _manual_mark_as_reversed(widget, path, gui):
-    """Mark a record as reverse or not."""
+    """Mark a record as reverse or not"""
     data, iface = gui.data, gui.iface
     data.trace_store.set(data.trace_store.get_iter(path), [6], [not data.trace_store[path][6]])
     shared.set_changed(gui, PAGE)
@@ -594,7 +594,7 @@ def stop_read(gui, errors, warnings):
     LOG.info('rgx thread idle')
     if errors or warnings:
         shared.show_notification(gui, 'File troubles', ['error: %s' % f for f in errors] +
-                                 ['warning: %s' % f for f in warnings])
+                                 ['warning: %s' % f for f in warnings], stay_secs=10)
     shared.set_changed(gui, PAGE, False)
 
     # *Now* go back to where you came from

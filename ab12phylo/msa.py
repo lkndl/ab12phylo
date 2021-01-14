@@ -57,7 +57,7 @@ class msa_build:
         self.msa = msa
 
     def build_local(self, gene, no_run=False, new_arg=False):
-        """Build MSAs locally using a pre-installed binary."""
+        """Build MSAs locally using a pre-installed binary"""
         log_file = path.join(self.dir, gene, self.algo + '.log')
         fasta = path.join(self.dir, gene, gene + '.fasta')
         raw_msa = path.join(self.dir, gene, gene + '_raw_msa.fasta')
@@ -192,7 +192,7 @@ class msa_build:
             shutil.move(raw_msa + '.txt', path.join(self.dir, gene, gene + '_msa.fasta'))
 
     def concat_msa(self, gui=False):
-        """Reads all trimmed MSAs to memory, then iterates over samples, writes concatenated MSA."""
+        """Reads all trimmed MSAs to memory, then iterates over samples, writes concatenated MSA"""
         self.log.debug('concatenating per-gene MSAs')
         # read in all MSAs using SeqIO
         all_records = {gene: {record.id: record.upper() for record in SeqIO.parse(
@@ -259,7 +259,7 @@ class msa_build:
                     self.log.info('samples missing from %s: %s' % (k, v))
 
     def _run(self, arg, log_file, info, no_exit=False):
-        """Runs a command and writes output to log-file."""
+        """Runs a command and writes output to log-file"""
         self.log.debug(arg)
         start = time()
         with open(log_file, 'w') as log_handle:

@@ -251,7 +251,7 @@ def _run_sp(cmd):
 
 
 class raxml_thread(threading.Thread):
-    """A thread that creates raxml-ng trees."""
+    """A thread that creates raxml-ng trees"""
 
     def __init__(self, args, mode):
         threading.Thread.__init__(self)

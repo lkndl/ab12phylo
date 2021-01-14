@@ -385,7 +385,7 @@ class parser(argparse.ArgumentParser):
         return ref_files
 
     def _valid_end_ratio(self, end_ratio):
-        """Checks if --end_ratio argument for trimming is in right format and meaningful."""
+        """Checks if --end_ratio argument for trimming is in right format and meaningful"""
         try:
             ratio = [int(d) for d in end_ratio.strip().split('/')]
             if len(ratio) == 2 and ratio[0] <= ratio[1]:
@@ -396,7 +396,7 @@ class parser(argparse.ArgumentParser):
             raise self.error('invalid end ratio defined: %s' % end_ratio)
 
     def _valid_start_trees(self, start_trees):
-        """Checks if --start_trees argument is in the right format: [int,int] """
+        """Checks if --start_trees argument is in the right format: [int,int]"""
         try:
             start = [int(d) for d in start_trees[1:-1].split(',')]
             if len(start) == 2:
@@ -429,7 +429,7 @@ class parser(argparse.ArgumentParser):
             raise self.error('invalid numerical float threshold: %s' % t)
 
     def _init_log(self, filename):
-        """Initializes logging."""
+        """Initializes logging"""
         log = logging.getLogger()
         log.setLevel(logging.DEBUG)
 

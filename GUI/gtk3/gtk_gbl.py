@@ -31,7 +31,7 @@ PAGE = 4
 
 
 def init(gui):
-    """Initialize the page. Connect buttons."""
+    """Initialize the page. Connect buttons"""
     data, iface = gui.data, gui.iface
     iface.view_gbl.set_model(data.gbl_model)
     iface.view_gbl.append_column(Gtk.TreeViewColumn(
@@ -68,7 +68,7 @@ def init(gui):
 
 
 def refresh(gui):
-    """Cause the initial plotting or load .png images for good responsiveness later on."""
+    """Cause the initial plotting or load .png images for good responsiveness later on"""
     data, iface = gui.data, gui.iface
 
     if not data.gene_ids:
@@ -174,7 +174,7 @@ def re_preset(gbl_preset, gui):
 
 
 def edit(wi, gui):
-    """Just make sure flank is never smaller than conserved."""
+    """Just make sure flank is never smaller than conserved"""
     LOG.debug('editing')
     adj = wi.get_adjustment()
     flank = gui.iface.tempspace.flank
@@ -187,7 +187,7 @@ def edit(wi, gui):
 
 
 def start_gbl(gui, run_after=None):
-    """Set-up the Gblocks thread. This cannot be reached if Gblocks shall be skipped."""
+    """Set-up the Gblocks thread. This cannot be reached if Gblocks shall be skipped"""
     data, iface = gui.data, gui.iface
     if not data.genes:
         LOG.debug('abort Gblocks')
@@ -236,7 +236,7 @@ def start_gbl(gui, run_after=None):
 
 
 def do_gbl(gui):
-    """Run the Gblocks thread."""
+    """Run the Gblocks thread"""
     data, iface = gui.data, gui.iface
 
     errors = list()

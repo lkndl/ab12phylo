@@ -94,20 +94,20 @@ def show_message_dialog(message, list_to_print=None):
     LOG.debug('showed a message')
 
 
-def show_notification(gui, msg, items=None, transient=False):
+def show_notification(gui, msg, items=None, stay_secs=False):
     revealer, iface = gui.iface.revealer, gui.iface
     iface.reveal_title.set_text(msg)
     iface.reveal_list.props.parent.props.visible = items
     if items:
         iface.reveal_list.props.buffer.props.text = '\n'.join(items)
-    gui.iface.revealer.set_transition_duration(500 if transient else 250)
+    gui.iface.revealer.set_transition_duration(stay_secs / 4 if stay_secs else 250)
     revealer.set_reveal_child(True)
-    if transient:
-        threading.Thread(target=hide, args=[revealer]).start()
+    if stay_secs:
+        threading.Thread(target=hide, args=[revealer, stay_secs]).start()
 
 
-def hide(revealer):
-    sleep(2)
+def hide(revealer, stay_for):
+    sleep(stay_for)
     revealer.set_reveal_child(False)
 
 
@@ -194,7 +194,7 @@ def proceed(widget, gui=None, page=None):
 
 
 def step_back(widget, gui):
-    """Go back to the previous page; set it to un-changed; re-view."""
+    """Go back to the previous page; set it to un-changed; re-view"""
     data, iface = gui.data, gui.iface
     iface.notebook.prev_page()
     data.page = iface.notebook.get_current_page()
@@ -252,7 +252,7 @@ def select_gene_and_redo(gui, *args):
 
 
 def get_column(list_store, col_idx):
-    """Extract a column from a Gtk.ListStore, because they are annoying."""
+    """Extract a column from a Gtk.ListStore, because they are annoying"""
     col = list()
     for row in list_store:
         col.append(row[col_idx])
@@ -285,7 +285,7 @@ def load_colorbar(gtk_image, wd):
         gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
             str(wd / PATHS.cbar), width=250, height=100, preserve_aspect_ratio=True))
     except FileNotFoundError:
-        pass  # TODO check if enough
+        pass
 
 
 def get_height_resize(widget, event, spacer, scroll_wins, lower=0):
@@ -336,7 +336,7 @@ def scale(gtk_bin, x, y):
 
 
 def x_scale(adj, gui, zoom_ns):
-    """Horizontally scale a preview."""
+    """Horizontally scale a preview"""
     with GObject.signal_handler_block(adj, zoom_ns.handle):
         a = adj.props
         page = gui.iface.notebook.get_current_page()
@@ -454,6 +454,24 @@ def update(iface, page):
         iface.notebook.get_children()[page].set_sensitive(True)
         [wi.set_visible(False) for wi in [iface.prog_bar, iface.prog_label]]
         return False
+
+
+def update_ML(iface, page, ml):
+    """
+    Extract the numbers of finished tree searches / bootstrap
+    iterations from the RAxML output to update the progress bar.
+    """
+    if ml.key:
+        seen_set = ml.seen[ml.key]
+        motif = ml.motifs[ml.key]
+        for line in ml.stdout[len(ml.stdout) - 20:]:
+            if motif in line:
+                try:
+                    seen_set.add(int(line.split(motif)[1].split(',')[0]))
+                except ValueError:
+                    pass
+        iface.i = len(seen_set) + ml.prev
+    return update(iface, page)
 
 
 def bind_accelerator(accelerators, widget, accelerator, signal='clicked'):

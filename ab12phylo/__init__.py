@@ -2,7 +2,7 @@
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.3a.13'
-__date__ = '12 January 2021'
+__version__ = '0.3a.14'
+__date__ = '14 January 2021'
 __license__ = 'MIT'
 __status__ = 'Alpha'

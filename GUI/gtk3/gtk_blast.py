@@ -26,7 +26,7 @@ PAGE = 5
 
 
 def init(gui):
-    """Initialize the page. Connect buttons."""
+    """Initialize the page. Connect buttons"""
     data, iface = gui.data, gui.iface
 
     iface.pill2kill = threading.Event()
@@ -191,7 +191,7 @@ def refresh(gui):
 
 
 def start_BLAST(widget, gui, mode, *args):
-    """ Set-up the BLAST thread. """
+    """Set-up the BLAST thread"""
     data, iface = gui.data, gui.iface
 
     if 'blast_wrapper' in iface:
@@ -294,7 +294,7 @@ def stop_BLAST(gui, tup):
     iface.pill2kill.clear()
     im, la, tx, gene = tup
 
-    _re_fill(gui, gene)
+    _re_fill(gui, gene, fresh=True)
     gui.iface.blast_help_stack.set_visible_child_name('sp_info')
 
     iface.blast_spinner.stop()
@@ -332,13 +332,13 @@ def _df_with_sp(path):
     return df
 
 
-def _re_fill(gui, gene=None):
-    """ Re-fill the species annotation table."""
+def _re_fill(gui, gene=None, fresh=False):
+    """Re-fill the species annotation table"""
     data, iface = gui.data, gui.iface
     LOG.debug('re-fill species annotations')
     if not gene:
         gene = iface.blast_gene.get_active_text()
-    if 'df' not in iface.tempspace:
+    if 'df' not in iface.tempspace or fresh:
         iface.tempspace.df = _df_with_sp(gui.wd / PATHS.tsv)
     df = iface.tempspace.df
     data.sp_model.clear()

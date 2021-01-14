@@ -39,7 +39,7 @@ class app(Gtk.Application):
 
     def do_shutdown(self):
         # delete data if it was in the prelim directory
-        if self.wd == Path.cwd() / 'untitled':
+        if self.wd == Path('untitled'):  # Path.cwd() / 'untitled':
             LOG.info('shutdown: delete prelim data')
             shutil.rmtree(path=self.wd)
         Gtk.Application.do_shutdown(self)
@@ -89,7 +89,8 @@ class app(Gtk.Application):
 
         # set up preliminary working directory
         self.project_path = None
-        self.wd = Path.cwd() / 'untitled'
+        # self.wd = Path.cwd() / 'untitled'
+        self.wd = Path('untitled')
         Path.mkdir(self.wd, exist_ok=True)
 
         # get some CSS styling
@@ -179,7 +180,7 @@ class app(Gtk.Application):
         gtk_ml.init(self)
         gtk_tree.init(self)
 
-        # self.load('test.proj')
+        self.load('ttest.proj')
 
     def new(self, action, confirm=True, *args):
         """
@@ -198,7 +199,8 @@ class app(Gtk.Application):
                 return
         LOG.debug('new project')
         self.data.new_project()
-        self.wd = Path.cwd() / 'untitled'
+        # self.wd = Path.cwd() / 'untitled'
+        self.wd = Path('untitled')
         self.project_path = None
         self.win.set_title('AB12PHYLO [untitled]')
         self.iface.notebook.set_current_page(0)
@@ -282,7 +284,7 @@ class app(Gtk.Application):
             shutil.copytree(src=self.wd, dst=new_wd)  # not dirs_exist_ok=True
 
             # delete old data if it was in the prelim directory
-            if self.wd == Path.cwd() / 'untitled':
+            if self.wd == Path('untitled'):  # Path.cwd() / 'untitled':
                 shutil.rmtree(path=self.wd)
 
             self.wd = new_wd
@@ -291,7 +293,7 @@ class app(Gtk.Application):
                 gtk_msa.refresh_paths(self)
 
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
-        shared.show_notification(self, 'saved project', transient=True)
+        shared.show_notification(self, 'saved project', stay_secs=2)
 
     def save_as(self, *args):
         """

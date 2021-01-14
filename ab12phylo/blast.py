@@ -27,7 +27,7 @@ from ab12phylo import cli, phylo
 
 
 def _add_xml(*args):
-    """Entry point for adding BLAST results."""
+    """Entry point for adding BLAST results"""
     logger = logging.getLogger(__name__)
     # if no argument -> default to cwd
     args = sys.argv[1:]
@@ -431,7 +431,7 @@ class blast_build(threading.Thread):
         return not_found
 
     def _write_missing(self, not_found):
-        """ Save missing sequences to file """
+        """Save missing sequences to file"""
         if not not_found:
             self.log.info('all sequences found')
             return
