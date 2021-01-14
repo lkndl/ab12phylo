@@ -17,11 +17,10 @@ from matplotlib.colorbar import ColorbarBase
 import static
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk, GObject
 
 from static import PATHS
 from GUI.gtk3 import shared, gtk_rgx
-
 from ab12phylo.filter import trim_ends, mark_bad_stretches
 
 LOG = logging.getLogger(__name__)
@@ -47,7 +46,7 @@ def init(gui):
     for w_name in ['min_phred', 'trim_out', 'trim_of', 'bad_stretch']:
         wi = iface.__getattribute__(w_name)
         data.qal.__setattr__(w_name, int(wi.get_text()))
-        wi.connect('changed', _edit_numerical_entry)
+        wi.connect('changed', shared.edit_numerical_entry)
         wi.connect('focus_out_event', parse, gui)
     iface.min_phred.disconnect_by_func(parse)  # MARK leave this line alone
 
@@ -55,7 +54,7 @@ def init(gui):
         data.qal.__setattr__(w_name, iface.__getattribute__(w_name).get_active())
 
     for wi in [iface.trim_out, iface.trim_of, iface.bad_stretch]:
-        wi.connect('key-press-event', _edit_numerical_entry_up_down)
+        wi.connect('key-press-event', shared.edit_numerical_entry_up_down)
 
     # init row annotation
     iface.view_qal.set_model(data.qal_model)
@@ -123,8 +122,8 @@ def parse(widget, event, gui):
     pre = None
     try:
         pre = data.qal.__getattribute__(w_name)
-    except KeyError:
-        exit('%s not in q_params' % w_name)
+    except (KeyError, AttributeError):
+        LOG.error('%s not in params' % w_name)
     # getting new value depends on widget type
     if widget == iface.gene_roll:
         now = widget.get_active_text()
@@ -167,6 +166,7 @@ def start_trim(gui):
         gtk_rgx.start_read(gui, run_after=[start_trim])
         return
 
+    data.gene_ids = {g: set(gd.keys()) for g, gd in data.seqdata.items()}
     data.qal.accept_rev = iface.accept_rev.get_active()
     parse(iface.min_phred, None, gui)  # annoying SpinButton
 
@@ -183,7 +183,7 @@ def start_trim(gui):
 def do_trim(gui):
     """
     Iterate over records and trim, create a matrix representation
-    of valid characters and plot as seaborn heatmap.
+    of the valid characters and plot it.
     :param gui:
     :return:
     """
@@ -203,18 +203,18 @@ def do_trim(gui):
     shared_ids = set.intersection(*data.gene_ids.values())
 
     try:
-        for record_id, gene in data.record_order:
+        for rid, gene in data.record_order:
             # skip records from other genes for the trimming preview
             if gene not in genes_for_preview or \
-                    gene in ignore_ids and record_id in ignore_ids[gene]:
+                    gene in ignore_ids and rid in ignore_ids[gene]:
                 continue
 
             iface.i += 1
             # maybe skip reversed seqs
-            if not p.accept_rev and data.metadata[gene][record_id]['is_rev']:
+            if not p.accept_rev and data.metadata[gene][rid]['is_rev']:
                 continue
 
-            record = data.seqdata[gene][record_id]
+            record = data.seqdata[gene][rid]
             try:
                 record = trim_ends(record, p.min_phred, (p.trim_out, p.trim_of), trim_preview=True)
                 record = mark_bad_stretches(record, p.min_phred, p.bad_stretch)
@@ -222,7 +222,7 @@ def do_trim(gui):
                 row = static.seqtoint(record)
             except AttributeError:
                 # accept references anyway, but maybe skip no-phred ones
-                is_ref = 'accession' in data.metadata[gene][record_id]
+                is_ref = 'accession' in data.metadata[gene][rid]
                 if not is_ref and not p.accept_nophred:
                     continue
                 has_qal, is_bad = is_ref, False
@@ -231,8 +231,8 @@ def do_trim(gui):
                 has_qal, is_bad = True, True
                 row = static.seqtogray(record)
             rows.append(row)
-            underline = not has_qal if record.id in shared_ids else 4
-            data.qal_model.append([record.id, gene, underline, is_bad])
+            underline = not has_qal if rid in shared_ids else 4
+            data.qal_model.append([rid, gene, underline, is_bad])
 
     except KeyError as ke:
         LOG.error(ke)
@@ -335,23 +335,6 @@ def delete_event(widget, event):
     return False
 
 
-def _edit_numerical_entry_up_down(widget, event):
-    key = Gdk.keyval_name(event.keyval)
-    if key == 'Up':
-        widget.set_text(str(1 + int(widget.get_text())))
-        return True
-    elif key == 'Down':
-        widget.set_text(str(max(0, -1 + int(widget.get_text()))))
-        return True
-
-
-def _edit_numerical_entry(widget):
-    LOG.debug('editing')
-    # filter for numbers only
-    value = ''.join([c for c in widget.get_text() if c.isdigit()])
-    widget.set_text(value if value else '')  # entering 0 is annoying
-
-
 def trim_all(gui, run_after=None):
     """
     Trim all SeqRecords in project_dataset.seqdata to sequence strings
@@ -383,7 +366,7 @@ def trim_all(gui, run_after=None):
             record = genedata.pop(_id)
             record_meta = genemeta[_id]
 
-            if _id in ignore_ids[gene]:
+            if gene in ignore_ids and _id in ignore_ids[gene]:
                 record_meta['quality'] = 'manually dropped at trim_data'
                 continue
             if not p.accept_rev and record_meta['is_rev']:
@@ -420,7 +403,8 @@ def trim_all(gui, run_after=None):
 
         genemeta = data.metadata[gene]
         for _id in {_id for _id in genedata.keys() if _id not in shared_ids}:
-            genemeta[_id]['quality'] = 'not in all genes'
+            if 'quality' not in genemeta[_id]:
+                genemeta[_id]['quality'] = 'not in all genes'
 
     LOG.debug('writing metadata, deleting seqdata')
     shared.write_metadata(gui)

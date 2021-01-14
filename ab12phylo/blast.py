@@ -284,16 +284,15 @@ class blast_build(threading.Thread):
             records = '\n'.join([self.seqdata[self.gene][seq_id].format('fasta')
                                  for seq_id in missing_seqs[run * 10: run * 10 + 10]])
             try:
-                while not self._stop_event.wait(1):
-                    # raise urllib.error.URLError('testing')
-                    handle = NCBIWWW.qblast(program='blastn', database=self.remote_db,
-                                            sequence=records, format_type='XML', hitlist_size=10)
-                    # save as .xml
-                    with open(self.www_XML[run], 'w') as fh:
-                        fh.write(handle.read())
-                    self.log.info('remote BLAST %d:%d complete after %.2f sec' % (run + 1, runs, time() - start))
-                    self._parse_remote_result([self.www_XML[run]])
-                    sleep(sleep_time)
+                # raise urllib.error.URLError('testing')
+                handle = NCBIWWW.qblast(program='blastn', database=self.remote_db,
+                                        sequence=records, format_type='XML', hitlist_size=10)
+                # save as .xml
+                with open(self.www_XML[run], 'w') as fh:
+                    fh.write(handle.read())
+                self.log.info('remote BLAST %d:%d complete after %.2f sec' % (run + 1, runs, time() - start))
+                self._parse_remote_result([self.www_XML[run]])
+                sleep(sleep_time)
             except urllib.error.URLError as offline:
                 self.log.warning('online BLAST aborted, no internet connection')
                 return

@@ -13,6 +13,7 @@ import gi
 import pandas as pd
 import requests
 from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 
 import static
 
@@ -20,7 +21,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
 from GUI.gtk3 import shared
-from ab12phylo.filter import new_version
+from ab12phylo.filter import new_id, new_version
 
 LOG = logging.getLogger(__name__)
 PAGE = 1
@@ -217,13 +218,11 @@ def parse_all(widget, gui):
         shared.set_changed(gui, PAGE, changed)
         shared.set_errors(gui, PAGE, errors)
         data.rx_fired[2:5] = [True] * 3
-        if shared.get_errors(gui, PAGE) and sum(data.rx_fired) >= 5:
-            refresh(gui)
     else:
         parse_single_group(None, gui, iface.well_rx, 2, False)
         parse_single_group(None, gui, iface.gene_rx, 4, False)
-        if iface.plates:
-            parse_single_group(None, gui, iface.plate_rx, 3, False)
+    if iface.plates:
+        parse_single_group(iface.wp_apply, gui, iface.wp_rx, 2, False)
     if iface.reverse_rx_chk.get_active():
         parse_single_group(None, gui, iface.reverse_rx, 6, False)
     if shared.get_errors(gui, PAGE) and sum(data.rx_fired) >= 5:
@@ -354,6 +353,20 @@ def refresh(gui):
                         data.trace_store[i][7] = iface.BLUE
                         break
 
+    # check the dataset for versionized entries
+    appears = dict()
+    for w, p, g in shared.get_column(data.trace_store, (2, 3, 4)):
+        if w not in appears:
+            appears[w] = {p: {g: 1}}
+        elif p not in appears[w]:
+            appears[w][p] = {g: 1}
+        else:
+            appears[w][p][g] = appears[w][p].get(g, 0) + 1
+
+    for row in data.trace_store:
+        if appears[row[2]][row[3]][row[4]] > 1:
+            row[-1] = iface.PURPLE
+
 
 def reload_ui_state(gui):
     data, iface = gui.data, gui.iface
@@ -448,7 +461,7 @@ def do_read(gui):
         file, box = row[1:3]
         if box in data.csvs:
             errors.add('overwrite wellsplate %s with %s' % (box, file))
-        data.csvs[box] = df
+        data.csvs[box] = df.to_dict()
         iface.i += 1
 
     # read in trace files
@@ -469,39 +482,34 @@ def do_read(gui):
             except UnicodeDecodeError:
                 errors.add('Seq file error %s' % file)
 
+        # any kind of seq can define a new gene
+        if gene not in data.seqdata:
+            data.seqdata[gene] = dict()
+            data.metadata[gene] = dict()
+            data.genes = sorted(set(data.genes) | {gene})
+        keys = list(data.seqdata[gene].keys()) if gene in data.seqdata else list()
+
         # iterate over records found in file (usually only one)
         for record in records:
-
-            # any kind of seq can define a new gene
-            if gene not in data.seqdata:
-                data.seqdata[gene] = dict()
-                data.metadata[gene] = dict()
-                data.genes = sorted(set(data.genes) | {gene})
-            elif record.id in data.seqdata[gene]:
-                warnings.add('duplicate ID %s' % record.id)
-                # add suffix to duplicate IDs
-                record = new_version(record, data.seqdata[gene].keys())
-
-            # normal sequence
-            if not is_ref:
+            if not is_ref:  # normal sequence
                 try:
                     # swap out well coordinates for isolate numbers
                     (y, x) = (int(coords[1:]), coords[0])
-                    record.id = data.csvs[box].loc[y, x]
+                    _id = data.csvs[box][x][y]
+                    if _id in keys:
+                        # add suffix to duplicate IDs
+                        warnings.add('duplicate ID %s' % _id)
+                        _id = new_id(_id, keys)
                 except (KeyError, ValueError):
                     if len(data.csvs) == 0:
                         # record.id = record.name.replace(gene, '')
                         if box in ['', ' ', '-', '_']:
-                            record.id = coords.upper()
+                            _id = coords.upper()
                         else:
-                            record.id = box + '_' + coords
+                            _id = box + '_' + coords
                     else:
                         errors.add('missing %s on wellsplate %s' % (coords, box))
-
                 attributes = {'file': file_path, 'box': box, 'is_rev': is_rev}
-
-                if is_rev:
-                    record = record.reverse_complement(record.id, description='')
 
             else:  # reference
                 # parse species and possibly strain
@@ -529,20 +537,19 @@ def do_read(gui):
                     _id = 'REF_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
                     lookup[strain] = _id
 
-                if is_rev:  # strange but possible
-                    record = record.reverse_complement(record.id)
-
                 # save original id+description
                 attributes = {'file': file_path, 'accession': accession, 'is_rev': is_rev,
                               'reference_species': species + ' strain ' + strain}
-                record.id = _id
-                record.description = ''  # do not delete deletion
 
+            if is_rev:  # strange but possible
+                record = record.reverse_complement(record.id)
+            record = SeqRecord(record.seq, _id, description='', name='',
+                               letter_annotations=getattr(record, 'letter_annotations'))
             # save SeqRecord
-            data.seqdata[gene][record.id] = record
-            data.metadata[gene][record.id] = attributes
-            # save the order of all records, and whether they are skipped
-            data.record_order.append((record.id, gene))
+            data.seqdata[gene][_id] = record
+            data.metadata[gene][_id] = attributes
+            # save the order of all records
+            data.record_order.append([_id, gene])
 
         iface.i += 1
 

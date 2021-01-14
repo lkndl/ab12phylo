@@ -1017,6 +1017,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <object class="GtkScrolledWindow">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="tooltip-markup" translatable="yes">Fix entries in red, and fill out the &lt;b&gt;gene&lt;/b&gt; column for references in blue-green. Entries in purple map to the same sample ID but do not require immediate attention.</property>
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
                                     <property name="shadow-type">in</property>
@@ -4170,8 +4171,8 @@ Alternatively, a color legend would nicely fit here.</property>
                         <property name="column-spacing">10</property>
                         <child>
                           <object class="GtkStackSidebar">
-                            <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="no-show-all">True</property>
                             <property name="hexpand">False</property>
                             <property name="stack">ml_stack</property>
                           </object>
@@ -4227,7 +4228,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="margin-start">12</property>
-                            <property name="hexpand">True</property>
+                            <property name="hexpand">False</property>
                             <property name="vexpand">True</property>
                             <child>
                               <!-- n-columns=2 n-rows=10 -->
@@ -4476,7 +4477,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="hexpand">False</property>
                                     <property name="vexpand">False</property>
                                     <property name="spacing">3</property>
                                     <child>
@@ -4574,7 +4574,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="vexpand">False</property>
                                     <property name="max-length">10</property>
                                     <property name="width-chars">6</property>
-                                    <property name="text" translatable="yes">random</property>
+                                    <property name="placeholder-text" translatable="yes">random</property>
                                     <property name="input-purpose">number</property>
                                   </object>
                                   <packing>
@@ -4591,7 +4591,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="halign">end</property>
                                     <property name="hexpand">False</property>
                                     <property name="wrap-width">3</property>
-                                    <property name="active">0</property>
                                     <property name="has-entry">True</property>
                                     <property name="entry-text-column">0</property>
                                     <property name="id-column">0</property>
@@ -4909,11 +4908,12 @@ Alternatively, a color legend would nicely fit here.</property>
                         </child>
                         <child>
                           <object class="GtkScrolledWindow">
+                            <property name="width-request">500</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="hexpand">True</property>
                             <property name="vexpand">True</property>
-                            <property name="hscrollbar-policy">never</property>
+                            <property name="hscrollbar-policy">always</property>
                             <property name="shadow-type">in</property>
                             <child>
                               <object class="GtkTextView" id="ml_help">
@@ -4922,12 +4922,13 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="can-focus">True</property>
                                 <property name="pixels-below-lines">2</property>
                                 <property name="editable">False</property>
-                                <property name="wrap-mode">word-char</property>
+                                <property name="wrap-mode">word</property>
                                 <property name="left-margin">10</property>
                                 <property name="right-margin">10</property>
                                 <property name="top-margin">10</property>
                                 <property name="bottom-margin">10</property>
                                 <property name="indent">-12</property>
+                                <property name="cursor-visible">False</property>
                                 <property name="monospace">True</property>
                                 <style>
                                   <class name="codeview"/>
@@ -5303,6 +5304,9 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="headers-visible">False</property>
                                             <property name="show-expanders">False</property>
                                             <property name="rubber-banding">True</property>
+                                            <child internal-child="selection">
+                                              <object class="GtkTreeSelection"/>
+                                            </child>
                                             <style>
                                               <class name="seqid"/>
                                             </style>

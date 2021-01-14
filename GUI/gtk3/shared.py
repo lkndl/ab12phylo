@@ -2,14 +2,17 @@
 
 import hashlib
 import logging
+import re
+import threading
 from argparse import Namespace
 from time import sleep
-import threading
 
 import gi
+from time import time
 import pandas as pd
 
 from ab12phylo import msa
+from gtk_qal import LOG
 from static import PATHS, USER, SEP, BUF_SIZE
 
 gi.require_version('Gtk', '3.0')
@@ -26,6 +29,12 @@ REFRESH = [module.refresh for module in [gtk_io, gtk_rgx, gtk_qal, gtk_msa,
 RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim, 4: gtk_gbl.start_gbl}
 # where the gene selector is visible
 SELECT = {2}
+
+regex = re.compile('\\.[\\d]+$')
+
+
+def _inc_priv_timestamp():
+    return str(time()).replace('.', '')[6:]
 
 
 def get_errors(gui, page):
@@ -167,7 +176,13 @@ def proceed(widget, gui=None, page=None):
         elif page == 4:
             gtk_gbl.start_gbl(gui)
         elif page == 5:
-            gtk_blast.start_BLAST(gui)
+            try:
+                iface.tempspace.df.to_csv(gui.wd / PATHS.tsv,
+                                          sep='\t', na_rep='',
+                                          header=True, index=True)
+                set_changed(gui, 5, False)
+            except Exception as ex:
+                LOG.exception(ex)
         elif page == 6:
             gtk_ml.start_ML(gui)
         set_changed(gui, page, False)
@@ -500,6 +515,8 @@ def save_row_edits(cell, path, new_text, tv, col):
 def delete_files_from_input_selection(widget, gui, page, selection, delete_all=False):
     if delete_all:
         delete_all.clear()
+        if widget == gui.iface.delete_all_trace:
+            gui.data.trace_store.clear()
     else:
         model, iterator = selection.get_selected_rows()
         [model.remove(model.get_iter(row)) for row in reversed(sorted(iterator))]
@@ -519,6 +536,8 @@ def delete_and_ignore_rows(widget, event, gui, page, sel, ns):
         for row in reversed(sorted(tree_path_iterator)):
             if page == 2:
                 _id, gene = model[row][:2]
+                _id = shift_versions_down_on_deletion(
+                    _id, gui.data.seqdata[gene], gui.data.metadata[gene])
                 if gene in ns.ignore_ids:
                     ns.ignore_ids[gene].add(_id)
                 else:
@@ -535,6 +554,36 @@ def delete_and_ignore_rows(widget, event, gui, page, sel, ns):
         elif page == 4:
             gui.iface.view_gbl.grab_focus()
             gtk_gbl.drop_seqs(gui)
+
+
+def shift_versions_down_on_deletion(_id, genedata, genemeta):
+    match = regex.search(_id)
+    if match:
+        next_v = int(_id[match.start() + 1:]) + 1
+        stem = _id[:match.start()]
+    else:
+        next_v = 1
+        stem = _id
+
+    # move entry out of the way
+    r = genedata.pop(_id)
+    r.id = _id + '_' + _inc_priv_timestamp()
+    genedata[r.id] = r
+    genemeta[r.id] = genemeta.pop(_id)
+    genemeta[r.id]['quality'] = 'manually dropped at trim_data'
+
+    next_id = '%s.%d' % (stem, next_v)
+    while next_id in genedata:
+        # re-organize seqdata and metadata
+        r = genedata.pop(next_id)
+        r.id = stem if next_v == 1 else '%s.%d' % (stem, next_v - 1)
+        genedata[r.id] = r
+        genemeta[r.id] = genemeta.pop(next_id)
+
+        next_v += 1
+        next_id = '%s.%d' % (stem, next_v)
+
+    return '%s.%d' % (stem, next_v - 1) if next_v > 1 else _id
 
 
 def write_metadata(gui):
@@ -567,7 +616,7 @@ def init_gene_roll(gui):
         if len(genes) > 1:
             iface.gene_roll.insert_text(0, 'all')
             genes.insert(0, 'all')
-        if data.gene_for_preview:
+        if data.gene_for_preview and data.gene_for_preview in genes:
             idx = genes.index(data.gene_for_preview)
         else:
             idx = 0
@@ -641,3 +690,19 @@ class bump_log_level:
 
     def __exit__(self, exit_type, exit_value, exit_traceback):
         logging.disable(logging.NOTSET)
+
+
+def edit_numerical_entry_up_down(widget, event):
+    key = Gdk.keyval_name(event.keyval)
+    if key == 'Up':
+        widget.set_text(str(1 + int(widget.get_text())))
+        return True
+    elif key == 'Down':
+        widget.set_text(str(max(0, -1 + int(widget.get_text()))))
+        return True
+
+
+def edit_numerical_entry(widget):
+    # filter for numbers only
+    value = ''.join([c for c in widget.get_text() if c.isdigit()])
+    widget.set_text(value if value else '')  # entering 0 is annoying

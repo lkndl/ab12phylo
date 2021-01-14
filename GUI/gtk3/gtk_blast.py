@@ -11,7 +11,7 @@ from time import sleep
 import gi
 import pandas as pd
 from Bio import SeqIO
-from numpy import isnan
+from numpy import isnan, nan
 
 from ab12phylo import blast
 
@@ -43,7 +43,8 @@ def init(gui):
     iface.xml_import.connect('file_set', start_BLAST, gui, None)
     iface.blast_exe.connect('file_set', lambda *args: start_prep(gui, iface.blast_exe.get_filename()))
     iface.blast_db.connect('button-release-event', lambda co, *args: co.
-                             popdown() if co.props.popup_shown else co.popup())
+                           popdown() if co.props.popup_shown else co.popup())
+    iface.blast_gene.connect('changed', lambda *args: _re_fill(gui))
 
     # set up the species annotation table
     spi = iface.sp_info
@@ -53,17 +54,14 @@ def init(gui):
     spi.set_reorderable(True)
     for i, title in enumerate(['sample', 'pid', 'species', 'runner-up']):
         crt = Gtk.CellRendererText(editable=True)
-        crt.connect('edited', shared.save_row_edits, spi, i)
+        crt.connect('edited', _save_sp_edit, spi, i, gui)
         col = Gtk.TreeViewColumn(title=title, cell_renderer=crt, text=i)
         col.set_sort_column_id(i)
         col.set_resizable(True)
         spi.append_column(col)
     spi.columns_autosize()
 
-    # look for BLAST+ executable on the $PATH and in the dataset; fill db_info table
-    for path in [shutil.which('blastn'), data.blast_path]:
-        if start_prep(gui, path):
-            break
+    iface.blast_seen = False
 
 
 def start_prep(gui, path):
@@ -73,7 +71,7 @@ def start_prep(gui, path):
     path = Path(path).resolve()
     if path.is_file():
         path = path.parent  # path is supposed to be a directory!
-    gui.data.blast_path = path
+    data.blast_path = path  # save path to executable in project
     iface.thread = threading.Thread(target=do_prep, args=[gui, path])
     iface.running = True
     iface.thread.start()
@@ -110,7 +108,7 @@ def do_prep(gui, path):
                                  text=i + 1, underline=4)
         col.set_resizable(True)
         tv.append_column(col)
-
+    sleep(.1)
     # look for locally installed databases
     try:
         output = subprocess.check_output(
@@ -128,7 +126,7 @@ def do_prep(gui, path):
                     pass  # if directory does not exist or is empty
     except subprocess.CalledProcessError as ex:
         LOG.error(ex)
-
+    sleep(.2)
     # look for online pre-compiled databases
     try:
         output = subprocess.check_output('update_blastdb.pl --source gcp --showall tsv',
@@ -155,7 +153,7 @@ def do_prep(gui, path):
     sel.select_path(0)
     iface.blast_db.connect('changed', lambda *args: sel.select_path(iface.blast_db.get_active()))
 
-    sleep(.1)
+    sleep(.2)
     GObject.idle_add(stop_prep, gui)
     return True
 
@@ -165,12 +163,19 @@ def stop_prep(gui):
     iface.running = False
     iface.thread.join()
     LOG.info('BLAST prep done')
-    return
+    return False
 
 
 def refresh(gui):
     """Re-view the page. Re-load the current genes to the marker-gene selector"""
     data, iface = gui.data, gui.iface
+
+    if not iface.blast_seen:
+        # look for BLAST+ executable on the $PATH and in the dataset; fill db_info table
+        for path in [shutil.which('blastn'), data.blast_path]:
+            if start_prep(gui, path):
+                break
+        iface.blast_seen = True
 
     iface.blast_gene.remove_all()
     genes = list(data.genes)
@@ -199,7 +204,7 @@ def start_BLAST(widget, gui, mode, *args):
 
     iface.blast_spinner.start()
     iface.spinbox.set_visible(True)
-    gene = gui.iface.blast_gene.get_active_text()
+    gene = iface.blast_gene.get_active_text()
     if mode == 'local':
         fasta = gui.wd / gene / (gene + '.fasta')
         if not fasta.is_file():
@@ -289,16 +294,7 @@ def stop_BLAST(gui, tup):
     iface.pill2kill.clear()
     im, la, tx, gene = tup
 
-    # re-fill the table
-    gui.data.sp_model.clear()
-    df = pd.read_csv(gui.wd / PATHS.tsv, sep='\t', dtype={'id': str})
-    df = df.set_index('id')
-    df = df.loc[df['gene'] == gene]
-    df.extra_species.fillna('', inplace=True)
-    df.BLAST_species.fillna('', inplace=True)
-    for sample, r in df.iterrows():
-        pid = '' if isnan(r.pid) else '%.2f' % r.pid if r.pid < 100 else '100'
-        gui.data.sp_model.append([sample, pid, r.BLAST_species, r.extra_species])
+    _re_fill(gui, gene)
     gui.iface.blast_help_stack.set_visible_child_name('sp_info')
 
     iface.blast_spinner.stop()
@@ -317,6 +313,58 @@ def _save_custom_remote_db(entry, *args):
         tx = entry.get_text()
         combo.get_model().append([tx, -1])
         LOG.debug('entered remote_db %s' % tx)
+
+
+def _df_with_sp(path):
+    LOG.debug('reading df')
+    df = pd.read_csv(path, sep='\t', dtype={'id': str})
+    df = df.set_index('id')
+    if 'BLAST_species' not in df:
+        df['BLAST_species'] = ''
+    else:
+        df.BLAST_species.fillna('', inplace=True)
+    if 'extra_species' not in df:
+        df['extra_species'] = ''
+    else:
+        df.extra_species.fillna('', inplace=True)
+    if 'pid' not in df:
+        df['pid'] = nan
+    return df
+
+
+def _re_fill(gui, gene=None):
+    """ Re-fill the species annotation table."""
+    data, iface = gui.data, gui.iface
+    LOG.debug('re-fill species annotations')
+    if not gene:
+        gene = iface.blast_gene.get_active_text()
+    if 'df' not in iface.tempspace:
+        iface.tempspace.df = _df_with_sp(gui.wd / PATHS.tsv)
+    df = iface.tempspace.df
+    data.sp_model.clear()
+    df = df.loc[df['gene'] == gene]
+    for sample, r in df.iterrows():
+        pid = '' if isnan(r.pid) else '%.2f' % r.pid if r.pid < 100 else '100'
+        data.sp_model.append([sample, pid, r.BLAST_species, r.extra_species])
+
+
+def _save_sp_edit(cell, path, new_text, tv, col, gui):
+    data, iface = gui.data, gui.iface
+    if 'df' not in gui.iface.tempspace:
+        gui.iface.tempspace.df = _df_with_sp(gui.wd / PATHS.tsv)
+    df = gui.iface.tempspace.df
+    mo = tv.get_model()
+    gene = iface.blast_gene.get_active_text()
+    c2 = {1: 'pid', 2: 'BLAST_species', 3: 'extra_species'}
+    if col == 1:
+        try:
+            new_text = float(new_text)
+        except ValueError:
+            new_text = 0
+    # df.loc[df['gene'] == gene].loc[mo[path][0]][c2[col]] = new_text
+    df.loc[(df.index == mo[path][0]) & (df['gene'] == gene), c2[col]] = new_text
+    shared.save_row_edits(cell, path, str(new_text), tv, col)
+    shared.set_changed(gui, PAGE)
 
 
 def human_bytes(num):

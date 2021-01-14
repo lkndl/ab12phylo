@@ -6,8 +6,7 @@ from pathlib import Path
 
 import gi
 
-import gtk_proj
-import shared
+from GUI.gtk3 import gtk_proj, shared
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -224,6 +223,8 @@ def add_new_entries(model, new_paths, gui, *args):
 
 def scroll_to_end(widget, rectangle, iface, tv, mo):
     """After new entries have been added to it, the TreeView will scroll to its end."""
+    if iface.notebook.get_current_page() != 0:
+        return
     if mo not in iface.file_nums or len(mo) > iface.file_nums[mo]:
         adj = tv.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())

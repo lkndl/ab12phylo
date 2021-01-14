@@ -25,8 +25,8 @@ LOG = logging.getLogger(__name__)
 __verbose__, __info__ = 1, 0
 
 # set the icon theme
-Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
-Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
+Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Maia')
+Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
 
 
 class app(Gtk.Application):
@@ -132,6 +132,7 @@ class app(Gtk.Application):
         iface.BLUE = '#2374AF'
         iface.GREEN = '#23AF46'
         iface.AQUA = '#2EB398'
+        iface.PURPLE = '#8A2BE2'
         iface.tempspace = Namespace()
         sc = self.win.get_style_context()
         iface.FG = '#' + ''.join([(hex(min(int(c * mod2), 255))[2:]).upper()
@@ -178,9 +179,7 @@ class app(Gtk.Application):
         gtk_ml.init(self)
         gtk_tree.init(self)
 
-        self.load('atest.proj')
-
-        # TODO gtk_qal do not re-read if some were removed
+        # self.load('test.proj')
 
     def new(self, action, confirm=True, *args):
         """
@@ -272,7 +271,7 @@ class app(Gtk.Application):
                 LOG.warning('saving failed')
 
         new_wd = self.project_path.parent / self.project_path.stem
-        if new_wd != self.wd:
+        if Path.resolve(new_wd) != Path.resolve(self.wd):
             # in fact saving inside a saveas. -> copy from previous dir
             # clear new location, would be overwritten anyway;
             # doing it this roundabout way to keep compatibility with python3.6

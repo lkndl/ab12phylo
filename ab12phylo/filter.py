@@ -1,7 +1,11 @@
 # 2021 Leo Kaindl
 
-from Bio.Seq import MutableSeq
 import copy
+import re
+
+from Bio.Seq import MutableSeq
+
+regex = re.compile('\\.[\\d]+$')
 
 
 def trim_ends(seqrecord, min_phred, end_ratio, trim_preview=False):
@@ -102,10 +106,18 @@ def new_version(seqrecord, keys):
         pos = seqrecord.id.find('.')
         if pos == -1:
             seqrecord.id += '.1'
-        else:
-            version = int(seqrecord.id[pos + 1:])
-            seqrecord.id = seqrecord.id[:pos + 1] + str(version + 1)
     return seqrecord
+
+
+def new_id(rid, keys):
+    while rid in keys:
+        match = regex.search(rid)
+        if match:
+            rid = rid[:match.start()] + '.' \
+                  + str(int(match.group()[1:]) + 1)
+        else:
+            rid += '.1'
+    return rid
 
 
 def mark_bad_bases(seqrecord, min_phred):

@@ -20,16 +20,13 @@ import static
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-import shared, gtk_qal
+from GUI.gtk3 import shared, gtk_qal
 from ab12phylo import raxml
 from static import PATHS
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 7
-
-
-# TODO layout like align?
 
 
 def init(gui):
