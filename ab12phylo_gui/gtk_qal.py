@@ -10,17 +10,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from Bio import SeqIO
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
+from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
-from matplotlib.colorbar import ColorbarBase
-
-import static
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from static import PATHS
-from GUI.gtk3 import shared, gtk_rgx
+from ab12phylo_gui import static, shared, gtk_rgx
+from ab12phylo_gui.static import PATHS
 from ab12phylo.filter import trim_ends, mark_bad_stretches
 
 LOG = logging.getLogger(__name__)
@@ -152,7 +150,7 @@ def parse(widget, event, gui):
 def start_trim(gui):
     """
     For non-empty gene set, start a background re-drawing thread
-    and return the GUI to the main loop.
+    and return the ab12phylo_gui to the main loop.
     :param gui:
     :return:
     """

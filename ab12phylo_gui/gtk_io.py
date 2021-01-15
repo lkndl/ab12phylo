@@ -6,7 +6,7 @@ from pathlib import Path
 
 import gi
 
-from GUI.gtk3 import gtk_proj, shared
+from ab12phylo_gui import gtk_proj, shared
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -234,7 +234,7 @@ def scroll_to_end(widget, rectangle, iface, tv, mo):
 def refresh(gui, page=PAGE):
     """
     Adjusts the display of the number of selected trace files on the files page
-    and toggles reading wellsplates or not, inactivating respective GUI elements.
+    and toggles reading wellsplates or not, inactivating respective ab12phylo_gui elements.
     :return:
     """
     data, iface = gui.data, gui.iface

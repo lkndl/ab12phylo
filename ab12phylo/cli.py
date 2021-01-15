@@ -16,7 +16,7 @@ import logging
 import argparse
 
 from os import path
-from ab12phylo.__init__ import __version__
+from ab12phylo.__init__ import __version__, __date__
 from ab12phylo.phylo import tree_build, tree_view
 
 
@@ -29,46 +29,50 @@ class parser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
         super().__init__(prog='ab12phylo')
 
-        # if empty commandline show help
-        args = args if len(args[0]) > 0 else (['-h'],) + args[1:]
+        # if empty commandline, show info and help:
+        if not args[0]:
+            print('AB12PHYLO commandline version %s built on %s\n'
+                  'Run GUI with ab12phylo-gui\n'
+                  % (__version__, __date__))
+            args = (['-h'],) + args[1:]
 
         # [modes]
         mod = parser.add_argument_group(self, title='RUN MODES')
         mod.add_argument('-viz', '--visualize', action='store_true',
-                         help='Invoke ab12phylo-visualize by appending ab12phylo cmd.')
+                         help='invoke ab12phylo-visualize by appending ab12phylo cmd.')
         mod.add_argument('-view', '--view', action='store_true',
-                         help='Invoke ab12phylo-view by appending ab12phylo cmd.')
+                         help='invoke ab12phylo-view by appending ab12phylo cmd.')
         parts = mod.add_mutually_exclusive_group()
         parts.add_argument('-p1', '--prepare', action='store_true',
-                           help='Run first part of ab12phylo, including BLAST but excluding RAxML-NG.')
+                           help='run first part of ab12phylo, including BLAST but excluding RAxML-NG.')
         parts.add_argument('-p2', '--finish', action='store_true',
-                           help='Run second part of ab12phylo, beginning with RAxML-NG.')
+                           help='run second part of ab12phylo, beginning with RAxML-NG.')
         parts.add_argument('-px', '--add_xml', action='store_true',
-                           help='After -p1 run; only read BLAST results. Pass file via -xml.')
+                           help='after -p1 run; only read BLAST results. Pass file via -xml.')
 
         # [I/O]
         ion = parser.add_argument_group(self, title='FILE I/O')
         ion.add_argument('-dir', '--dir',
-                         help='Output directory. Defaults to \'./results\'')
+                         help='output directory. Defaults to \'./results\'')
         ion.add_argument('-g', '--genes', nargs='+',
-                         help='Gene(s) to be considered; first argument defines gene for species annotation. '
+                         help='gene(s) to be considered; first argument defines gene for species annotation. '
                               'If set, only ABI traces with a filename matching one of these patterns will be read.')
         ion.add_argument('-abi', '--abi_dir',
-                         help='Root directory of all ABI trace files. Defaults to current working directory',
+                         help='root directory of all ABI trace files. Defaults to current working directory',
                          type=lambda arg: arg if path.isdir(arg) else self.error(
                              '%s: invalid ABI trace file directory' % arg))
         ion.add_argument('-abiset', '--abi_set',
-                         help='Whitelist file defining subset of ABI traces for the analysis. '
+                         help='whitelist file defining subset of ABI traces for the analysis. '
                               'Files must be in or below provided \'--abi_dir\' directory.',
                          type=lambda arg: arg if path.isfile(arg) else self.error(
                              '%s: invalid whitelist file' % arg))
         ion.add_argument('-sampleset', '--sample_set',
-                         help='Whitelist file defining subset of sample IDs for the analysis. '
+                         help='whitelist file defining subset of sample IDs for the analysis. '
                               'Different versions of a sample will be included.',
                          type=lambda arg: arg if path.isfile(arg) else self.error(
                              '%s: invalid sample whitelist' % arg))
         ion.add_argument('-csv', '--csv_dir',
-                         help='Root directory of .csv files with well-to-isolate coordinates.',
+                         help='root directory of .csv files with well-to-isolate coordinates.',
                          type=lambda arg: arg if path.isdir(arg) else 'ignore')
         ion.add_argument('-r2', '--regex_csv', help='RegEx to parse the wellsplate number from a .csv filename. '
                                                     'Use a single capturing group, and double quotes in bash.')
@@ -76,31 +80,31 @@ class parser(argparse.ArgumentParser):
         rxp.add_argument('-r1', '--regex_abi', help='RegEx to parse plate number, gene name and well position '
                                                     'from an .ab1 filename in that order. Use double quotes in bash.')
         rxp.add_argument('-r3', '--regex_3', nargs=3,
-                         help='Alternative to --regex_abi. 3 regular expressions to parse plate number, gene name and '
+                         help='alternative to --regex_abi. 3 regular expressions to parse plate number, gene name and '
                               'well from an .ab1 filename. Provide the regular expressions in that order without commas'
                               ', but with double quotes from bash. Use a single capturing group in each regex.')
         ion.add_argument('-r4', '--regex_rev', help='RegEx to identify reverse reads from their .ab1 filename.')
 
         refs = ion.add_mutually_exclusive_group()
         refs.add_argument('-rf', '--ref', nargs='+',
-                          help='Optional paths of .fasta-formatted files containing reference sequences. '
+                          help='optional paths of .fasta-formatted files containing reference sequences. '
                                'Files will be matched to genes by order if --genes is set, otherwise by filename.',
                           type=lambda arg: arg if path.isfile(arg) else self.error(
                               'invalid file path(s) with .fasta-formatted reference sequences:\n%s' % arg))
         refs.add_argument('-rd', '--ref_dir', type=self._valid_ref_dir,
-                          help='Directory of .fasta files with reference sequences. Files will be matched to genes '
+                          help='directory of .fasta files with reference sequences. Files will be matched to genes '
                                'by their filename. Set only one option from {--ref, --ref_dir}.')
 
         # [quality]
         qal = parser.add_argument_group(self, title='QUALITY')
         qal.add_argument('-qal', '--min_phred', type=int,
-                         help='Minimal phred quality score to define \'good\' bases in ABI trace files.')
+                         help='minimal phred quality score to define \'good\' bases in ABI trace files.')
         qal.add_argument('-bad', '--bad_stretch', type=int,
-                         help='Number of consecutive \'bad bases\': Any sequence of bases in an ABI trace file '
+                         help='number of consecutive \'bad bases\': Any sequence of bases in an ABI trace file '
                               'with a phred quality score below the minimum and at least as long as the number '
                               'supplied here will be replaced by a sequence of Ns of equal length.')
         qal.add_argument('-end', '--end_ratio', type=self._valid_end_ratio,
-                         help='Defines a \'good end\' of a sequence in an ABI trace file for trimming. '
+                         help='defines a \'good end\' of a sequence in an ABI trace file for trimming. '
                               'Enter as "<int>/<int>".')
 
         # [BLAST]
@@ -110,14 +114,14 @@ class parser(argparse.ArgumentParser):
                            help='NCBI BLAST API queries are de-prioritized very quickly. Set this flag to skip online '
                                 'nucleotide BLAST for seqs missing from the local database.')
         skips.add_argument('-none', '--no_BLAST', action='store_true',
-                           help='Skip BLAST entirely.')
+                           help='skip BLAST entirely.')
         skips.add_argument('-remote', '--no_local', action='store_true',
                            help='BLAST only in remote database; discouraged.')
-        skips.add_argument('-xml', '--BLAST_xml', nargs='+', help='Supply available BLAST results as .XML files.')
+        skips.add_argument('-xml', '--BLAST_xml', nargs='+', help='supply available BLAST results as .XML files.')
         bla.add_argument('-db', '--db', help='BLAST+ database to use. Will attempt to download or update this db from '
                                              'https://ftp.ncbi.nlm.nih.gov/blast/db/ unless provided via -dbpath.')
         bla.add_argument('-dbpath', '--dbpath',
-                         help='Path to directory with a BLAST+ database. Set this option for a user-created database '
+                         help='path to directory with a BLAST+ database. Set this option for a user-created database '
                               'or if ab12phylo is not allowed FTP access. You might have to define -db as well.',
                          type=lambda arg: arg if path.isdir(arg) else self.error(
                              'invalid path to directory containing BLAST database'))
@@ -127,71 +131,71 @@ class parser(argparse.ArgumentParser):
         # [MSA]
         msa = parser.add_argument_group(self, title='MSA')
         msa.add_argument('-algo', '--msa_algo', choices=['clustalo', 'mafft', 'muscle', 't_coffee'],
-                         help='Select an algorithm to build the Multiple Sequence Alignment. Default is MAFFT.')
+                         help='select an algorithm to build the Multiple Sequence Alignment. Default is MAFFT.')
         msa.add_argument('-gbl', '--gblocks', choices=['skip', 'relaxed', 'balanced', 'default', 'strict'],
-                         help='Activate/set MSA trimming with Gblocks.')
+                         help='activate/set MSA trimming with Gblocks.')
 
         # [RAxML-NG]
         phy = parser.add_argument_group(self, title='RAxML-NG')
         phy.add_argument('-st', '--start_trees', type=self._valid_start_trees,
-                         help='Numbers of starting trees for raxml-ng tree inference: '
+                         help='numbers of starting trees for raxml-ng tree inference: '
                               '[<int random trees>,<int parsimony-based trees>].')
         phy.add_argument('-bst', '--bootstrap', type=self._valid_bootstrap,
-                         help='Maximum number of bootstrap trees for raxml-ng. MRE bootstrap convergence test may stop '
+                         help='maximum number of bootstrap trees for raxml-ng. MRE bootstrap convergence test may stop '
                               'it before, but is unlikely. https://doi.org/10.1089/cmb.2009.0179')
         phy.add_argument('-evomodel', '--evomodel',
-                         help='Evolutionary model for RAxML-NG. Default is GTR+G, no checks!')
+                         help='evolutionary model for RAxML-NG. Default is GTR+G, no checks!')
         phy.add_argument('-s', '--seed', type=int,
-                         help='Seed value for reproducible tree inference results. Will be random if not set.')
+                         help='seed value for reproducible tree inference results. Will be random if not set.')
         phy.add_argument('-metric', '--metric', choices=['TBE', 'FBP'],
-                         help='Bootstrap support metric: Either Felsenstein Bootstrap Proportions (FBP) '
+                         help='bootstrap support metric: Either Felsenstein Bootstrap Proportions (FBP) '
                               'or Transfer Bootstrap Expectation (TBE). https://doi.org/10.1038/s41586-018-0043-0')
 
         # [visualize]
         viz = parser.add_argument_group(self, title='VISUALIZATION')
         viz.add_argument('result_dir', nargs='?',
-                         help='ONLY FOR AB12PHYLO-VISUALIZE/-VIEW: Path to earlier run. Pass without keyword!')
+                         help='ONLY FOR AB12PHYLO-VISUALIZE/-VIEW: path to earlier run. Pass without keyword!')
         viz.add_argument('-msa_viz', '--msa_viz', nargs='*', choices=['pdf', 'png'],
-                         help='Also render a rectangular tree with MSA color matrix in chosen format(s). '
+                         help='also render a rectangular tree with MSA color matrix in chosen format(s). '
                               'Takes some extra time.')
         viz.add_argument('-threshold', '--threshold', type=float,
-                         help='Limit between 0 and 1 for support value color switch.')
+                         help='limit between 0 and 1 for support value color switch.')
         viz.add_argument('-out_fmt', '--out_fmt', nargs='+', choices=['pdf', 'png', 'svg'],
-                         help='Output file format for tree graphics.')
+                         help='output file format for tree graphics.')
         viz.add_argument('-md', '--min_dist', type=float,
-                         help='Minimal phylogenetic distance between any pair of samples for RAxML-NG.')
+                         help='minimal phylogenetic distance between any pair of samples for RAxML-NG.')
         viz.add_argument('-mpd', '--min_plot_dist', type=float,
-                         help='Minimal artificial distance of a node in the visualization to its parent.')
+                         help='minimal artificial distance of a node in the visualization to its parent.')
         viz.add_argument('-drop', '--drop_nodes', nargs='+', type=int,
-                         help='Drop the node(s) with this idx and its descendants from the tree. '
+                         help='drop the node(s) with this idx and its descendants from the tree. '
                               'Use the motif subtree search to find the node or MRCA idx of the target.')
         viz.add_argument('-replace', '--replace_nodes', nargs='+', type=int,
-                         help='Replace the node(s) with this idx and its descendants with a placeholder.')
-        viz.add_argument('-root', '--root', type=int, help='Root the tree at the node with this index.')
+                         help='replace the node(s) with this idx and its descendants with a placeholder.')
+        viz.add_argument('-root', '--root', type=int, help='root the tree at the node with this index.')
         viz.add_argument('-supp', '--print_supports', action='store_true',
-                         help='Print the support values in percent of the optimal value in the rectangular tree.')
+                         help='print the support values in percent of the optimal value in the rectangular tree.')
 
         # [popgen]
         gen = parser.add_argument_group(self, title='POPULATION GENETICS')
         gen.add_argument('-gap', '--gap_share', type=self._valid_threshold,
-                         help='Maximum share of gaps at an MSA site that will be ignored.')
+                         help='maximum share of gaps at an MSA site that will be ignored.')
         gen.add_argument('-unk', '--unknown_share', type=self._valid_threshold,
-                         help='Maximum acceptable proportion of unknown characters at an MSA site.')
+                         help='maximum acceptable proportion of unknown characters at an MSA site.')
         viz.add_argument('-poly', '--poly_allelic', action='store_true',
-                         help='Accept segregating sites with more than one mutant nucleotide.')
+                         help='accept segregating sites with more than one mutant nucleotide.')
 
         # [misc]
         level = self.add_mutually_exclusive_group()
-        level.add_argument('-i', '--info', action='store_true', help='Show some more information in console output.')
-        level.add_argument('-v', '--verbose', action='store_true', help='Show all runtime information in console.')
+        level.add_argument('-i', '--info', action='store_true', help='show some more information in console output.')
+        level.add_argument('-v', '--verbose', action='store_true', help='show all runtime information in console.')
         self.add_argument('-c', '--config',
                           default=path.abspath(path.join(path.dirname(__file__), 'config', 'config.yaml')),
                           type=lambda arg: arg if path.isfile(arg) else self.error('%s: invalid .config path'),
-                          help='Path to .yaml config file with defaults; command line arguments will override them.')
-        self.add_argument('-version', '--version', action='store_true', help='Print version information and exit.')
+                          help='path to .yaml config file with defaults; command line arguments will override them.')
+        self.add_argument('-version', '--version', action='store_true', help='print version information and exit.')
         self.add_argument('-test', '--test', action='store_true', help='Test run.')
         self.add_argument('-q', '--headless', action='store_true',
-                          help='Do not start a CGI server nor display in browser. For remote use.')
+                          help='do not start a CGI server nor display in browser. For remote use.')
 
         self.args = self.parse_args(args[0])
 

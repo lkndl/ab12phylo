@@ -12,13 +12,12 @@ from time import time
 import pandas as pd
 
 from ab12phylo import msa
-from gtk_qal import LOG
-from static import PATHS, USER, SEP, BUF_SIZE
+from ab12phylo_gui.static import PATHS, USER, SEP, BUF_SIZE
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 
-from GUI.gtk3 import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree
+from ab12phylo_gui import gtk_io, gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree
 
 LOG = logging.getLogger(__name__)
 

@@ -14,9 +14,9 @@ import gi
 
 from ab12phylo.__init__ import __version__, __author__, __email__
 
-from GUI.gtk3 import gtk_proj, shared, gtk_io, gtk_rgx, \
+from ab12phylo_gui.static import BASE_DIR
+from ab12phylo_gui import gtk_proj, shared, gtk_io, gtk_rgx, \
     gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree
-from static import PATHS, BASE_DIR
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Gio, GdkPixbuf
@@ -29,9 +29,9 @@ Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Maia')
 Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
 
 
-class app(Gtk.Application):
-    TEMPLATE = BASE_DIR / 'GUI' / 'files' / 'gui.glade'
-    ICON = BASE_DIR / 'GUI' / 'files' / 'favi.ico'
+class ab12phylo_app(Gtk.Application):
+    TEMPLATE = BASE_DIR / 'ab12phylo_gui' / 'files' / 'gui.glade'
+    ICON = BASE_DIR / 'ab12phylo_gui' / 'files' / 'favi.ico'
 
     def do_activate(self):
         self.add_window(self.win)
@@ -60,13 +60,13 @@ class app(Gtk.Application):
 
         # fetch all named objects from the .glade XML
         iface = dict()
-        for widget in Gtk.Builder().new_from_file(str(app.TEMPLATE)).get_objects():
+        for widget in Gtk.Builder().new_from_file(str(ab12phylo_app.TEMPLATE)).get_objects():
             if widget.find_property('name') and not widget.get_name().startswith('Gtk'):
                 iface[widget.get_name()] = widget
         iface = Namespace(**iface)
         self.iface = iface
         self.win = iface.win
-        self.win.set_icon_from_file(str(app.ICON))
+        self.win.set_icon_from_file(str(ab12phylo_app.ICON))
 
         self.win.set_titlebar(iface.tbar)
         self.win.set_hide_titlebar_when_maximized(True)
@@ -228,11 +228,11 @@ class app(Gtk.Application):
         :param path: a string file path to the project file to load
         :return:
         """
-        self.project_path = Path(path)
-        LOG.debug('got dataset path %s' % self.project_path)
+        project_path = Path(path)
+        LOG.debug('got dataset path %s' % project_path)
         # read in dataset
         try:
-            with open(self.project_path, 'rb') as proj:
+            with open(project_path, 'rb') as proj:
                 new_data = pickle.load(proj)
             # overwrite content in old dataset in-place rather than re-pointing everything
             self.data.overwrite(new_data)
@@ -240,6 +240,7 @@ class app(Gtk.Application):
                 shared.init_gene_roll(self)
             except ValueError as ve:
                 LOG.error(ve)
+            self.project_path = project_path
             self.wd = self.project_path.parent / self.project_path.stem
             Path.mkdir(self.wd, exist_ok=True)
             self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
@@ -329,7 +330,7 @@ class app(Gtk.Application):
                         program_name='AB12PHYLO', version=__version__,
                         website='https://gitlab.lrz.de/leokaindl/ab12phylo',
                         website_label='GitLab Repo', license_type=Gtk.License.MIT_X11,
-                        logo=GdkPixbuf.Pixbuf.new_from_file(str(app.ICON))).present()
+                        logo=GdkPixbuf.Pixbuf.new_from_file(str(ab12phylo_app.ICON))).present()
 
     def _init_log(self, **kwargs):
         self.log.setLevel(logging.DEBUG)
@@ -356,7 +357,11 @@ class app(Gtk.Application):
         self.log.addHandler(sh)
 
 
-if __name__ == '__main__':
-    app = app()
+def _main():
+    app = ab12phylo_app()
     exit_status = app.run(sys.argv)
     sys.exit(exit_status)
+
+
+if __name__ == '__main__':
+    _main()

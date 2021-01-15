@@ -14,8 +14,8 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from GUI.gtk3 import shared
-from static import PATHS, TOOLS
+from ab12phylo_gui import shared
+from ab12phylo_gui.static import PATHS, TOOLS
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)

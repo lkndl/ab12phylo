@@ -18,8 +18,8 @@ from ab12phylo import blast
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from GUI.gtk3 import shared
-from static import PATHS, BASE_DIR, DOWNLOAD_TIMEOUT
+from ab12phylo_gui import shared
+from ab12phylo_gui.static import PATHS, BASE_DIR, DOWNLOAD_TIMEOUT
 
 LOG = logging.getLogger(__name__)
 PAGE = 5

@@ -12,8 +12,8 @@ from Bio import SeqIO
 gi.require_version('Gtk', '3.0')
 from gi.repository import GObject
 
-from GUI.gtk3 import shared
-from static import PATHS, TOOLS, toalgo
+from ab12phylo_gui import shared
+from ab12phylo_gui.static import PATHS, TOOLS, toalgo
 
 LOG = logging.getLogger(__name__)
 PAGE = 3

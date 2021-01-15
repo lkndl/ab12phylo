@@ -4,7 +4,6 @@ import logging
 import shutil
 import subprocess
 import threading
-from argparse import Namespace
 from pathlib import Path
 from time import sleep
 
@@ -16,13 +15,11 @@ from matplotlib.backends.backend_gtk3agg import (
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 
-import static
-
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from GUI.gtk3 import shared
-from static import PATHS
+from ab12phylo_gui import static, shared
+from ab12phylo_gui.static import PATHS
 
 LOG = logging.getLogger(__name__)
 PAGE = 4

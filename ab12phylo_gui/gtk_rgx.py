@@ -15,13 +15,11 @@ import requests
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
-import static
-
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from GUI.gtk3 import shared
-from ab12phylo.filter import new_id, new_version
+from ab12phylo_gui import static, shared
+from ab12phylo.filter import new_id
 
 LOG = logging.getLogger(__name__)
 PAGE = 1

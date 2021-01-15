@@ -1,8 +1,8 @@
 from argparse import Namespace
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[2]
-TOOLS = Path(__file__).resolve().parents[2] / 'ab12phylo' / 'tools'
+BASE_DIR = Path(__file__).resolve().parents[1]
+TOOLS = Path(__file__).resolve().parents[1] / 'ab12phylo' / 'tools'
 
 PATHS = Namespace(**{
     'raw_msa': Path('Trim') / 'raw_msa.fasta',
