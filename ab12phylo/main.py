@@ -42,10 +42,6 @@ def _main():
         # run BLAST and parse results de-synced
         blaster = blast.blast_build(args, reader)
         blaster.start()
-        # import time  # TODO delete
-        # time.sleep(2)
-        # blaster.stop()
-        # print('hi there')
 
         if args.prepare:
             # wait for BLAST if necessary

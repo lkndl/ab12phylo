@@ -8,11 +8,11 @@ written to file. Processes are run in a separate thread due to the Python GIL.
 """
 
 import logging
+import multiprocessing
 import os
 import shutil
 import subprocess
 import sys
-import threading
 import urllib.error
 from math import ceil
 from os import path
@@ -66,7 +66,7 @@ def _add_xml(*args):
     print('BYE!')
 
 
-class blast_build(threading.Thread):
+class blast_build(multiprocessing.Process):
     """
     -none: do nothing
     -xml: read in result files and nothing else
@@ -80,8 +80,8 @@ class blast_build(threading.Thread):
     """
 
     def __init__(self, _args, reader):
-        threading.Thread.__init__(self)
-        self._stop_event = threading.Event()
+        multiprocessing.Process.__init__(self)
+        self._stop_event = multiprocessing.Event()
         self.log = logging.getLogger(__name__)
 
         # modes / variables
@@ -159,12 +159,10 @@ class blast_build(threading.Thread):
             self._blast_remote(not_found)
             return
 
-    def stop(self, timeout=0):
-        if self._stop_event.is_set():
-            return
-        self.log.debug('signal BLAST thread to quit')
+    def stop(self):
+        self.terminate()
         self._stop_event.set()
-        self.join(timeout)
+        self.log.warning('killed BLAST')
 
     def _blast_local(self):
         """
@@ -268,40 +266,41 @@ class blast_build(threading.Thread):
         Updates non-seq data .csv again.
         :return:
         """
-        self.log.warning('online BLAST: %d seq%s missing from %s'
-                         % (len(missing_seqs), 's' if len(missing_seqs) > 1 else '', self.db))
+        while not self._stop_event.wait(1):
+            self.log.warning('online BLAST: %d seq%s missing from %s'
+                             % (len(missing_seqs), 's' if len(missing_seqs) > 1 else '', self.db))
 
-        # run remote NCBI BLAST via Biopython
-        runs = ceil(len(missing_seqs) / 10)
-        self.log.debug('BLASTing online in %d runs.' % runs)
-        # prep file paths
-        self.www_XML = [self.www_XML[:-4] + '_%d.xml' % run for run in range(1, runs + 1)]
+            # run remote NCBI BLAST via Biopython
+            runs = ceil(len(missing_seqs) / 10)
+            self.log.debug('BLASTing online in %d runs.' % runs)
+            # prep file paths
+            self.www_XML = [self.www_XML[:-4] + '_%d.xml' % run for run in range(1, runs + 1)]
 
-        sleep_time = 11 if runs > 1 else 0
-        for run in range(runs):
-            start = time()
-            # create query search string
-            records = '\n'.join([self.seqdata[self.gene][seq_id].format('fasta')
-                                 for seq_id in missing_seqs[run * 10: run * 10 + 10]])
-            try:
-                # raise urllib.error.URLError('testing')
-                handle = NCBIWWW.qblast(program='blastn', database=self.remote_db,
-                                        sequence=records, format_type='XML', hitlist_size=10)
-                # save as .xml
-                with open(self.www_XML[run], 'w') as fh:
-                    fh.write(handle.read())
-                self.log.info('remote BLAST %d:%d complete after %.2f sec' % (run + 1, runs, time() - start))
-                self._parse_remote_result([self.www_XML[run]])
-                sleep(sleep_time)
-            except urllib.error.URLError as offline:
-                self.log.warning('online BLAST aborted, no internet connection')
-                return
-            except Exception as e:
-                self.log.exception(e)
-                sleep(sleep_time)
+            sleep_time = 11 if runs > 1 else 0
+            for run in range(runs):
+                start = time()
+                # create query search string
+                records = '\n'.join([self.seqdata[self.gene][seq_id].format('fasta')
+                                     for seq_id in missing_seqs[run * 10: run * 10 + 10]])
+                try:
+                    # raise urllib.error.URLError('testing')
+                    handle = NCBIWWW.qblast(program='blastn', database=self.remote_db,
+                                            sequence=records, format_type='XML', hitlist_size=10)
+                    # save as .xml
+                    with open(self.www_XML[run], 'w') as fh:
+                        fh.write(handle.read())
+                    self.log.info('remote BLAST %d:%d complete after %.2f sec' % (run + 1, runs, time() - start))
+                    self._parse_remote_result([self.www_XML[run]])
+                    sleep(sleep_time)
+                except urllib.error.URLError as offline:
+                    self.log.warning('online BLAST aborted, no internet connection')
+                    return
+                except Exception as e:
+                    self.log.exception(e)
+                    sleep(sleep_time)
 
-        self.log.info('finished remote BLAST')
-        return
+            self.log.info('finished remote BLAST')
+            return
 
     def _parse(self, xml_entry):
         """

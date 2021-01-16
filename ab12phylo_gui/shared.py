@@ -25,7 +25,8 @@ LOG = logging.getLogger(__name__)
 REFRESH = [module.refresh for module in [gtk_io, gtk_rgx, gtk_qal, gtk_msa,
                                          gtk_gbl, gtk_blast, gtk_ml, gtk_tree]]
 # re-run background threads. -> "REFRESH" button
-RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim, 4: gtk_gbl.start_gbl}
+RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim,
+         4: gtk_gbl.start_gbl, 7: gtk_tree.start_phy}
 # where the gene selector is visible
 SELECT = {2}
 
@@ -141,8 +142,7 @@ def proceed(widget, gui=None, page=None):
     The function connected to the _Next button. For pages with a background thread,
     this will start it and instruct it to re-run this function afterwards; to make the
     application proceed only upon thread completion.
-    # MARK gtk_blast.py will be different and gtk_io.py also is
-    :param widget:
+    :param widget: optional, for use as callback
     :param gui:
     :param page:
     :return:
@@ -442,7 +442,7 @@ def update(iface, page):
             iface.frac + 0.001),  # pretend to proceed
         (iface.i + 1) / iface.k,  # but do not pass next iteration level
         1)  # and never pass 1
-    if iface.running:
+    if iface.thread.is_alive():
         iface.notebook.get_children()[page].set_sensitive(False)
         iface.prog_bar.set_fraction(iface.frac)
         for wi in [iface.prog_bar, iface.prog_label]:

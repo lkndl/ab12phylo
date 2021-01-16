@@ -32,9 +32,9 @@ def init(gui):
     data, iface = gui.data, gui.iface
 
     iface.accept_rev.set_active(data.qal.accept_rev)
-    iface.rev_handler = iface.accept_rev.connect('toggled', parse, None, gui)
+    iface.rev_handler = iface.accept_rev.connect('activate', parse, None, gui)
     iface.accept_nophred.set_active(True)
-    iface.accept_nophred.connect('toggled', parse, None, gui)
+    iface.accept_nophred.connect('activate', parse, None, gui)
 
     iface.min_phred.set_adjustment(Gtk.Adjustment(value=30, upper=61, lower=0,
                                                   step_increment=1, page_increment=1))
@@ -156,8 +156,9 @@ def start_trim(gui):
     """
     data, iface = gui.data, gui.iface
     # called after files are read
-    if not data.genes or iface.running or iface.notebook.get_current_page() != PAGE:
-        LOG.debug('abort re-draw')
+    if not data.genes or iface.thread.is_alive() \
+            or iface.notebook.get_current_page() != PAGE:
+        shared.show_notification(gui, 'Busy', stay_secs=1)
         return
 
     if not data.seqdata:
@@ -172,7 +173,6 @@ def start_trim(gui):
     data.qal_model.clear()
     sleep(.1)
     iface.thread = threading.Thread(target=do_trim, args=[gui])
-    iface.running = True
     GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
     # return to main loop
@@ -321,7 +321,6 @@ def do_trim(gui):
 
 def stop_trim(gui):
     iface = gui.iface
-    iface.running = False
     iface.thread.join()
     gui.win.show_all()
     iface.prog_bar.set_text('idle')

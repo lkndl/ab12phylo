@@ -45,7 +45,9 @@ class project_dataset:
                              min_phred=30, trim_out=8, trim_of=10)
         self.msa = Namespace()
         self.gbl = Namespace()
-        self.ml = Namespace(evo_model='GTR', evo_modify='+G4', bootstraps=1000, rand=20, pars=20)
+        self.ml = Namespace(evo_model='GTR', evo_modify='+G4', bootstraps=1000,
+                            rand=20, pars=20, raxml_shell=True)
+        self.phy = Namespace(gap_share=.1, unk_share=.1)
         self.gbl_model = picklable_liststore(str)  # id
         # set up indicator of changes, tabs are not disabled initially
         self.change_indicator = [False] * 20
@@ -67,7 +69,17 @@ class project_dataset:
         self.blast_path = None  # for non-$PATH BLAST+ executable
         self.evo_models = picklable_liststore(str, str)  # id, use_file
         [self.evo_models.append([evo, None]) for evo in ['GTR', 'JC', 'SYM', 'K80', 'K81', 'HKY', 'TN93',
-                                                   'TPM2', 'TPM3', 'TIM2', 'TIM3', 'TVM', 'from file']]
+                                                         'TPM2', 'TPM3', 'TIM2', 'TIM3', 'TVM', 'from file']]
+        self.pop_model = picklable_liststore(str,  # gene
+                                             int,  # valid sites
+                                             int,  # S
+                                             float,  # k
+                                             float,  # pi
+                                             float,  # theta_w
+                                             float,  # D_T
+                                             int,  # unique seqs
+                                             int,  # gaps
+                                             int)  # unknown
 
     def new_project(self):
         self.overwrite(project_dataset())

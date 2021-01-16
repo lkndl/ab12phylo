@@ -19,6 +19,8 @@ PATHS = Namespace(**{
     'left': Path('Trim') / 'msa_gbl_pre.png',
     'right': Path('Trim') / 'msa_gbl_post.png',
     'RAxML': Path('raxml-ng_v1.0.1_linux_x86_64') / 'raxml-ng',
+    'tbe': 'tree_TBE.nwk',
+    'fbp': 'tree_FBP.nwk',
 })
 
 algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',

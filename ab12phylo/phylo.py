@@ -11,6 +11,7 @@ Allows tree modifications.
 import copy
 import logging
 import math
+import multiprocessing
 import os
 import pickle
 import random
@@ -35,7 +36,8 @@ from jinja2 import Template
 from lxml import etree
 from toyplot import html, pdf, png, svg, color, data, locator
 
-from ab12phylo import main, cli
+from ab12phylo.__init__ import __version__, __author__
+from ab12phylo import cli
 
 # adapted kxlin colors
 kxlin = [(.56, 1, .14, 1), (.16, .44, .8, 1), (.06, 1, .75, 1), (.92, 1, .7, 1),
@@ -119,7 +121,7 @@ def tree_view(_dir):
 
     # start CGI server
     try:
-        py3 = sys.executable   # shutil.which('python3')
+        py3 = sys.executable  # shutil.which('python3')
         log.debug('python3 executable at %s' % py3)
         log.info('starting CGI server on port: %d for 10min' % port)
         subprocess.run('%s -m http.server --cgi %d' % (py3, port), shell=True,
@@ -284,26 +286,18 @@ class tree_build:
                 fh.write('MView (Perl) failed for some reason')
 
         # render rectangular tree with MSA
+        reserve_gap = False
         if type(self.args.msa_viz) == list:
             try:
-                self.log.warning('drawing tree with msa. You can interrupt and proceed via Cmd+C.')
-                start = time()
-
-                # if no format was specified, render .PNGs
-                if not self.args.msa_viz:
-                    self.args.msa_viz = ['png']
-
-                rcanvas_msa = self._with_matrix(kxlin_pal)
-                if 'png' in self.args.msa_viz:
-                    png.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.png'), scale=2)
-                if 'pdf' in self.args.msa_viz:
-                    pdf.render(rcanvas_msa, path.join(self.args.dir, 'rectangular_msa.pdf'))
-                self.log.info('rendered with msa in %.2f sec' % (time() - start))
+                reserve_gap = True
+                proc = multiprocessing.Process(target=self._with_matrix,
+                                               args=([kxlin_pal]))  # TODO check if still works
+                proc.start()
             except KeyboardInterrupt:
                 self.log.warning('cancel msa_viz')
 
         # but display it any way if it exists
-        if path.isfile(path.join(self.args.dir, 'rectangular_msa.png')):
+        if reserve_gap or path.isfile(path.join(self.args.dir, 'rectangular_msa.png')):
             render_dict['msa_viz'] = '<div id="msa_viz" href="msa_viz" class="section level3">' \
                                      '<h3><strong>3.2</strong> +MSA</h3>' \
                                      '<img id="msa_viz" src="rectangular_msa.png" alt="tree+MSA" ' \
@@ -479,6 +473,12 @@ class tree_build:
         Create a toytree with a matrix representation of the MSA.
         """
         start = time()
+        self.log.warning('drawing tree with msa. You can interrupt and proceed via Cmd+C.')
+        start = time()
+
+        # if no format was specified, render .PNGs
+        if not self.args.msa_viz:
+            self.args.msa_viz = ['png']
 
         # get ticks for gene ends
         ticks = [item[1] for item in self.g_lens]
@@ -591,7 +591,11 @@ class tree_build:
                           if n != -1][j]}
         self.log.info('rectangular tree setup in %.2f sec' % (time() - start))
 
-        return rcanvas
+        if 'png' in self.args.msa_viz:
+            png.render(rcanvas, path.join(self.args.dir, 'rectangular_msa.png'), scale=2)
+        if 'pdf' in self.args.msa_viz:
+            pdf.render(rcanvas, path.join(self.args.dir, 'rectangular_msa.pdf'))
+        self.log.info('rendered with msa in %.2f sec' % (time() - start))
 
     def _edit1(self):
         """
@@ -679,8 +683,8 @@ class tree_build:
         materials['threshold'] = int(self.args.threshold * 10)
         materials['min_dist'] = self.args.min_dist
         materials['metadata'] = path.relpath(self.args.tsv, self.args.dir)
-        materials['version'] = main.__version__
-        materials['author'] = main.__author__
+        materials['version'] = __version__
+        materials['author'] = __author__
 
         # find a free port. susceptible to race conditions
         sock = socket.socket()

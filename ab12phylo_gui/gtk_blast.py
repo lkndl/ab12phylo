@@ -41,10 +41,10 @@ def init(gui):
     iface.blast_remote.connect('clicked', start_BLAST, gui, 'remote')
     iface.blast_import.connect('clicked', start_BLAST, gui, None)
     iface.xml_import.connect('file_set', start_BLAST, gui, None)
-    iface.blast_exe.connect('file_set', lambda *args: start_prep(gui, iface.blast_exe.get_filename()))
+    iface.blast_exe.connect('file_set', lambda *args: prep0(gui, iface.blast_exe.get_filename()))
     iface.blast_db.connect('button-release-event', lambda co, *args: co.
                            popdown() if co.props.popup_shown else co.popup())
-    iface.blast_gene.connect('changed', lambda *args: _re_fill(gui))
+    iface.blast_gene.connect('changed', lambda *args: _refill(gui))
 
     # set up the species annotation table
     spi = iface.sp_info
@@ -64,29 +64,17 @@ def init(gui):
     iface.blast_seen = False
 
 
-def start_prep(gui, path):
+def prep0(gui, path):
     data, iface = gui.data, gui.iface
     if not path:
         return False
+    iface.i = 0
+    iface.k = 3
+    iface.text = 'search for BLAST+ installation'
     path = Path(path).resolve()
     if path.is_file():
         path = path.parent  # path is supposed to be a directory!
     data.blast_path = path  # save path to executable in project
-    iface.thread = threading.Thread(target=do_prep, args=[gui, path])
-    iface.running = True
-    iface.thread.start()
-    return True
-
-
-def do_prep(gui, path):
-    """
-    There is a BLAST+ executable on the $PATH. Pre-select it, search for local and remote
-    databases with BLAST+ commands, then set-up the db_info and the blast_db ComboBox.
-    :param gui:
-    :param binary:
-    :return:
-    """
-    data, iface = gui.data, gui.iface
 
     # check if all necessary BLAST+ scripts are available
     missing = [a for a in ['blastn', 'blastp', 'blastdbcmd', 'update_blastdb.pl',
@@ -95,73 +83,98 @@ def do_prep(gui, path):
         shared.show_notification(gui, msg='Necessary scripts could not be '
                                           'found on the $PATH:', items=missing)
         sleep(.1)
-        GObject.idle_add(stop_prep, gui)
+        GObject.idle_add(prep4, gui)
         return True
 
     iface.blast_exe.set_filename(str(path))
     mo = Gtk.ListStore(str, str, str, str, bool)
-    tv = iface.db_info
-    tv.set_model(mo)
-    tv.set_reorderable(True)
+    iface.blast_db.set_model(mo)  # shared model
+    iface.db_info.set_model(mo)
+    iface.db_info.set_reorderable(True)
     for i, title in enumerate(['database', 'size', 'title']):
         col = Gtk.TreeViewColumn(title=title, cell_renderer=Gtk.CellRendererText(),
                                  text=i + 1, underline=4)
         col.set_resizable(True)
-        tv.append_column(col)
-    sleep(.1)
-    # look for locally installed databases
-    try:
-        output = subprocess.check_output(
-            'blastdbcmd -recursive -list_outfmt "%f\t%t\t%U" -list ' + str(BASE_DIR),
-            shell=True).decode('utf-8').strip().split('\n')
-        if output and output != ['']:
-            tv.set_tooltip_text('Underlining indicates a local database')
-            for db in output:
-                db = db.split('\t')
-                try:
-                    mo.append([db[0], Path(db[0]).name, human_bytes(
-                        sum(f.stat().st_size for f in Path(db[0]).parent
-                            .glob('**/*') if f.is_file())), db[1], True])
-                except IndexError:
-                    pass  # if directory does not exist or is empty
-    except subprocess.CalledProcessError as ex:
-        LOG.error(ex)
-    sleep(.2)
-    # look for online pre-compiled databases
-    try:
-        output = subprocess.check_output('update_blastdb.pl --source gcp --showall tsv',
-                                         shell=True).decode('utf-8')
-        data.remote_dbs.clear()
-        for i, db in enumerate(output.strip().split('\n')[1:]):
-            db = db.split('\t')
-            mo.append([None, db[0], human_bytes(
-                2 ** 30 * float(db[2].strip())), db[1], False])
-            # also fill remote_db
-            data.remote_dbs.append([db[0], i])
-            if db[0] == 'nt':
-                iface.remote_db.set_active(i)
-    except subprocess.CalledProcessError as ex:
-        LOG.error(ex)
+        iface.db_info.append_column(col)
 
-    # setup blast_db selection ComboBox
-    iface.blast_db.set_model(mo)
-
-    # sync db selection in db_info TreeView and blast_db ComboBox
-    sel = iface.db_info.get_selection()
-    sel.connect('changed', lambda *args: iface.blast_db.set_active(
-        sel.get_selected_rows()[1][0].get_indices()[0]))
-    sel.select_path(0)
-    iface.blast_db.connect('changed', lambda *args: sel.select_path(iface.blast_db.get_active()))
-
-    sleep(.2)
-    GObject.idle_add(stop_prep, gui)
+    iface.thread = threading.Thread(target=prep1, args=[gui, path, mo])
+    GObject.timeout_add(50, shared.update, iface, PAGE)
+    iface.i = 1
+    iface.thread.start()
     return True
 
 
-def stop_prep(gui):
+def prep1(gui, path, mo):
+    """
+    There is a BLAST+ executable on the $PATH. Pre-select it, search for local and remote
+    databases with BLAST+ commands, then set-up the db_info and the blast_db ComboBox.
+    :param gui:
+    :param binary:
+    :return:
+    """
+    data, iface = gui.data, gui.iface
+    try:
+        iface.text = 'look for local databases'
+        output = subprocess.check_output(
+            str(path / 'blastdbcmd') + ' -recursive -list_outfmt "%f\t%t\t%U" -list ' +
+            str(BASE_DIR), shell=True).decode('utf-8').strip().split('\n')
+        if output and output != ['']:
+            sleep(.05)
+            GObject.idle_add(prep2, iface.db_info, output, mo)
+            iface.i = 2
+    except subprocess.CalledProcessError as ex:
+        LOG.error(ex)
+
+    try:
+        iface.text = 'look for online pre-compiled databases'
+        output = subprocess.check_output(str(path / 'update_blastdb.pl') +
+                                         ' --source gcp --showall tsv',
+                                         shell=True).decode('utf-8')
+        sleep(.05)
+        GObject.idle_add(prep3, data.remote_dbs, output, mo, iface.remote_db)
+        iface.i = 3
+    except subprocess.CalledProcessError as ex:
+        LOG.error(ex)
+    sleep(.05)
+    GObject.idle_add(prep4, gui)
+    return True
+
+
+def prep2(db_info, output, mo):
+    db_info.set_tooltip_text('Underlining indicates a local database')
+    for db in output:
+        db = db.split('\t')
+        try:
+            mo.append([db[0], Path(db[0]).name, human_bytes(
+                sum(f.stat().st_size for f in Path(db[0]).parent
+                    .glob('**/*') if f.is_file())), db[1], True])
+        except IndexError:
+            pass  # if directory does not exist or is empty
+
+
+def prep3(remote_dbs, output, mo, remote_db):
+    remote_dbs.clear()
+    for i, db in enumerate(output.strip().split('\n')[1:]):
+        db = db.split('\t')
+        # fill db_info table
+        mo.append([None, db[0], human_bytes(
+            2 ** 30 * float(db[2].strip())), db[1], False])
+        # fill remote_db ComboBox
+        remote_dbs.append([db[0], i])
+        if db[0] == 'nt':
+            remote_db.set_active(i)
+
+
+def prep4(gui):
     iface = gui.iface
-    iface.running = False
     iface.thread.join()
+    # sync db selection in db_info TreeView and blast_db ComboBox
+    sel = iface.db_info.get_selection()
+    sel.connect('changed', lambda *args: iface.blast_db.
+                set_active(sel.get_selected_rows()[1][0].get_indices()[0]))
+    sel.select_path(0)
+    iface.blast_db.connect('changed', lambda *args: sel
+                           .select_path(iface.blast_db.get_active()))
     LOG.info('BLAST prep done')
     return False
 
@@ -173,7 +186,7 @@ def refresh(gui):
     if not iface.blast_seen:
         # look for BLAST+ executable on the $PATH and in the dataset; fill db_info table
         for path in [shutil.which('blastn'), data.blast_path]:
-            if start_prep(gui, path):
+            if prep0(gui, path):
                 break
         iface.blast_seen = True
 
@@ -198,8 +211,6 @@ def start_BLAST(widget, gui, mode, *args):
         iface.pill2kill.set()
         if iface.blaster.is_alive():
             iface.blaster.stop()
-        shared.show_notification(gui, 'stopped BLAST%s' %
-                                 (':\nremote might not die' if mode == 'remote' else ''))
         return
 
     iface.blast_spinner.start()
@@ -261,50 +272,54 @@ def start_BLAST(widget, gui, mode, *args):
     args = Namespace(**args)
     reader = Namespace(**{'seqdata': seqdata, 'metadata': None})
 
+    iface.tup = (im, la, tx, gene)
     iface.blaster = blast.blast_build(args, reader)
     iface.blast_wrapper = threading.Thread(
         # iface.blaster = multiprocessing.Process(
-        target=do_BLAST, args=[gui, (im, la, tx, gene)])
+        target=do_BLAST, args=[gui])
     iface.blast_wrapper.start()
     return
     # return to main loop
 
 
-def do_BLAST(gui, tup):
+def do_BLAST(gui):
     """Run BLAST thread"""
-    blaster = gui.iface.blaster
-    pill2kill = gui.iface.pill2kill
     with shared.bump_log_level(LOG):
-        while not pill2kill.wait(.5):
-            blaster.start()
-            blaster.join()
-            blaster.stop()
-            pill2kill.set()
-
-    blaster.stop()
-    GObject.idle_add(stop_BLAST, gui, tup)
+        gui.iface.blaster.start()
+        gui.iface.blaster.join()
+    GObject.idle_add(stop_BLAST, gui)
 
 
-def stop_BLAST(gui, tup):
+def stop_BLAST(gui):
     """Finish the BLAST thread"""
     data, iface = gui.data, gui.iface
-    if gui.iface.blaster.update:  # a local database was created
-        iface.blast_db.get_model()[iface.blast_db.get_active()][-1] = True
-    del iface.blast_wrapper, gui.iface.blaster
-    iface.pill2kill.clear()
-    im, la, tx, gene = tup
+    if 'blaster' in iface:
+        if iface.blaster.update:  # a local database was created
+            iface.blast_db.get_model()[iface.blast_db.get_active()][-1] = True
+        if iface.blaster.missing_fasta.is_file():
+            iface.missing_fasta.set_filename(str(iface.blaster.missing_fasta))
 
-    _re_fill(gui, gene, fresh=True)
-    gui.iface.blast_help_stack.set_visible_child_name('sp_info')
+    im, la, tx, gene = iface.tup
+
+    _refill(gui, gene, fresh=True)
 
     iface.blast_spinner.stop()
     iface.spinbox.set_visible(False)
     im.set_from_icon_name('media-playback-start-symbolic', 4)
     la.set_text(tx)
-    LOG.info('BLAST finished')
+
+    if iface.pill2kill.is_set():
+        tx = 'stopped BLAST'
+        shared.show_notification(gui, msg=tx, stay_secs=2)
+    else:
+        tx = 'BLAST finished'
+        iface.blast_help_stack.set_visible_child_name('sp_info')
+        if iface.notebook.get_current_page() != PAGE:
+            shared.show_notification(gui, msg=tx, stay_secs=5)
+    LOG.info(tx)
+    iface.pill2kill.clear()
+    del iface.blast_wrapper, iface.blaster
     shared.set_changed(gui, PAGE, False)
-    if iface.notebook.get_current_page() != PAGE:
-        shared.show_notification(gui, msg='BLAST finished')
 
 
 def _save_custom_remote_db(entry, *args):
@@ -332,7 +347,7 @@ def _df_with_sp(path):
     return df
 
 
-def _re_fill(gui, gene=None, fresh=False):
+def _refill(gui, gene=None, fresh=False):
     """Re-fill the species annotation table"""
     data, iface = gui.data, gui.iface
     LOG.debug('re-fill species annotations')

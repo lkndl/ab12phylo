@@ -189,8 +189,8 @@ def start_gbl(gui, run_after=None):
     if not data.genes:
         LOG.debug('abort Gblocks')
         return
-    elif iface.running:
-        shared.show_notification(gui, 'Thread running')
+    elif iface.thread.is_alive():
+        shared.show_notification(gui, 'Busy', stay_secs=1)
         return
     elif run_after and (gui.wd / PATHS.msa).exists() \
             and not shared.get_errors(gui, PAGE):
@@ -225,7 +225,6 @@ def start_gbl(gui, run_after=None):
 
     iface.thread = threading.Thread(target=do_gbl, args=[gui])
     iface.run_after = run_after
-    iface.running = True
     GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
     sleep(.1)
@@ -416,7 +415,6 @@ def do_gbl(gui):
 def stop_gbl(gui, errors):
     """Finish the Gblocks thread"""
     data, iface = gui.data, gui.iface
-    iface.running = False
     iface.thread.join()
     gui.win.show_all()
     LOG.info('gbl thread idle')

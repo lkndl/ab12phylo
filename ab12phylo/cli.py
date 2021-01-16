@@ -17,7 +17,7 @@ import argparse
 
 from os import path
 from ab12phylo.__init__ import __version__, __date__
-from ab12phylo.phylo import tree_build, tree_view
+from ab12phylo import phylo
 
 
 class parser(argparse.ArgumentParser):
@@ -340,7 +340,7 @@ class parser(argparse.ArgumentParser):
             log.debug(' '.join(args[0]))
             # copy config
             shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
-            tree_build(self.args)
+            phylo.tree_build(self.args)
             sys.exit(0)
 
         if self.args.view:
@@ -351,7 +351,7 @@ class parser(argparse.ArgumentParser):
             log.debug(' '.join(args[0]))
             # copy config
             shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
-            tree_view(self.args.dir)
+            phylo.tree_view(self.args.dir)
             sys.exit(0)
 
         # configure logging:

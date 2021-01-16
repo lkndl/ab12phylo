@@ -19,14 +19,14 @@ from ab12phylo_gui import gtk_proj, shared, gtk_io, gtk_rgx, \
     gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, Gio, GdkPixbuf
+from gi.repository import Gtk, Gdk, Gio, GdkPixbuf, GLib
 
 LOG = logging.getLogger(__name__)
 __verbose__, __info__ = 1, 0
 
 # set the icon theme
-Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Maia')
-Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-sea')
+Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
+Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
 
 
 class ab12phylo_app(Gtk.Application):
@@ -55,9 +55,25 @@ class ab12phylo_app(Gtk.Application):
             self.set_accels_for_action(detailed_action_name='app.%s' % act, accels=['<Control>%s' % acc])
             # self.add_accelerator(accelerator='<Control>h', action_name='app.help', parameter=None)
 
-    def __init__(self):
-        Gtk.Application.__init__(self, application_id='org.ab12phylo', flags=Gio.ApplicationFlags.FLAGS_NONE)
+    def do_command_line(self, cmd):
+        options = cmd.get_options_dict().end().unpack()
+        if 'open' in options:
+            self.load(options['open'])
+        if 'proceed' in options:
+            shared.proceed(self)
+        self.activate()
+        return 0
 
+    def __init__(self):
+        Gtk.Application.__init__(self, application_id='org.ab12phylo',
+                                 flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
+        self.add_main_option('open', ord('o'), GLib.OptionFlags.IN_MAIN,  # ord converts it to integer
+                             GLib.OptionArg.STRING, 'project to load',
+                             'to open a project from the commandline. '
+                             'A .proj file next to a directory of data.')
+        self.add_main_option('proceed', ord('p'), GLib.OptionFlags.IN_MAIN,
+                             GLib.OptionArg.NONE, 'try to proceed',
+                             'to go to the next analysis stage.')
         # fetch all named objects from the .glade XML
         iface = dict()
         for widget in Gtk.Builder().new_from_file(str(ab12phylo_app.TEMPLATE)).get_objects():
@@ -78,24 +94,23 @@ class ab12phylo_app(Gtk.Application):
 
         # set up an empty thread so Gtk can get used to it
         iface.thread = threading.Thread()
-        iface.running = False
         iface.i = 0
         iface.k = 1
         iface.frac = 0
         iface.text = 'idle'
-        iface.run_after = []
+        iface.run_after = list()
 
         # whether to draw raster (fast) or vector images is a button state
 
         # set up preliminary working directory
         self.project_path = None
         # self.wd = Path.cwd() / 'untitled'
-        self.wd = Path('untitled')
+        self.wd = Path('untitled')  # use relative path should make it movable
         Path.mkdir(self.wd, exist_ok=True)
 
         # get some CSS styling
         mod = b'lighter', b'darker'
-        mod2 = 200  # per default, make treeview text color darker
+        mod2 = 200  # per default, make TreeView text color darker
         theme = Gtk.Settings.get_default().get_property('gtk-theme-name')
         if 'dark' in theme:
             mod = mod[::-1]
@@ -179,8 +194,6 @@ class ab12phylo_app(Gtk.Application):
         gtk_blast.init(self)
         gtk_ml.init(self)
         gtk_tree.init(self)
-
-        self.load('ttest.proj')
 
     def new(self, action, confirm=True, *args):
         """

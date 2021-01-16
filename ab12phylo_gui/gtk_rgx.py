@@ -427,7 +427,6 @@ def start_read(gui, run_after=None):
 
     iface.thread = threading.Thread(target=do_read, args=[gui])
     iface.run_after = run_after
-    iface.running = True
     GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
     # return to main loop
@@ -587,7 +586,6 @@ def stop_read(gui, errors, warnings):
     :return:
     """
     data, iface = gui.data, gui.iface
-    iface.running = False
     iface.thread.join()
     LOG.info('rgx thread idle')
     if errors or warnings:

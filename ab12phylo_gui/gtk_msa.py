@@ -105,7 +105,7 @@ def refresh_paths(gui):
 def start_align(widget, gui, remote=False, run_after=None):
     """
     Starts an MSA building thread unless one of the following conditions is met:
-    a) another thread is running -> abort + forbid proceeding.
+    a) another thread is active -> abort + forbid proceeding.
     b) this function was called from the _Next button and an MSA already exists
     -> accept + allow proceeding.
     c) there were no changes registered for this page and no proceeding (not
@@ -118,10 +118,10 @@ def start_align(widget, gui, remote=False, run_after=None):
     :return:
     """
     data, iface = gui.data, gui.iface
-    if iface.running:  # a)
-        shared.show_notification(gui, 'Thread running')
+    if iface.thread.is_alive():  # a)
+        shared.show_notification(gui, 'Busy', stay_secs=1)
         return
-    elif data.msa.last_cmd == [data.msa.cmd, data.msa.remote_cmd][remote][data.msa.algo]\
+    elif data.msa.last_cmd == [data.msa.cmd, data.msa.remote_cmd][remote][data.msa.algo] \
             and not shared.get_changed(gui, PAGE):
         shared.show_notification(gui, 'MSA already generated, please proceed')
         return
@@ -137,7 +137,6 @@ def start_align(widget, gui, remote=False, run_after=None):
     iface.align_stack.props.sensitive = False
     iface.thread = threading.Thread(target=do_align, args=[gui, remote])
     iface.run_after = run_after
-    iface.running = True
     GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
     return
@@ -182,7 +181,6 @@ def do_align(gui, remote=False):
 
 def stop_align(gui, errors):
     iface = gui.iface
-    iface.running = False
     iface.thread.join()
     iface.align_stack.props.sensitive = True
     gui.win.show_all()

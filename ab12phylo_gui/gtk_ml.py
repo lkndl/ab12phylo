@@ -1,12 +1,14 @@
 # 2020 Leo Kaindl
 
 import logging
+import os
 import random
 import shutil
+import stat
 import threading
 from pathlib import Path
 from subprocess import run, Popen, PIPE
-from time import sleep
+from time import sleep, time
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import gi
@@ -15,7 +17,9 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
 from ab12phylo_gui import shared
-from ab12phylo_gui.static import PATHS, TOOLS
+from ab12phylo_gui.static import PATHS as p, TOOLS
+
+# from ab12phylo_gui.gtk_main import ab12phylo_app
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
@@ -60,9 +64,9 @@ def import_tree(widget, gui):
             errors = list()
             for p in paths:
                 if 'FBP' in p.name.upper():
-                    shutil.copy(p, gui.wd / 'tree_FBP.nwk')
+                    shutil.copy(p, gui.wd / p.fbp)
                 elif 'TBE' in p.name.upper():
-                    shutil.copy(p, gui.wd / 'tree_TBE.nwk')
+                    shutil.copy(p, gui.wd / p.tbe)
                 else:
                     errors.append(p.name)
             if errors:
@@ -117,11 +121,11 @@ def _load_raxml_help(gui):
     data, iface = gui.data, gui.iface
     binary = shutil.which('raxml-ng')
     if not binary:
-        binary = str(TOOLS / PATHS.RAxML)
+        binary = str(TOOLS / p.RAxML)
     iface.raxml_exe.set_filename(binary)
     res = run(stdout=PIPE, stderr=PIPE, shell=True,
               args='%s --help' % binary)
-    iface.ml_help.props.buffer.props.text = res.stdout.decode()
+    iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
     LOG.debug('got RAxML --help')
 
 
@@ -132,6 +136,7 @@ def reload_ui_state(gui):
     iface.raxml_seed.set_text(str(ml.raxml_seed) if 'raxml_seed' in ml else '')
     iface.evo_model.set_active_id(ml.evo_model)
     iface.evo_modify.set_text(ml.evo_modify)
+    iface.raxml_shell.set_active(ml.raxml_shell)
 
 
 def refresh(gui):
@@ -145,13 +150,15 @@ def refresh(gui):
         iface.evo_model.set_active_id(data.ml.evo_model)
         iface.raxml_seen = True
 
+    shared.set_errors(gui, PAGE, not any((gui.wd / a).is_file() for a in [p.tbe, p.fbp]))
+
 
 def start_ML(widget, gui, mode, run_after=None):
     """Set-up the ML inference thread"""
     data, ml, iface = gui.data, gui.data.ml, gui.iface
 
-    if not data.genes or iface.running:
-        LOG.debug('abort ML')
+    if not data.genes or iface.thread.is_alive():
+        shared.show_notification(gui, 'Busy', stay_secs=1)
         return
 
     if mode in ['raxml', 'raxml_export']:
@@ -171,6 +178,7 @@ def start_ML(widget, gui, mode, run_after=None):
             if ml.raxml_seed == '' else int(ml.raxml_seed)
         iface.raxml_seed.props.text = str(ml.raxml_seed)
         Path.mkdir(gui.wd / 'RAxML', exist_ok=True)
+        ml.raxml_shell = iface.raxml_shell.get_active()
 
         iface.run_after = run_after
         ml.prev = 0
@@ -181,19 +189,21 @@ def start_ML(widget, gui, mode, run_after=None):
         iface.k = ml.bootstraps + ml.rand + ml.pars + 3 if mode == 'raxml' else 2
     else:
         raise NotImplementedError
+    # ab12phylo_app.save(gui)
 
     iface.thread = threading.Thread(target=do_ML, args=[gui, mode])
-    iface.running = True
     GObject.timeout_add(100, shared.update_ML, iface, PAGE, ml)
     iface.thread.start()
-    # return to main loop
+    return  # to main loop
 
 
 def do_ML(gui, mode):
     """Run the ML inference thread"""
+    start = time()
     data, ml, iface = gui.data, gui.data.ml, gui.iface
-    msa = gui.wd / PATHS.msa
+    msa = gui.wd / p.msa
     prefix = gui.wd / 'RAxML'
+    shell = gui.wd / 'raxml_run.sh'
     errors = list()
     iface.i = 0
 
@@ -209,7 +219,7 @@ def do_ML(gui, mode):
                      'pars{%d}' % ml.pars if ml.pars > 0 else None] if a])
 
     boot = '%s --bootstrap --msa %s --model %s --tree %s' + \
-           ' --prefix %s' + ' --bs-trees autoMRE{%d}' % ml.bootstraps + \
+           ' --prefix %s' + ' --bs-trees %d' % ml.bootstraps + \
            ' --seed %d' % ml.raxml_seed + \
            ' --threads auto{16} --workers auto{16} --redo'
 
@@ -220,6 +230,14 @@ def do_ML(gui, mode):
     #     arg % (ml.raxml, msa, prefix / 'bs_')))
     # res = run(stdout=PIPE, stderr=PIPE, shell=True,
     #           args=arg % (ml.raxml, msa, prefix / 'bs_'))
+    # notify = 'notify-send "AB12PHYLO" "ML Tree Inference finished!" -u normal -i "%s"' \
+    #          % str(BASE_DIR / 'ab12phylo_gui' / 'files' / 'favi.png')
+    # notify2 = 'zenity --notification --text="AB12PHYLO\nML Tree Inference finished" ' \
+    #           '--window-icon="%s"' % str(BASE_DIR / 'ab12phylo_gui' / 'files' / 'favi.png')
+
+    if ml.raxml_shell:
+        with open(shell, 'w') as sh:
+            sh.write('#!/bin/bash\n\ntrap \'\' SIGINT\n\n')
 
     # loop over the stages
     for desc, key, prev, arg, add in zip(
@@ -232,6 +250,13 @@ def do_ML(gui, mode):
               prefix / 'ml.raxml.bestTree', prefix / 'bs'),
              (ml.raxml, prefix / 'ml.raxml.bestTree',
               prefix / 'bs.raxml.bootstraps', prefix / 'sp')]):
+
+        if ml.raxml_shell:
+            with open(shell, 'a') as sh:
+                sh.write('# %s\n' % desc)
+                sh.write(arg % add)
+                sh.write('\n\n')
+                continue
 
         iface.text = desc
         LOG.info(iface.text)
@@ -267,7 +292,7 @@ def do_ML(gui, mode):
             if line.startswith('ERROR'):
                 errors.append(line)
         if errors:
-            GObject.idle_add(stop_ML, gui, errors)
+            GObject.idle_add(stop_ML, gui, errors, start)
             return True
 
         if mode == 'raxml_export':
@@ -296,35 +321,67 @@ def do_ML(gui, mode):
                 zf.write(sh)
             Path(sh).unlink()
 
+            # TODO file save dialog
+
             sleep(.1)
-            GObject.idle_add(stop_ML, gui, errors)
+            GObject.idle_add(stop_ML, gui, errors, start)
             return True
+
+    if ml.raxml_shell:
+        with open(shell, 'a') as sh:
+            sh.write('# restart AB12PHYLO afterwards\n'
+                     'ab12phylo-gui --open %s --proceed\n'
+                     % str(gui.wd / gui.project_path))
+        shell.chmod(shell.stat().st_mode | stat.S_IEXEC)
+        # os.system(shell)
+        os.execv(shell, ('placeholder', 'arg'))
 
     iface.text = 'copy tree files'
     iface.i = iface.k - 1
-    shutil.copy(prefix / 'sp.raxml.supportFBP', gui.wd / 'tree_FBP.nwk')
-    shutil.copy(prefix / 'sp.raxml.supportTBE', gui.wd / 'tree_TBE.nwk')
+    shutil.copy(prefix / 'sp.raxml.supportFBP', gui.wd / p.fbp)
+    shutil.copy(prefix / 'sp.raxml.supportTBE', gui.wd / p.tbe)
     iface.text = 'idle'
     iface.frac = 1
     sleep(.1)
-    GObject.idle_add(stop_ML, gui, errors)
+    GObject.idle_add(stop_ML, gui, errors, start)
     return True
 
 
-def stop_ML(gui, errors):
+def stop_ML(gui, errors, start):
     """Finish the ML inference thread"""
     iface = gui.iface
     iface.thread.join()
     shared.update_ML(iface, PAGE, gui.data.ml)
-    iface.running = False
     gui.win.show_all()
     LOG.info('ML thread idle')
-    shared.set_errors(gui, PAGE, bool(errors))
     shared.set_changed(gui, PAGE, False)
     if errors:
         shared.show_notification(gui, 'Errors during ML inference', errors)
+    elif time() - start > 120:
+        notify = threading.Thread(target=_zenity, args=())
+        notify.start()
     else:
         shared.show_notification(gui, 'ML finished')
     if iface.run_after:
         [do_func(gui) for do_func in iface.run_after]
     return
+
+
+def _zenity():
+    run(args='zenity --notification --text="AB12PHYLO\n'
+             'ML Tree Inference finished" --window-icon="%s"'
+             % str(Path(__file__).resolve().parent / 'files' / 'favi.png'), shell=True)
+    return True
+
+
+def _extend_buffer(bf, ml_help, stdout):
+    bf = ml_help.get_buffer()
+    bf.props.text = bf.props.text + '\n' + '\n'.join(stdout)
+    bf.insert_markup(bf.get_end_iter(),
+                     '<span foreground="#2374AF">'
+                     '________________________________________________'
+                     '________________________________\n</span>', -1)
+    mark = bf.create_mark(None, bf.get_end_iter(), True)
+    ml_help.scroll_mark_onscreen(mark)
+    # bf.add_mark(Gtk.TextMark.new(stage, True), bf.get_end_iter())
+    # ml_help.scroll_to_iter(bf.get_end_iter(), .1, False, 0, .9)
