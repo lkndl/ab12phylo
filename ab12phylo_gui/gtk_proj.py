@@ -80,6 +80,9 @@ class project_dataset:
                                              int,  # unique seqs
                                              int,  # gaps
                                              int)  # unknown
+        self.phy_model = picklable_liststore(str,  # sample ID
+                                             str,  # foreground color
+                                             float)  # font scale
 
     def new_project(self):
         self.overwrite(project_dataset())

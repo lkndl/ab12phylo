@@ -3,6 +3,9 @@
 import json
 import logging
 import threading
+import toytree
+import toyplot
+import numpy as np
 from pathlib import Path
 from time import sleep
 
@@ -31,11 +34,14 @@ def init(gui):
         iface.__getattribute__(w_name).connect('clicked', start_pop, gui)
 
 
+    # iface.view_msa_ids.set_model(phy.phy_model)
+
+
 def start_pop(widget, gui):
     """Prepare the plotting Thread"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     if iface.thread.is_alive():
-        LOG.debug('abort popgen')
+        shared.show_notification(gui, 'Busy', stay_secs=1)
         return
 
     phy.mode = widget.get_name()
@@ -55,7 +61,26 @@ def start_pop(widget, gui):
 
 
 def start_phy(gui):
+    """Get settings and block GUI"""
+    data, phy, iface = gui.data, gui.data.phy, gui.iface
+    if iface.thread.is_alive():
+        shared.show_notification(gui, 'Busy', stay_secs=1)
+        return
+
+    phy.args = [wi.get_name() for wi in
+                [iface.rect, iface.circ, iface.unro,
+                 iface.to_pdf, iface.to_svg, iface.to_png, iface.to_nwk,
+                 iface.supp, iface.spec] if wi.get_active()]
+
+
+
+def do_phy(gui):
+    """Plot the tree"""
     pass
+
+
+def do_phyMSA(gui):
+    """Plot the MSA"""
 
 
 def refresh(gui):
