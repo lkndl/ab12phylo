@@ -322,9 +322,9 @@ class reader:
                     lookup[strain] = _id
 
                 # save original id+description
-                self.metadata[gene][_id] = {'file': ref_file,
-                                            'accession': accession,
-                                            'reference_species': species + ' strain ' + strain}
+                self.metadata[gene][_id] = \
+                    {'file': ref_file, 'accession': accession, 'reference_species':
+                        (species if strain == species else species + ' strain ' + strain)}
                 record.id = _id
                 record.description = ''  # MARK do not delete deletion
                 # save ref record
