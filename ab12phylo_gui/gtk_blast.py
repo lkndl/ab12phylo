@@ -24,6 +24,8 @@ from ab12phylo_gui.static import PATHS, BASE_DIR, DOWNLOAD_TIMEOUT
 LOG = logging.getLogger(__name__)
 PAGE = 5
 
+# TODO recheck notification
+
 
 def init(gui):
     """Initialize the page. Connect buttons"""
@@ -334,13 +336,9 @@ def _df_with_sp(path):
     LOG.debug('reading df')
     df = pd.read_csv(path, sep='\t', dtype={'id': str})
     df = df.set_index('id')
-    if 'BLAST_species' not in df:
-        df['BLAST_species'] = ''
-    else:
+    if 'BLAST_species' in df:
         df.BLAST_species.fillna('', inplace=True)
-    if 'extra_species' not in df:
-        df['extra_species'] = ''
-    else:
+    if 'extra_species' in df:
         df.extra_species.fillna('', inplace=True)
     if 'pid' not in df:
         df['pid'] = nan
@@ -359,7 +357,10 @@ def _refill(gui, gene=None, fresh=False):
     data.sp_model.clear()
     df = df.loc[df['gene'] == gene]
     for sample, r in df.iterrows():
-        pid = '' if isnan(r.pid) else '%.2f' % r.pid if r.pid < 100 else '100'
+        if isnan(r.pid):
+            pid, r.BLAST_species, r.extra_species = '', '', ''
+        elif type(r.pid) == float:
+            pid = '%.2f' % r.pid if r.pid < 100 else '100'
         data.sp_model.append([sample, pid, r.BLAST_species, r.extra_species])
 
 
@@ -377,6 +378,7 @@ def _save_sp_edit(cell, path, new_text, tv, col, gui):
         except ValueError:
             new_text = 0
     # df.loc[df['gene'] == gene].loc[mo[path][0]][c2[col]] = new_text
+    # pandas DataFrame get with multiple conditions including index then assign
     df.loc[(df.index == mo[path][0]) & (df['gene'] == gene), c2[col]] = new_text
     shared.save_row_edits(cell, path, str(new_text), tv, col)
     shared.set_changed(gui, PAGE)

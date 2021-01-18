@@ -25,6 +25,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 6
 
+# TODO sometimes RAxML finishes, but gui does not resume
 
 def init(gui):
     """Initialize the page. Connect buttons"""
@@ -251,11 +252,11 @@ def do_ML(gui, mode):
              (ml.raxml, prefix / 'ml.raxml.bestTree',
               prefix / 'bs.raxml.bootstraps', prefix / 'sp')]):
 
-        if ml.raxml_shell:
+        if ml.raxml_shell and mode == 'raxml':
             with open(shell, 'a') as sh:
                 sh.write('# %s\n' % desc)
                 sh.write(arg % add)
-                sh.write('\n\n')
+                sh.write('\n\necho "%s done"\nsleep 2s\n\n' % desc)
                 continue
 
         iface.text = desc
@@ -275,7 +276,7 @@ def do_ML(gui, mode):
                 else:
                     break
 
-        sleep(.2)
+        sleep(.5)
         # bf = iface.ml_help.get_buffer()
         # bf.props.text = bf.props.text + '\n' + '\n'.join(ml.stdout)
         # bf.insert_markup(bf.get_end_iter(),
@@ -327,7 +328,7 @@ def do_ML(gui, mode):
             GObject.idle_add(stop_ML, gui, errors, start)
             return True
 
-    if ml.raxml_shell:
+    if ml.raxml_shell and mode == 'raxml':
         with open(shell, 'a') as sh:
             sh.write('# restart AB12PHYLO afterwards\n'
                      'ab12phylo-gui --open %s --proceed\n'
@@ -362,6 +363,7 @@ def stop_ML(gui, errors, start):
         notify.start()
     else:
         shared.show_notification(gui, 'ML finished')
+    refresh(gui)
     if iface.run_after:
         [do_func(gui) for do_func in iface.run_after]
     return

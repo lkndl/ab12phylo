@@ -65,7 +65,7 @@ class ab12phylo_app(Gtk.Application):
         return 0
 
     def __init__(self):
-        Gtk.Application.__init__(self, application_id='org.ab12phylo',
+        Gtk.Application.__init__(self, application_id='de.lrz.gitlab.leokaindl.ab12phylo',
                                  flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
         self.add_main_option('open', ord('o'), GLib.OptionFlags.IN_MAIN,  # ord converts it to integer
                              GLib.OptionArg.STRING, 'project to load',
@@ -118,8 +118,10 @@ class ab12phylo_app(Gtk.Application):
 
         css_provider = Gtk.CssProvider()
         css = b'''
-        .seqid { font-size: xx-small; }
+        .seqid { font-size: xx-small; padding-left: 3px; }
         separator.wide { min-width: 18px }
+        #tree_pane separator { min-width: 3px; 
+                               background-color: @success_color; }
         progressbar trough progress { 
             min-height: 6px; 
             border-radius: 1px; 
@@ -151,11 +153,13 @@ class ab12phylo_app(Gtk.Application):
         iface.PURPLE = '#8A2BE2'
         iface.tempspace = Namespace()
         sc = self.win.get_style_context()
-        iface.FG = '#' + ''.join([(hex(min(int(c * mod2), 255))[2:]).upper()
-                                  for c in list(sc.get_color(Gtk.StateFlags.ACTIVE))[:-1]])
+
+        to_css_color = lambda c: '#' + ''.join([(hex(min(int(c * mod2), 255))[2:]).upper()
+                                                for c in list(c)[:-1]])
+        iface.FG = to_css_color(sc.get_color(Gtk.StateFlags.ACTIVE))
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            iface.BG = sc.get_background_color(Gtk.StateType.NORMAL)
+            iface.BG = to_css_color(sc.get_background_color(Gtk.StateType.NORMAL))
 
         # prepare shortcuts / accelerators
         self.accelerators = Gtk.AccelGroup()

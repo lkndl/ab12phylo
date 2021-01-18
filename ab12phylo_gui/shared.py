@@ -181,9 +181,9 @@ def proceed(widget, gui=None, page=None):
                                           header=True, index=True)
                 set_changed(gui, 5, False)
             except Exception as ex:
-                LOG.exception(ex)
+                LOG.exception(ex)  # TODO remove
         elif page == 6:
-            gtk_ml.start_ML(gui)
+            pass  # todo at least not re-run
         set_changed(gui, page, False)
 
     # then proceed

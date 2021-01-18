@@ -42,12 +42,13 @@ class project_dataset:
         self.search_rev = False
         self.rgx = Namespace()
         self.qal = Namespace(gene_roll='all', accept_rev=False, accept_nophred=True,
-                             min_phred=30, trim_out=8, trim_of=10)
-        self.msa = Namespace()
-        self.gbl = Namespace()
+                             min_phred=30, trim_out=8, trim_of=10, bad_stretch=5)
+        self.msa = Namespace(cmd=dict(), remote_cmd=dict(), last_cmd='')
+        self.gbl = Namespace(ignore_ids=set())
         self.ml = Namespace(evo_model='GTR', evo_modify='+G4', bootstraps=1000,
                             rand=20, pars=20, raxml_shell=True)
-        self.phy = Namespace(gap_share=.1, unk_share=.1)
+        self.phy = Namespace(gap_share=.1, unk_share=.1, flip=.7, dist=0, sel_gene=None,
+                             did_BLAST=False, png=True, nwk=True, axis=True, query='', exclude='')
         self.gbl_model = picklable_liststore(str)  # id
         # set up indicator of changes, tabs are not disabled initially
         self.change_indicator = [False] * 20
@@ -80,9 +81,10 @@ class project_dataset:
                                              int,  # unique seqs
                                              int,  # gaps
                                              int)  # unknown
-        self.phy_model = picklable_liststore(str,  # sample ID
-                                             str,  # foreground color
-                                             float)  # font scale
+        self.tree_anno_model = picklable_liststore(str,  # sample ID
+                                                   str,  # species
+                                                   str,  # foreground color
+                                                   str)  # background color
 
     def new_project(self):
         self.overwrite(project_dataset())

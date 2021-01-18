@@ -462,8 +462,8 @@ class tree_build:
             self.records = records
             # make empty dummy seqs
             seq = '-' * [item[1] for item in self.g_lens if item[0] == gene][0]
-            for id in self.args.replace_nodes:
-                self.records[id] = Seq(seq)
+            for _id in self.args.replace_nodes:
+                self.records[_id] = Seq(seq)
 
         self.log.debug('gene lengths: %s' % self.g_lens)
         return render_info

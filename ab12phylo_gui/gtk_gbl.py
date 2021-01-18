@@ -25,6 +25,7 @@ LOG = logging.getLogger(__name__)
 PAGE = 4
 
 """The Gblocks page for MSA trimming. Very similar to the sequence trimming page gtk_qal.py"""
+# TODO place PNG sometimes crashes
 
 
 def init(gui):
@@ -39,7 +40,6 @@ def init(gui):
     iface.gbl_preset.set_id_column(0)
     iface.gaps.set_id_column(0)
 
-    data.gbl.ignore_ids = set()
     iface.tempspace.params = list()
     for w_name in ['conserved', 'flank', 'good_block', 'bad_block']:
         wi = iface.__getattribute__(w_name)

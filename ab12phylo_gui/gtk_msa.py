@@ -25,9 +25,6 @@ def init(gui):
     iface.msa_algo.set_entry_text_column(0)
     iface.msa_algo.set_id_column(0)
     iface.remote_algo.set_id_column(0)
-    data.msa.cmd = dict()
-    data.msa.remote_cmd = dict()
-    data.msa.last_cmd = ''
 
     iface.msa_cmd.connect('focus_out_event', lambda widget, *args: data.msa.cmd.update(
         {toalgo(iface.msa_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
