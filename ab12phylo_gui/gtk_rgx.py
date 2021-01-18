@@ -536,7 +536,8 @@ def do_read(gui):
 
                 # save original id+description
                 attributes = {'file': file_path, 'accession': accession, 'is_rev': is_rev,
-                              'reference_species': species + ' strain ' + strain}
+                              'reference_species': species if strain == species
+                              else species + ' strain ' + strain}
 
             if is_rev:  # strange but possible
                 record = record.reverse_complement(record.id)

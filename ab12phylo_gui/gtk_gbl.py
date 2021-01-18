@@ -24,9 +24,6 @@ from ab12phylo_gui.static import PATHS
 LOG = logging.getLogger(__name__)
 PAGE = 4
 
-"""The Gblocks page for MSA trimming. Very similar to the sequence trimming page gtk_qal.py"""
-# TODO place PNG sometimes crashes
-
 
 def init(gui):
     """Initialize the page. Connect buttons"""
@@ -59,7 +56,7 @@ def init(gui):
                 iface.parallel_gbl.props.vadjustment.props, iface.tempspace)
     iface.view_gbl.connect('key_press_event', shared.delete_and_ignore_rows,
                            gui, PAGE, sel, iface.tempspace)  # in-preview deletion
-    iface.gbl_eventbox.connect('button_press_event', shared.select_seqs, PAGE, iface.zoom,
+    iface.gbl_eventbox.connect('button_press_event', shared.select_seqs, PAGE, iface.zoomer,
                                iface.view_gbl, iface.tempspace)  # in-preview selection
     iface.gbl_eventbox.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
 
@@ -97,12 +94,12 @@ def refresh(gui):
         pass
     # place the existing png
     x_ratio = data.msa_shape[2] / data.msa_shape[0]
-    shared.load_image(iface.zoom, PAGE, iface.gbl_left_vp, gui.wd / PATHS.left,
-                      width=data.gbl_shape[0] * shared.get_hadj(iface),
-                      height=data.gbl_shape[1])
-    shared.load_image(iface.zoom, PAGE, iface.gbl_right_vp, gui.wd / PATHS.right,
-                      width=data.gbl_shape[0] * shared.get_hadj(iface) * x_ratio,
-                      height=data.gbl_shape[1])
+    shared.load_image(iface.zoomer, PAGE, iface.gbl_left_vp, gui.wd / PATHS.left,
+                      w=data.gbl_shape[0] * shared.get_hadj(iface),
+                      h=data.gbl_shape[1])
+    shared.load_image(iface.zoomer, PAGE, iface.gbl_right_vp, gui.wd / PATHS.right,
+                      w=data.gbl_shape[0] * shared.get_hadj(iface) * x_ratio,
+                      h=data.gbl_shape[1])
     shared.load_colorbar(iface.palplot2, gui.wd)
     re_preset(iface.gbl_preset, gui)
     gui.win.show_all()
@@ -385,7 +382,7 @@ def do_gbl(gui):
             if iface.rasterize.props.active:
                 iface.text = 'place PNG'
                 LOG.debug(iface.text)
-                shared.load_image(iface.zoom, PAGE, gtk_bin, gui.wd / png_path,
+                shared.load_image(iface.zoomer, PAGE, gtk_bin, gui.wd / png_path,
                                   data.gbl_shape[0] * x_ratio * shared.get_hadj(iface), data.gbl_shape[1])
             else:
                 iface.text = 'place vector'
@@ -416,8 +413,10 @@ def stop_gbl(gui, errors):
     """Finish the Gblocks thread"""
     data, iface = gui.data, gui.iface
     iface.thread.join()
-    gui.win.show_all()
     LOG.info('gbl thread idle')
+    sleep(.1)
+    shared.update(iface, PAGE)
+    gui.win.show_all()
     shared.set_errors(gui, PAGE, bool(errors))
     shared.set_changed(gui, PAGE, False)
     iface.msa_shape.set_text('%d : %d' % tuple(gui.data.msa_shape[:2]))

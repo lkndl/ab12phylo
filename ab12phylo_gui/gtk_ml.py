@@ -3,6 +3,7 @@
 import logging
 import os
 import random
+import shlex
 import shutil
 import stat
 import threading
@@ -25,7 +26,6 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 6
 
-# TODO sometimes RAxML finishes, but gui does not resume
 
 def init(gui):
     """Initialize the page. Connect buttons"""
@@ -222,7 +222,8 @@ def do_ML(gui, mode):
     boot = '%s --bootstrap --msa %s --model %s --tree %s' + \
            ' --prefix %s' + ' --bs-trees %d' % ml.bootstraps + \
            ' --seed %d' % ml.raxml_seed + \
-           ' --threads auto{16} --workers auto{16} --redo'
+           ' --threads auto{16} --workers auto{16} --redo &'
+    # ampersand helps Bootstrapping not returning
 
     supp = '%s --support --tree %s --bs-trees %s --bs-metric fbp,tbe ' \
            '--prefix %s --threads auto{16} --workers auto{16} --redo'
@@ -266,17 +267,22 @@ def do_ML(gui, mode):
         ml.prev = prev
 
         # read realtime RAxML output line by line
-        with Popen(args=arg % add, stdout=PIPE, stderr=PIPE, shell=True) as proc:
-            while True:
-                line = proc.stdout.readline()
-                if line:
-                    lane = line.decode().rstrip()
-                    ml.stdout.append(lane)
-                    LOG.debug(lane)
-                else:
+        proc = Popen(args=shlex.split(arg % add), stdout=PIPE, stderr=PIPE)
+        while True:
+            line = proc.stdout.readline()
+            if proc.poll() is not None:
+                sleep(.2)
+                break
+            if line:
+                lane = line.decode().rstrip()
+                ml.stdout.append(lane)
+                LOG.debug(lane)
+                if lane.startswith('Consumed energy'):
                     break
+            else:
+                sleep(.2)
+                break
 
-        sleep(.5)
         # bf = iface.ml_help.get_buffer()
         # bf.props.text = bf.props.text + '\n' + '\n'.join(ml.stdout)
         # bf.insert_markup(bf.get_end_iter(),
@@ -322,10 +328,8 @@ def do_ML(gui, mode):
                 zf.write(sh)
             Path(sh).unlink()
 
-            # TODO file save dialog
-
-            sleep(.1)
-            GObject.idle_add(stop_ML, gui, errors, start)
+            sleep(.05)
+            GObject.idle_add(_save_somewhere_else, gui.wd / 'RAxML_export.zip')
             return True
 
     if ml.raxml_shell and mode == 'raxml':
@@ -334,8 +338,13 @@ def do_ML(gui, mode):
                      'ab12phylo-gui --open %s --proceed\n'
                      % str(gui.wd / gui.project_path))
         shell.chmod(shell.stat().st_mode | stat.S_IEXEC)
-        # os.system(shell)
-        os.execv(shell, ('placeholder', 'arg'))
+        gui.hold()
+        gui.win.hide()
+        os.system(shell)
+        gui.win.show_all()
+        gui.release()
+        # old alternative that killed python:
+        # os.execv(shell, ('placeholder', 'arg'))
 
     iface.text = 'copy tree files'
     iface.i = iface.k - 1
@@ -359,8 +368,10 @@ def stop_ML(gui, errors, start):
     if errors:
         shared.show_notification(gui, 'Errors during ML inference', errors)
     elif time() - start > 120:
-        notify = threading.Thread(target=_zenity, args=())
-        notify.start()
+        Popen(['notify-send', 'AB12PHYLO', 'ML Tree Inference finished',
+               '-i', str(Path(__file__).resolve().parent / 'files' / 'favi.png')])
+        # notify = threading.Thread(target=_zenity, args=())
+        # notify.start()
     else:
         shared.show_notification(gui, 'ML finished')
     refresh(gui)
@@ -369,11 +380,29 @@ def stop_ML(gui, errors, start):
     return
 
 
-def _zenity():
-    run(args='zenity --notification --text="AB12PHYLO\n'
-             'ML Tree Inference finished" --window-icon="%s"'
-             % str(Path(__file__).resolve().parent / 'files' / 'favi.png'), shell=True)
-    return True
+def _save_somewhere_else(path):
+    dialog = Gtk.FileChooserDialog(title='export zip',
+                                   parent=None, select_multiple=False,
+                                   action=Gtk.FileChooserAction.SAVE)
+    dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                       Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+    dialog.set_do_overwrite_confirmation(True)
+    dialog.set_filename(str(path))
+    response = dialog.run()
+    if response == Gtk.ResponseType.OK:
+        p = Path(dialog.get_filename()).resolve()
+        try:
+            shutil.move(path, p)
+        except Exception as ex:
+            LOG.error(ex)
+    dialog.destroy()
+
+
+# def _zenity():
+#     run(args='zenity --notification --text="AB12PHYLO\n'
+#              'ML Tree Inference finished" --window-icon="%s"'
+#              % p.icon_path, shell=True)
+#     return True
 
 
 def _extend_buffer(bf, ml_help, stdout):

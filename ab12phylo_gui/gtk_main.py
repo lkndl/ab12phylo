@@ -120,8 +120,7 @@ class ab12phylo_app(Gtk.Application):
         css = b'''
         .seqid { font-size: xx-small; padding-left: 3px; }
         separator.wide { min-width: 18px }
-        #tree_pane separator { min-width: 3px; 
-                               background-color: @success_color; }
+        #tree_pane separator { min-width: 3px; }
         progressbar trough progress { 
             min-height: 6px; 
             border-radius: 1px; 
@@ -263,12 +262,8 @@ class ab12phylo_app(Gtk.Application):
             self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
             self.iface.notebook.set_current_page(self.data.page)
 
-            for module in [gtk_proj, shared, gtk_io, gtk_rgx, gtk_qal,
-                           gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree]:
-                try:
-                    module.reload_ui_state(self)
-                except AttributeError:
-                    pass  # TODO not elegant
+            for module in [gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_ml, gtk_tree]:
+                module.reload_ui_state(self)
         except Exception as e:
             LOG.exception(e)
             shared.show_notification(self, 'Project could not be loaded')
@@ -326,6 +321,7 @@ class ab12phylo_app(Gtk.Application):
             dialog.set_filename(str(self.project_path))
         dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                            Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+        dialog.set_do_overwrite_confirmation(True)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             self.project_path = Path(dialog.get_filename())

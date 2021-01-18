@@ -64,14 +64,12 @@ def set_changed(gui, page, changed=True):
         [page.set_sensitive(False) for page in nb.get_children()[page + 1: nb.get_n_pages()]]
         # set later pages to 'changed'
         data.change_indicator[page:] = [True] * (nb.get_n_pages() - page)
-        data.change_indicator[:page] = [False] * page  # TODO check/see if this is bad
-        # gui.iface.next.get_style_context().remove_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+        data.change_indicator[:page] = [False] * page
     else:
         # enable the next page
         nb.get_children()[page + 1].set_sensitive(True)
         # set earlier pages to 'unchanged'
         data.change_indicator[:page + 1] = [False] * (page + 1)
-        # gui.iface.next.get_style_context().remove_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
 
 
 def show_message_dialog(message, list_to_print=None):
@@ -175,15 +173,11 @@ def proceed(widget, gui=None, page=None):
         elif page == 4:
             gtk_gbl.start_gbl(gui)
         elif page == 5:
-            try:
-                iface.tempspace.df.to_csv(gui.wd / PATHS.tsv,
-                                          sep='\t', na_rep='',
-                                          header=True, index=True)
-                set_changed(gui, 5, False)
-            except Exception as ex:
-                LOG.exception(ex)  # TODO remove
+            iface.tempspace.df.to_csv(
+                gui.wd / PATHS.tsv, sep='\t', na_rep='', header=True, index=True)
+            set_changed(gui, 5, False)
         elif page == 6:
-            pass  # todo at least not re-run
+            gtk_tree.start_phy(gui)
         set_changed(gui, page, False)
 
     # then proceed
@@ -245,9 +239,6 @@ def select_gene_and_redo(gui, *args):
     if page == 2:  # trim preview
         gtk_qal.parse(gui.iface.gene_roll, None, gui)
         gtk_qal.start_trim(gui)
-    # elif page == 5:  # BLAST marker gene change
-    #     gtk_blast.start_BLAST(gui)
-    # TODO continue for new pages
 
 
 def get_column(list_store, col_idx):
@@ -258,24 +249,34 @@ def get_column(list_store, col_idx):
     return col
 
 
-def load_image(zoom_ns, page, gtk_bin, img_path, width, height):
+def load_image(zoom_ns, page, gtk_bin, img_path, w=None, h=None):
     """
     Load an image into a GtkImage child inside gtk_bin, keeping track of observed sizes.
     :param zoom_ns: where all the zooming info is stored, specifically [min_w, min_h,
     w_now, h_now] of the image inside :param gtk_bin inside the zoom_ns.sizes dict.
     """
     # save the current size: only called on enlarging -> easy
-    zoom_ns.sizes[page] = [width, height, width, height]
+    zoom_ns.sizes[page] = [w, h, w, h]
 
     child = gtk_bin.get_child()
     if type(child) != Gtk.Image:
         gtk_bin.remove(child)
         child = Gtk.Image()
         gtk_bin.add(child)
+    path = str(img_path)
 
-    pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-        str(img_path), width=max(1, width), height=height,
-        preserve_aspect_ratio=False)
+    if h and w:
+        pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=path, width=max(1, w), height=h,
+            preserve_aspect_ratio=False)
+    elif w:
+        pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            path, width=w, height=-1, preserve_aspect_ratio=True)
+    elif h:
+        pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=str(path), width=-1, height=h, preserve_aspect_ratio=True)
+    else:
+        raise ValueError('Specify at least one out of width / height')
     child.set_from_pixbuf(pb)
 
 
@@ -312,7 +313,7 @@ def get_height_resize(widget, event, spacer, scroll_wins, lower=0):
 
 
 def get_hadj(iface):
-    return iface.zoom.adj.get_value() * 2
+    return iface.zoomer.adj.get_value() * 2
 
 
 def scale(gtk_bin, x, y):
@@ -382,11 +383,11 @@ def xy_scale(widget, event, gui, page):
     data, iface = gui.data, gui.iface
     accel_mask = Gtk.accelerator_get_default_mod_mask()
     if event.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
-        with GObject.signal_handler_block(iface.zoom.adj, iface.zoom.handle):
+        with GObject.signal_handler_block(iface.zoomer.adj, iface.zoomer.handle):
             direction = event.get_scroll_deltas()[2]
-            a = iface.zoom.adj.props
+            a = iface.zoomer.adj.props
             bak = a.value
-            min_w, min_h, w_now, h_now = iface.zoom.sizes[page]
+            min_w, min_h, w_now, h_now = iface.zoomer.sizes[page]
             if direction > 0:  # scrolling down -> zoom out -> simple
                 # go one tick down
                 a.value = max(.2, a.value - a.step_increment)
@@ -400,25 +401,25 @@ def xy_scale(widget, event, gui, page):
                     scale(iface.gbl_left_vp, new, new)
                     scale(iface.gbl_right_vp, new, new)
                 # adjust the saved sizes
-                iface.zoom.sizes[page] = [min(min_w * new, min_w), min(min_h * new, min_h), w_now * new, h_now * new]
+                iface.zoomer.sizes[page] = [min(min_w * new, min_w), min(min_h * new, min_h), w_now * new, h_now * new]
             else:
                 a.value = min(a.upper, a.value + a.step_increment)
                 new = a.value / bak
                 if a.value == bak:
                     return
-                min_w, min_h, w_now, h_now = iface.zoom.sizes[page]
+                min_w, min_h, w_now, h_now = iface.zoomer.sizes[page]
                 if w_now / min_w * new > 3 or h_now / min_h * new > 4:
                     # re-load is due. jump ahead by incrementing again
                     a.value = min(a.upper, a.value + 2 * a.step_increment)
                     new = a.value / bak
                     LOG.debug('re-loading images, scale xy: %.2f fold, %.1f' % (new, a.value))
                     if page == 2:
-                        load_image(iface.zoom, page, iface.qal_eventbox, gui.wd / PATHS.preview,
+                        load_image(iface.zoomer, page, iface.qal_eventbox, gui.wd / PATHS.preview,
                                    data.qal_shape[0] * a.value * 2, data.qal_shape[1])
                     elif page == 4:
-                        load_image(iface.zoom, page, iface.gbl_left_vp, gui.wd / PATHS.left,
+                        load_image(iface.zoomer, page, iface.gbl_left_vp, gui.wd / PATHS.left,
                                    data.msa_shape[0] * a.value * 2, data.gbl_shape[1])
-                        load_image(iface.zoom, page, iface.gbl_right_vp, gui.wd / PATHS.right,
+                        load_image(iface.zoomer, page, iface.gbl_right_vp, gui.wd / PATHS.right,
                                    data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
                 else:
                     LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
@@ -428,8 +429,8 @@ def xy_scale(widget, event, gui, page):
                     elif page == 4:
                         scale(iface.gbl_left_vp, new, new)
                         scale(iface.gbl_right_vp, new, new)
-                iface.zoom.sizes[page] = [min_w, min_h, w_now * new, h_now * new]
-            iface.zoom.bak = a.value
+                iface.zoomer.sizes[page] = [min_w, min_h, w_now * new, h_now * new]
+            iface.zoomer.bak = a.value
 
 
 def update(iface, page):
@@ -613,8 +614,6 @@ def write_metadata(gui):
         md[gene], orient='index') for gene in md.keys()})
     df.index.names = ['gene', 'id']
     df.reset_index(level=0, inplace=True)
-    if 'wellsplate' in df.columns:  # TODO decide, maybe delete?
-        df.rename(columns={'wellsplate': 'box'}, inplace=True)
     # write to file
     df.to_csv(gui.wd / PATHS.tsv, sep='\t', na_rep='', header=True, index=True)
 

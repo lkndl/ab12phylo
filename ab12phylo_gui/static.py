@@ -19,9 +19,11 @@ PATHS = Namespace(**{
     'cbar': Path('Trim') / 'colorbar.png',
     'left': Path('Trim') / 'msa_gbl_pre.png',
     'right': Path('Trim') / 'msa_gbl_post.png',
+    'phylo': Path('Trim') / 'msa_phylo.png',
     'RAxML': Path('raxml-ng_v1.0.1_linux_x86_64') / 'raxml-ng',
     'tbe': 'tree_TBE.nwk', 'tben': 'tree_TBE_annotated.nwk',
     'fbp': 'tree_FBP.nwk', 'fbpn': 'tree_FBP_annotated.nwk',
+    'icon_path': str(Path(__file__).resolve().parent / 'files' / 'favi.png')
 })
 
 algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
@@ -59,16 +61,15 @@ BUF_SIZE = 128 * 1024
 DOWNLOAD_TIMEOUT = 3600  # an hour at most for db download
 
 # support value colors
-blue = tohex((.2, .5, .75, 1))
-red = tohex((1, 0, .3, 1))
-dark_red = tohex((.8, 0, .25, 1))
-black = tohex((.2, .2, .2, 1))
+blue = (.2, .5, .75)
+red = (1, 0, .3)
+dark_red = (.8, 0, .25)
+black = (.2, .2, .2)
 
 # seaborn rocket palette
-rocket = [blue] + [tohex((*c, 1)) for c in
-                   [(0.1237, 0.0717, 0.1822), (0.2452, 0.1049, 0.2639),
-                    (0.3809, 0.1206, 0.3250), (0.5172, 0.1179, 0.3545),
-                    (0.6582, 0.0955, 0.3536), (0.7965, 0.1050, 0.3106),
-                    (0.8949, 0.2178, 0.2531), (0.9429, 0.3754, 0.2636),
-                    (0.9592, 0.5330, 0.3748), (0.9644, 0.6702, 0.5150),
-                    (0.9689, 0.7980, 0.6851)]]
+rocket = [blue] + [(0.1237, 0.0717, 0.1822), (0.2452, 0.1049, 0.2639),
+                   (0.3809, 0.1206, 0.3250), (0.5172, 0.1179, 0.3545),
+                   (0.6582, 0.0955, 0.3536), (0.7965, 0.1050, 0.3106),
+                   (0.8949, 0.2178, 0.2531), (0.9429, 0.3754, 0.2636),
+                   (0.9592, 0.5330, 0.3748), (0.9644, 0.6702, 0.5150),
+                   (0.9689, 0.7980, 0.6851)]

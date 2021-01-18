@@ -48,7 +48,11 @@ class project_dataset:
         self.ml = Namespace(evo_model='GTR', evo_modify='+G4', bootstraps=1000,
                             rand=20, pars=20, raxml_shell=True)
         self.phy = Namespace(gap_share=.1, unk_share=.1, flip=.7, dist=0, sel_gene=None,
-                             did_BLAST=False, png=True, nwk=True, axis=True, query='', exclude='')
+                             did_BLAST=False, query='', exclude='',
+                             rect=True, circ=False, unro=False, tbe=True, fbp=False, supp=True,
+                             spec=False, axis=True, align=False, pmsa=True,
+                             pdf=True, svg=True, png=True, nwk=True, html=False)
+
         self.gbl_model = picklable_liststore(str)  # id
         # set up indicator of changes, tabs are not disabled initially
         self.change_indicator = [False] * 20

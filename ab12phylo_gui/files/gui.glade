@@ -57,6 +57,155 @@
       <pattern>*.FASTA</pattern>
     </patterns>
   </object>
+  <object class="GtkPopover" id="file_popover">
+    <property name="name">file_popover</property>
+    <property name="can-focus">False</property>
+    <property name="position">right</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="homogeneous">True</property>
+        <child>
+          <object class="GtkToggleButton" id="pdf">
+            <property name="name">pdf</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">.html</property>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="pixbuf">pdf.png</property>
+                <property name="icon_size">3</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkToggleButton" id="svg">
+            <property name="name">svg</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">.svg</property>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="pixbuf">svg.png</property>
+                <property name="icon_size">3</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkToggleButton" id="png">
+            <property name="name">png</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">.png</property>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="pixbuf">png.png</property>
+                <property name="icon_size">3</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkToggleButton" id="nwk">
+            <property name="name">nwk</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">.nwk</property>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="pixbuf">nwk.png</property>
+                <property name="pixel-size">20</property>
+                <property name="icon_size">3</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkToggleButton" id="html">
+            <property name="name">html</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">.html</property>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="pixbuf">html.png</property>
+                <property name="pixel-size">20</property>
+                <property name="icon_size">3</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="save_plot">
+            <property name="name">save_plot</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Export the current plot now.</property>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="pixbuf">floppy.png</property>
+                <property name="icon_size">3</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <style>
+          <class name="linked"/>
+        </style>
+      </object>
+    </child>
+  </object>
   <object class="GtkAdjustment" id="flip_adj">
     <property name="upper">1</property>
     <property name="value">0.69999999999999996</property>
@@ -309,6 +458,28 @@
               </packing>
             </child>
             <child>
+              <object class="GtkToggleButton" id="align">
+                <property name="name">align</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Align tip labels on the right / outside.</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="pixbuf">align.png</property>
+                    <property name="icon_size">3</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkToggleButton" id="pmsa">
                 <property name="name">pmsa</property>
                 <property name="visible">True</property>
@@ -327,7 +498,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">3</property>
+                <property name="position">4</property>
               </packing>
             </child>
             <style>
@@ -447,6 +618,20 @@
                 <property name="position">5</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkImage" id="saveim">
+                <property name="name">saveim</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="pixbuf">floppy.png</property>
+                <property name="icon_size">3</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
+              </packing>
+            </child>
             <style>
               <class name="linked"/>
             </style>
@@ -454,128 +639,6 @@
           <packing>
             <property name="left-attach">0</property>
             <property name="top-attach">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="orientation">vertical</property>
-            <property name="homogeneous">True</property>
-            <child>
-              <object class="GtkToggleButton" id="pdf">
-                <property name="name">pdf</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="pixbuf">pdf.png</property>
-                    <property name="icon_size">3</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkToggleButton" id="svg">
-                <property name="name">svg</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="pixbuf">svg.png</property>
-                    <property name="icon_size">3</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkToggleButton" id="png">
-                <property name="name">png</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="pixbuf">png.png</property>
-                    <property name="icon_size">3</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkToggleButton" id="nwk">
-                <property name="name">nwk</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="pixbuf">nwk.png</property>
-                    <property name="pixel-size">20</property>
-                    <property name="icon_size">3</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="save_plot">
-                <property name="name">save_plot</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Save the current plot.</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="pixbuf">floppy.png</property>
-                    <property name="icon_size">3</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <style>
-              <class name="linked"/>
-            </style>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">4</property>
           </packing>
         </child>
         <child>
@@ -641,6 +704,40 @@
           <packing>
             <property name="left-attach">0</property>
             <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkMenuButton" id="filetypes">
+                <property name="name">filetypes</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="focus-on-click">False</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Select the file types to export.</property>
+                <property name="direction">right</property>
+                <property name="popover">file_popover</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <style>
+              <class name="linked"/>
+            </style>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">4</property>
           </packing>
         </child>
       </object>
@@ -897,6 +994,12 @@ Alternatively, a color legend would nicely fit here.</property>
       <pattern>*.xml</pattern>
       <pattern>*.XML</pattern>
     </patterns>
+  </object>
+  <object class="GtkStackSidebar">
+    <property name="can-focus">False</property>
+    <property name="no-show-all">True</property>
+    <property name="hexpand">False</property>
+    <property name="stack">ml_stack</property>
   </object>
   <object class="GtkPopover" id="switcher">
     <property name="name">switcher</property>
@@ -4809,18 +4912,6 @@ Alternatively, a color legend would nicely fit here.</property>
                         <property name="can-focus">False</property>
                         <property name="column-spacing">10</property>
                         <child>
-                          <object class="GtkStackSidebar">
-                            <property name="can-focus">False</property>
-                            <property name="no-show-all">True</property>
-                            <property name="hexpand">False</property>
-                            <property name="stack">ml_stack</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -4856,9 +4947,9 @@ Alternatively, a color legend would nicely fit here.</property>
                             </child>
                           </object>
                           <packing>
-                            <property name="left-attach">0</property>
+                            <property name="left-attach">1</property>
                             <property name="top-attach">0</property>
-                            <property name="width">4</property>
+                            <property name="width">3</property>
                           </packing>
                         </child>
                         <child>
@@ -5667,6 +5758,12 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="top-attach">1</property>
                           </packing>
                         </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -5776,6 +5873,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                                     <property name="height-request">30</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
+                                                    <property name="margin-bottom">50</property>
                                                     <property name="hexpand">False</property>
                                                     <property name="vexpand">False</property>
                                                     <property name="headers-visible">False</property>
@@ -5800,6 +5898,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                                     <property name="name">tree_right</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
+                                                    <property name="margin-bottom">50</property>
                                                     <property name="hexpand">True</property>
                                                     <property name="vscrollbar-policy">never</property>
                                                     <property name="window-placement">bottom-right</property>
@@ -5918,26 +6017,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkTreeView" id="itv">
-                                    <property name="name">itv</property>
-                                    <property name="width-request">200</property>
-                                    <property name="height-request">200</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="no-show-all">True</property>
-                                    <property name="halign">start</property>
-                                    <property name="valign">start</property>
-                                    <property name="hexpand">False</property>
-                                    <child internal-child="selection">
-                                      <object class="GtkTreeSelection"/>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">True</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
                                   </packing>
                                 </child>
                               </object>

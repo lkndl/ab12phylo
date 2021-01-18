@@ -18,14 +18,12 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
 from ab12phylo_gui import static, shared, gtk_rgx
-from ab12phylo_gui.static import PATHS
+from ab12phylo_gui.static import PATHS, seqtoint
 from ab12phylo.filter import trim_ends, mark_bad_stretches
 
 LOG = logging.getLogger(__name__)
 plt.set_loglevel('warning')
 PAGE = 2
-
-"""The page for ABI trace trimming. Very similar to the MSA trimming page gtk_gbl.py"""
 
 
 def init(gui):
@@ -76,7 +74,7 @@ def init(gui):
                            shared.delete_and_ignore_rows,
                            gui, PAGE, sel, data.qal)
     iface.qal_eventbox.connect_after('button_press_event',
-                                     shared.select_seqs, PAGE, iface.zoom,
+                                     shared.select_seqs, PAGE, iface.zoomer,
                                      iface.view_qal, iface.tempspace)  # in-preview selection
     iface.qal_win.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
 
@@ -92,7 +90,7 @@ def refresh(gui):
         return
 
     # place the png preview
-    shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
+    shared.load_image(iface.zoomer, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
                       data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
     shared.load_colorbar(iface.palplot, gui.wd)
     gui.win.show_all()
@@ -217,14 +215,14 @@ def do_trim(gui):
                 record = trim_ends(record, p.min_phred, (p.trim_out, p.trim_of), trim_preview=True)
                 record = mark_bad_stretches(record, p.min_phred, p.bad_stretch)
                 has_qal, is_bad = True, False
-                row = static.seqtoint(record)
+                row = seqtoint(record)
             except AttributeError:
                 # accept references anyway, but maybe skip no-phred ones
                 is_ref = 'accession' in data.metadata[gene][rid]
                 if not is_ref and not p.accept_nophred:
                     continue
                 has_qal, is_bad = is_ref, False
-                row = static.seqtoint(record)
+                row = seqtoint(record)
             except ValueError:
                 has_qal, is_bad = True, True
                 row = static.seqtogray(record)
@@ -244,7 +242,7 @@ def do_trim(gui):
     iface.text = 'tabularize'
     LOG.debug(iface.text)
     max_len = max(map(len, rows))
-    array = np.array([row + static.seqtoint(' ') * (max_len - len(row)) for row in rows])
+    array = np.array([row + seqtoint(' ') * (max_len - len(row)) for row in rows])
     # make gaps transparent
     array = np.ma.masked_where(array > static.toint('else'), array)
     iface.i += 1
@@ -283,7 +281,7 @@ def do_trim(gui):
         iface.text = 'place PNG'
         LOG.debug(iface.text)
         sleep(.05)
-        shared.load_image(iface.zoom, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
+        shared.load_image(iface.zoomer, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
                           data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
     else:
         iface.text = 'place vector'

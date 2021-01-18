@@ -24,8 +24,6 @@ from ab12phylo_gui.static import PATHS, BASE_DIR, DOWNLOAD_TIMEOUT
 LOG = logging.getLogger(__name__)
 PAGE = 5
 
-# TODO recheck notification
-
 
 def init(gui):
     """Initialize the page. Connect buttons"""
@@ -361,6 +359,8 @@ def _refill(gui, gene=None, fresh=False):
             pid, r.BLAST_species, r.extra_species = '', '', ''
         elif type(r.pid) == float:
             pid = '%.2f' % r.pid if r.pid < 100 else '100'
+        else:
+            pid = r.pid
         data.sp_model.append([sample, pid, r.BLAST_species, r.extra_species])
 
 
@@ -390,12 +390,3 @@ def human_bytes(num):
         if num < step_unit:
             return '{:.0f} {}'.format(num, x)
         num /= step_unit
-
-
-def pd_from_(metadata):  # TODO delete
-    # convert metadata dict do pandas DataFrame
-    df = pd.concat({gene: pd.DataFrame.from_dict(
-        metadata[gene], orient='index') for gene in metadata.keys()})
-    df.index.names = ['gene', 'id']
-    df.reset_index(level=0, inplace=True)
-    return df

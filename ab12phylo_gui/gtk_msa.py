@@ -172,7 +172,7 @@ def do_align(gui, remote=False):
     except FileNotFoundError:
         errors.append('MSA/sequences file not found. Did you just save somewhere new?')
     except TypeError:
-        errors.append('TODO replace string formatting with something smarter')
+        raise ValueError('replace string formatting with something smarter')
     GObject.idle_add(stop_align, gui, errors)
 
 
