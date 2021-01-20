@@ -974,6 +974,11 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="tree_scroll_msa">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="tree_scroll_vert">
     <property name="upper">100</property>
     <property name="step-increment">1</property>
@@ -5800,7 +5805,7 @@ Alternatively, a color legend would nicely fit here.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
-                          <!-- n-columns=3 n-rows=1 -->
+                          <!-- n-columns=3 n-rows=2 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -5820,7 +5825,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <child>
-                                      <!-- n-columns=2 n-rows=2 -->
+                                      <!-- n-columns=2 n-rows=1 -->
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
@@ -5837,9 +5842,9 @@ Alternatively, a color legend would nicely fit here.</property>
                                                 <property name="name">tree_left</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="hexpand">True</property>
+                                                <property name="hadjustment">tree_scroll_adj</property>
+                                                <property name="hscrollbar-policy">external</property>
                                                 <property name="vscrollbar-policy">never</property>
-                                                <property name="window-placement">bottom-right</property>
                                                 <property name="shadow-type">in</property>
                                                 <child>
                                                   <object class="GtkViewport" id="tree_left_vp">
@@ -5880,9 +5885,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                                     <property name="search-column">0</property>
                                                     <property name="show-expanders">False</property>
                                                     <property name="tooltip-column">1</property>
-                                                    <child internal-child="selection">
-                                                      <object class="GtkTreeSelection"/>
-                                                    </child>
                                                     <style>
                                                       <class name="seqid"/>
                                                     </style>
@@ -5898,13 +5900,14 @@ Alternatively, a color legend would nicely fit here.</property>
                                                     <property name="name">tree_right</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
-                                                    <property name="margin-bottom">50</property>
                                                     <property name="hexpand">True</property>
+                                                    <property name="hadjustment">tree_scroll_msa</property>
+                                                    <property name="hscrollbar-policy">external</property>
                                                     <property name="vscrollbar-policy">never</property>
-                                                    <property name="window-placement">bottom-right</property>
                                                     <property name="shadow-type">in</property>
                                                     <child>
-                                                      <object class="GtkViewport">
+                                                      <object class="GtkViewport" id="tree_right_vp">
+                                                        <property name="name">tree_right_vp</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <child>
@@ -5912,9 +5915,10 @@ Alternatively, a color legend would nicely fit here.</property>
                                                             <property name="name">msa_eventbox</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="above-child">True</property>
+                                                            <property name="hexpand">True</property>
                                                             <child>
                                                             <object class="GtkLabel">
+                                                            <property name="height-request">100</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="label" translatable="yes">&lt;placeholder&gt;</property>
@@ -5944,17 +5948,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="width">2</property>
                                           </packing>
                                         </child>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">0</property>
-                                            <property name="top-attach">1</property>
-                                            <property name="width">2</property>
-                                          </packing>
-                                        </child>
                                       </object>
                                     </child>
                                   </object>
@@ -5977,6 +5970,75 @@ Alternatively, a color legend would nicely fit here.</property>
                               <packing>
                                 <property name="left-attach">2</property>
                                 <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="hexpand">True</property>
+                                <property name="vexpand">False</property>
+                                <child>
+                                  <object class="GtkScrollbar" id="tree_left_scrollbar">
+                                    <property name="name">tree_left_scrollbar</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="valign">end</property>
+                                    <property name="adjustment">tree_scroll_adj</property>
+                                    <property name="inverted">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="tree_spacer">
+                                    <property name="name">tree_spacer</property>
+                                    <property name="width-request">30</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="vexpand">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkScrollbar" id="tree_right_scrollbar">
+                                    <property name="name">tree_right_scrollbar</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="valign">end</property>
+                                    <property name="adjustment">tree_scroll_msa</property>
+                                    <property name="inverted">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                                <property name="width">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="hexpand">False</property>
+                                <property name="vexpand">False</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">1</property>
                               </packing>
                             </child>
                           </object>

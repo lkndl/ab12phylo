@@ -75,9 +75,22 @@ def init(gui):
                 iface.parallel_tree.props.vadjustment.props, iface.tempspace)
     iface.msa_eventbox.connect('button_press_event', shared.select_seqs, PAGE, iface.zoomer,
                                iface.view_msa_ids, iface.tempspace)  # in-preview selection
-    iface.msa_eventbox.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
-
+    iface.tree_pane.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
+    iface.tree_pane.connect('notify::position', _keep_scrollbar_sizes,
+                            iface.tree_left_scrollbar, iface.tree_right_scrollbar,
+                            iface.tree_spacer, iface.view_msa_ids, )
     iface.tree = None
+
+
+def boink(*args):
+    print(args)
+
+
+def _keep_scrollbar_sizes(pane, pos, scl, scr, sp, tv):
+    pos = pane.get_position()
+    scl.set_size_request(pos, -1)
+    sp.set_size_request(tv.get_allocated_width(), -1)
+    scr.set_size_request(pane.get_allocated_width() - pos - tv.get_allocated_width(), -1)
 
 
 def refresh(gui):
@@ -86,8 +99,10 @@ def refresh(gui):
     reload_ui_state(gui)
     shared.load_colorbar(iface.palplot1, gui.wd)
     init_sp_genes(iface.sp_genes, data.genes, phy.sel_gene)
-    if shared.get_changed(gui, PAGE):
+    iface.tree_pane.set_position(301)
+    if shared.get_changed(gui, PAGE) or not iface.tree:
         start_phy(gui)
+    # TODO load image
 
 
 def init_sp_genes(sp_genes, genes, sel_gene=None):
@@ -148,6 +163,9 @@ def start_popgen(widget, gui):
     data.pop_model.clear()
 
     # TODO popgen calc
+    # TODO compound plot with MSA
+    # TODO MSA legend
+    # TODO rooting, dropping
     init_popgen_columns(iface.popgen)
     return
 
@@ -165,6 +183,9 @@ def on_save_plot(gui):
     """Save the current plot in different formats"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     LOG.debug('rendering tree')
+    if 'canvas' not in iface:
+        start_phy(gui)
+        return
     if phy.png:
         iface.text = 'rendering png'
         png.render(iface.canvas, str(gui.wd / (phy.tx + '.png')), scale=1.6)
@@ -254,8 +275,6 @@ def do_phy1(gui):
             else:
                 phy.ndf[t] = [dict(r) for r in rows][0]
 
-    iface.text = 'fill id column'
-    data.tree_anno_model.clear()
     iface.i += 1
     GObject.idle_add(do_phy2, gui)
     sleep(.1)
@@ -266,7 +285,9 @@ def do_phy2(gui):
     """Bounce to idle to size the id column"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     iface.thread.join()
-    LOG.info('bouncing phylo thread #1')
+    iface.text = 'fill id column'
+    LOG.debug(iface.text)
+    data.tree_anno_model.clear()
 
     # write samples to model
     for t in phy.tips:
@@ -501,7 +522,6 @@ def do_phy3(gui):
         LOG.exception(ex)
         errors.append(ex)
 
-    iface.text = 'placing tree'
     GObject.idle_add(do_phy4, gui, errors)
     sleep(.1)
     return True
@@ -511,7 +531,8 @@ def do_phy4(gui, errors):
     """Bounce the plotting to the main loop"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     iface.thread.join()
-    LOG.info('bouncing phylo thread #2')
+    iface.text = 'placing tree'
+    LOG.debug(iface.text)
     shared.update(iface, PAGE)
     gui.win.show_all()
     if errors:
@@ -566,19 +587,19 @@ def do_phy5(gui):
               dpi=scale * static.DPI, bbox_inches='tight', pad_inches=0.00001)
     plt.close(f)
 
-    shape = array.shape[1], phy.height
+    phy.shape = array.shape[1], phy.height - 50 * phy.axis
 
     if iface.rasterize.props.active:
         iface.text = 'place PNG MSA: %d:%d' % (array.shape)
         LOG.debug(iface.text)
         sleep(.05)
         shared.load_image(iface.zoomer, PAGE, iface.msa_eventbox, gui.wd / p.phylo,
-                          w=shape[0] * 1.6 * shared.get_hadj(iface), h=shape[1] - 50 * phy.axis)
+                          w=phy.shape[0] * shared.get_hadj(iface), h=phy.shape[1])
     else:
         iface.text = 'place vector'
         LOG.debug(iface.text)
         canvas = FigureCanvas(f)  # a Gtk.DrawingArea
-        canvas.set_size_request(shape[0] * 1.6 * shared.get_hadj(iface), shape[1] - 50 * phy.axis)
+        canvas.set_size_request(w=phy.shape[0] * shared.get_hadj(iface), h=phy.shape[1])
         try:
             iface.qal_eventbox.get_child().destroy()
             iface.qal_eventbox.add(canvas)
@@ -602,6 +623,7 @@ def do_phy5(gui):
 def stop_phy(gui):
     gui.iface.thread.join()
     LOG.info('phylo thread idle')
+    gui.iface.view_msa_ids.set_model(gui.data.tree_anno_model)
     gui.win.show_all()
     gui.data.change_indicator[PAGE] = False
     return False

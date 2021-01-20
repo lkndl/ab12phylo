@@ -359,6 +359,9 @@ def x_scale(adj, gui, zoom_ns):
                            data.msa_shape[0] * a.value * 2, h_now)
                 load_image(zoom_ns, page, iface.gbl_right_vp, gui.wd / PATHS.right,
                            data.msa_shape[2] * a.value * 2, h_now)
+            elif page == 7:
+                load_image(zoom_ns, page, iface.msa_eventbox, gui.wd / PATHS.phylo,
+                           data.phy.shape[0] * a.value * 2, h_now)
             zoom_ns.sizes[page] = [w_now * x, min_h, w_now * x, h_now]
         else:
             LOG.debug('scale x: %.2f fold' % x)
@@ -367,6 +370,8 @@ def x_scale(adj, gui, zoom_ns):
             elif page == 4:
                 scale(iface.gbl_left_vp, x, 1)
                 scale(iface.gbl_right_vp, x, 1)
+            elif page == 7:
+                scale(iface.msa_eventbox, x, 1)
             zoom_ns.sizes[page] = [min(w_now * x, min_w), min_h, w_now * x, h_now]
         zoom_ns.bak = a.value
 
@@ -400,6 +405,8 @@ def xy_scale(widget, event, gui, page):
                 elif page == 4:
                     scale(iface.gbl_left_vp, new, new)
                     scale(iface.gbl_right_vp, new, new)
+                elif page == 7:
+                    scale(iface.msa_eventbox, new, new)
                 # adjust the saved sizes
                 iface.zoomer.sizes[page] = [min(min_w * new, min_w), min(min_h * new, min_h), w_now * new, h_now * new]
             else:
@@ -421,6 +428,9 @@ def xy_scale(widget, event, gui, page):
                                    data.msa_shape[0] * a.value * 2, data.gbl_shape[1])
                         load_image(iface.zoomer, page, iface.gbl_right_vp, gui.wd / PATHS.right,
                                    data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
+                    elif page == 7:
+                        load_image(iface.zoomer, page, iface.msa_eventbox, gui.wd / PATHS.phylo,
+                                   data.phy.shape[0] * a.value * 2, data.phy.shape[1])
                 else:
                     LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
                     # scale the easy way
@@ -429,7 +439,11 @@ def xy_scale(widget, event, gui, page):
                     elif page == 4:
                         scale(iface.gbl_left_vp, new, new)
                         scale(iface.gbl_right_vp, new, new)
+                    elif page == 7:
+                        scale(iface.msa_eventbox, new, new)
                 iface.zoomer.sizes[page] = [min_w, min_h, w_now * new, h_now * new]
+            if page == 7:
+                iface.tree_pane.set_position(300)
             iface.zoomer.bak = a.value
 
 
@@ -490,7 +504,7 @@ def select_seqs(event_box, loc, page, zoom_ns, tv, ns):
     :param args:
     :return:
     """
-    LOG.debug('select_seqs')
+    # LOG.debug('select_seqs')
     if tv.props.visible:
         tv.grab_focus()
     sel = tv.get_selection()

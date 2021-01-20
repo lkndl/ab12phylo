@@ -86,8 +86,10 @@ def init(gui):
     iface.zoomer.adj.configure(1, .2, 2.6, .2, 0, 0)
     iface.qal_scale.set_digits(1)
     iface.gbl_scale.set_digits(1)
+    iface.tree_scale.set_digits(1)
     iface.qal_scale.add_mark(1, Gtk.PositionType.BOTTOM, None)
     iface.gbl_scale.add_mark(1, Gtk.PositionType.BOTTOM, None)
+    iface.tree_scale.add_mark(1, Gtk.PositionType.BOTTOM, None)
     iface.zoomer.bak = iface.zoomer.adj.get_value()
     iface.zoomer.handle = iface.zoomer.adj.connect_after('value-changed', shared.x_scale, gui, iface.zoomer)
     iface.zoomer.sizes = dict()  # will save with the image parent name here
