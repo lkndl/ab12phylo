@@ -379,6 +379,7 @@ def do_gbl(gui):
             data.gbl_shape[1] = shared.get_height_resize(iface.view_gbl, None, iface.gbl_spacer,
                                                          [iface.gbl_left, iface.gbl_right])
 
+            # TODO consider moving out of thread
             if iface.rasterize.props.active:
                 iface.text = 'place PNG'
                 LOG.debug(iface.text)

@@ -259,10 +259,10 @@ def load_image(zoom_ns, page, gtk_bin, img_path, w=None, h=None):
     zoom_ns.sizes[page] = [w, h, w, h]
 
     child = gtk_bin.get_child()
-    if type(child) != Gtk.Image:
+    if child:
         gtk_bin.remove(child)
-        child = Gtk.Image()
-        gtk_bin.add(child)
+    child = Gtk.Image()
+    gtk_bin.add(child)
     path = str(img_path)
 
     if h and w:
@@ -280,10 +280,11 @@ def load_image(zoom_ns, page, gtk_bin, img_path, w=None, h=None):
     child.set_from_pixbuf(pb)
 
 
-def load_colorbar(gtk_image, wd):
+def load_colorbar(gtk_image, wd, gbar=False):
     try:
+        path = PATHS.gbar if gbar else PATHS.cbar
         gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
-            str(wd / PATHS.cbar), width=250, height=100, preserve_aspect_ratio=True))
+            str(wd / path), width=250, height=100, preserve_aspect_ratio=True))
     except FileNotFoundError:
         pass
 
@@ -360,7 +361,7 @@ def x_scale(adj, gui, zoom_ns):
                 load_image(zoom_ns, page, iface.gbl_right_vp, gui.wd / PATHS.right,
                            data.msa_shape[2] * a.value * 2, h_now)
             elif page == 7:
-                load_image(zoom_ns, page, iface.msa_eventbox, gui.wd / PATHS.phylo,
+                load_image(zoom_ns, page, iface.msa_eventbox, gui.wd / PATHS.phylo_msa,
                            data.phy.shape[0] * a.value * 2, h_now)
             zoom_ns.sizes[page] = [w_now * x, min_h, w_now * x, h_now]
         else:
@@ -429,7 +430,7 @@ def xy_scale(widget, event, gui, page):
                         load_image(iface.zoomer, page, iface.gbl_right_vp, gui.wd / PATHS.right,
                                    data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
                     elif page == 7:
-                        load_image(iface.zoomer, page, iface.msa_eventbox, gui.wd / PATHS.phylo,
+                        load_image(iface.zoomer, page, iface.msa_eventbox, gui.wd / PATHS.phylo_msa,
                                    data.phy.shape[0] * a.value * 2, data.phy.shape[1])
                 else:
                     LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
@@ -515,7 +516,8 @@ def select_seqs(event_box, loc, page, zoom_ns, tv, ns):
     idcs = {tp[0] for tp in tree_path_iterator}
 
     h_now = zoom_ns.sizes[page][3]
-    idx = int((loc.y - (rect.height - h_now) / 2) / h_now * len(mo))
+    # print('%d:%d:%d:%d' % (tv.get_margin_bottom(), rect.height, h_now, loc.y))
+    idx = int((loc.y - (rect.height - h_now) / 2) / (h_now - tv.get_margin_bottom()) * len(mo))
     if idx == '' or idx < 0:
         sel.unselect_all()
         return

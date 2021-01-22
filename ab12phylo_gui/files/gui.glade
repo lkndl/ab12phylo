@@ -969,6 +969,28 @@
     <property name="upper">1</property>
     <property name="step-increment">1</property>
   </object>
+  <object class="GtkPopover" id="switcher">
+    <property name="name">switcher</property>
+    <property name="can-focus">False</property>
+    <property name="position">right</property>
+    <child>
+      <placeholder/>
+    </child>
+  </object>
+  <object class="GtkMenuButton">
+    <property name="visible">True</property>
+    <property name="can-focus">True</property>
+    <property name="focus-on-click">False</property>
+    <property name="receives-default">True</property>
+    <property name="halign">end</property>
+    <property name="hexpand">True</property>
+    <property name="vexpand">False</property>
+    <property name="direction">left</property>
+    <property name="popover">switcher</property>
+    <child>
+      <placeholder/>
+    </child>
+  </object>
   <object class="GtkAdjustment" id="tree_scroll_adj">
     <property name="upper">100</property>
     <property name="step-increment">1</property>
@@ -1000,53 +1022,6 @@ Alternatively, a color legend would nicely fit here.</property>
       <pattern>*.XML</pattern>
     </patterns>
   </object>
-  <object class="GtkStackSidebar">
-    <property name="can-focus">False</property>
-    <property name="no-show-all">True</property>
-    <property name="hexpand">False</property>
-    <property name="stack">ml_stack</property>
-  </object>
-  <object class="GtkPopover" id="switcher">
-    <property name="name">switcher</property>
-    <property name="can-focus">False</property>
-    <property name="position">right</property>
-    <child>
-      <object class="GtkStackSwitcher">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="hexpand">False</property>
-        <property name="vexpand">False</property>
-        <property name="stack">tree_stack</property>
-      </object>
-    </child>
-  </object>
-  <object class="GtkHeaderBar" id="tbar">
-    <property name="name">tbar</property>
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="title" translatable="yes">AB12PHYLO</property>
-    <property name="has-subtitle">False</property>
-    <property name="spacing">0</property>
-    <property name="show-close-button">True</property>
-    <property name="decoration-layout">menu:minimize,maximize,close</property>
-    <child>
-      <object class="GtkMenuButton">
-        <property name="visible">True</property>
-        <property name="can-focus">True</property>
-        <property name="focus-on-click">False</property>
-        <property name="receives-default">True</property>
-        <property name="align-widget">win</property>
-        <property name="direction">none</property>
-        <property name="popover">pop_menu</property>
-        <child>
-          <placeholder/>
-        </child>
-      </object>
-      <packing>
-        <property name="pack-type">end</property>
-      </packing>
-    </child>
-  </object>
   <object class="GtkApplicationWindow" id="win">
     <property name="name">win</property>
     <property name="width-request">800</property>
@@ -1054,6 +1029,7 @@ Alternatively, a color legend would nicely fit here.</property>
     <property name="can-focus">False</property>
     <property name="default-width">900</property>
     <property name="default-height">600</property>
+    <property name="icon">favi.ico</property>
     <property name="urgency-hint">True</property>
     <property name="show-menubar">False</property>
     <child>
@@ -1802,7 +1778,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <object class="GtkScrolledWindow">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-markup" translatable="yes">Fix entries in red, and fill out the &lt;b&gt;gene&lt;/b&gt; column for references in blue-green. Entries in purple map to the same sample ID but do not require immediate attention.</property>
+                                    <property name="tooltip-markup" translatable="yes">Fix entries in &lt;b&gt;red&lt;/b&gt;, and fill out the &lt;i&gt;gene&lt;/i&gt; column for &lt;b&gt;references in blue-green&lt;/b&gt;. References that were successfully matched to a gene are &lt;b&gt;blue&lt;/b&gt;. Entries in &lt;b&gt;purple&lt;/b&gt; map to the same sample ID but do not require immediate attention.</property>
                                     <property name="hexpand">True</property>
                                     <property name="vexpand">True</property>
                                     <property name="shadow-type">in</property>
@@ -4928,7 +4904,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="halign">start</property>
                                 <property name="hexpand">False</property>
                                 <property name="vexpand">False</property>
-                                <property name="label" translatable="yes">Infer a phylogenetic tree.</property>
+                                <property name="label" translatable="yes">Infer a phylogenetic tree using RAxML-NG in three stages. 1: Find the maximum-likelihood tree for the specified evolutionary model from multiple tree searches. 2: Estimate confidence values in this tree by Bootstrapping. 3: Map the result from 2 to the tree from 1 as branch support values.</property>
                                 <property name="use-markup">True</property>
                                 <property name="wrap">True</property>
                                 <property name="wrap-mode">word-char</property>
@@ -5006,70 +4982,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkBox">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="spacing">3</property>
-                                    <child>
-                                      <object class="GtkEntry" id="rand">
-                                        <property name="name">rand</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">The number of ML tree searches starting from unique random starting trees. default: 20</property>
-                                        <property name="vexpand">False</property>
-                                        <property name="max-length">3</property>
-                                        <property name="width-chars">3</property>
-                                        <property name="text" translatable="yes">20</property>
-                                        <property name="xalign">1</property>
-                                        <property name="input-purpose">number</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="sensitive">False</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="vexpand">False</property>
-                                        <property name="label" translatable="yes">:</property>
-                                        <property name="justify">right</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkEntry" id="pars">
-                                        <property name="name">pars</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">The number of ML tree searches starting from unique starting trees that were generated using maximum parsimony. default: 20</property>
-                                        <property name="vexpand">False</property>
-                                        <property name="max-length">3</property>
-                                        <property name="width-chars">3</property>
-                                        <property name="text" translatable="yes">20</property>
-                                        <property name="input-purpose">number</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">2</property>
-                                      </packing>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">4</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkEntry" id="bootstraps">
                                     <property name="name">bootstraps</property>
                                     <property name="visible">True</property>
@@ -5083,7 +4995,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
-                                    <property name="top-attach">3</property>
+                                    <property name="top-attach">4</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -5115,106 +5027,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="label" translatable="yes">binary:</property>
-                                    <property name="use-underline">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="label" translatable="yes">model:</property>
-                                    <property name="use-underline">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="label" translatable="yes">bootstraps:</property>
-                                    <property name="use-underline">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="label" translatable="yes">starting trees:</property>
-                                    <property name="use-underline">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">4</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">end</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="label" translatable="yes">seed:</property>
-                                    <property name="use-underline">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">5</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkComboBox" id="evo_model">
-                                    <property name="name">evo_model</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Define the base DNA substitution model. A generally equivalent list can be found at http://www.iqtree.org/doc/Substitution-Models.</property>
-                                    <property name="halign">end</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="wrap-width">3</property>
-                                    <property name="has-entry">True</property>
-                                    <property name="entry-text-column">0</property>
-                                    <property name="id-column">0</property>
-                                    <child internal-child="entry">
-                                      <object class="GtkEntry">
-                                        <property name="can-focus">False</property>
-                                        <property name="width-chars">3</property>
-                                        <property name="max-width-chars">0</property>
-                                      </object>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkSeparator">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -5237,7 +5049,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="spacing">10</property>
                                     <child>
                                       <object class="GtkToggleButton" id="raxml_shell">
-                                        <property name="label" translatable="yes">in shell</property>
+                                        <property name="label" translatable="yes">background</property>
                                         <property name="name">raxml_shell</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
@@ -5427,6 +5239,169 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="top-attach">7</property>
                                     <property name="width">2</property>
                                     <property name="height">5</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes">binary:</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes">model:</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes">bootstraps:</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">4</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes">seed:</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">5</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkComboBox" id="evo_model">
+                                    <property name="name">evo_model</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Define the base DNA substitution model. A generally equivalent list can be found at http://www.iqtree.org/doc/Substitution-Models.</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="wrap-width">3</property>
+                                    <property name="has-entry">True</property>
+                                    <property name="entry-text-column">0</property>
+                                    <property name="id-column">0</property>
+                                    <child internal-child="entry">
+                                      <object class="GtkEntry">
+                                        <property name="can-focus">False</property>
+                                        <property name="width-chars">4</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes">starting trees:</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="spacing">3</property>
+                                    <child>
+                                      <object class="GtkEntry" id="rand">
+                                        <property name="name">rand</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">The number of ML tree searches starting from unique random starting trees. default: 20</property>
+                                        <property name="vexpand">False</property>
+                                        <property name="max-length">3</property>
+                                        <property name="width-chars">3</property>
+                                        <property name="text" translatable="yes">20</property>
+                                        <property name="xalign">1</property>
+                                        <property name="input-purpose">number</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="sensitive">False</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="vexpand">False</property>
+                                        <property name="label" translatable="yes">:</property>
+                                        <property name="justify">right</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkEntry" id="pars">
+                                        <property name="name">pars</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">The number of ML tree searches starting from unique starting trees that were generated using maximum parsimony. default: 20</property>
+                                        <property name="vexpand">False</property>
+                                        <property name="max-length">3</property>
+                                        <property name="width-chars">3</property>
+                                        <property name="text" translatable="yes">20</property>
+                                        <property name="input-purpose">number</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">2</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">3</property>
                                   </packing>
                                 </child>
                               </object>
@@ -5885,6 +5860,9 @@ Alternatively, a color legend would nicely fit here.</property>
                                                     <property name="search-column">0</property>
                                                     <property name="show-expanders">False</property>
                                                     <property name="tooltip-column">1</property>
+                                                    <child internal-child="selection">
+                                                      <object class="GtkTreeSelection"/>
+                                                    </child>
                                                     <style>
                                                       <class name="seqid"/>
                                                     </style>
@@ -6204,6 +6182,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="tooltip-text" translatable="yes">Accept at most this share of special characters per MSA site = column. </property>
+                                    <property name="halign">end</property>
                                     <property name="valign">start</property>
                                     <property name="row-spacing">10</property>
                                     <property name="column-spacing">10</property>
@@ -6278,87 +6257,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <!-- n-columns=4 n-rows=1 -->
-                                  <object class="GtkGrid">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="row-spacing">10</property>
-                                    <property name="column-spacing">10</property>
-                                    <child>
-                                      <object class="GtkButton" id="subtree">
-                                        <property name="label" translatable="yes">subtree</property>
-                                        <property name="name">subtree</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="hexpand">False</property>
-                                        <property name="vexpand">False</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">2</property>
-                                        <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkButton" id="matches">
-                                        <property name="label" translatable="yes">matches</property>
-                                        <property name="name">matches</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="hexpand">False</property>
-                                        <property name="vexpand">False</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">1</property>
-                                        <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkButton" id="selected">
-                                        <property name="label" translatable="yes">selection</property>
-                                        <property name="name">selected</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="hexpand">False</property>
-                                        <property name="vexpand">False</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">0</property>
-                                        <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkMenuButton">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="focus-on-click">False</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="halign">end</property>
-                                        <property name="hexpand">True</property>
-                                        <property name="vexpand">False</property>
-                                        <property name="direction">left</property>
-                                        <property name="popover">switcher</property>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">3</property>
-                                        <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkSeparator">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -6366,6 +6264,94 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <packing>
                                     <property name="left-attach">0</property>
                                     <property name="top-attach">1</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="spacing">20</property>
+                                    <child>
+                                      <!-- n-columns=3 n-rows=1 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="hexpand">False</property>
+                                        <property name="vexpand">False</property>
+                                        <property name="row-spacing">10</property>
+                                        <property name="column-spacing">10</property>
+                                        <child>
+                                          <object class="GtkButton" id="subtree">
+                                            <property name="label" translatable="yes">subtree</property>
+                                            <property name="name">subtree</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="hexpand">False</property>
+                                            <property name="vexpand">False</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="matches">
+                                            <property name="label" translatable="yes">matches</property>
+                                            <property name="name">matches</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="hexpand">False</property>
+                                            <property name="vexpand">False</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="selected">
+                                            <property name="label" translatable="yes">selection</property>
+                                            <property name="name">selected</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="hexpand">False</property>
+                                            <property name="vexpand">False</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkStackSwitcher">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">end</property>
+                                        <property name="hexpand">False</property>
+                                        <property name="vexpand">False</property>
+                                        <property name="stack">tree_stack</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">2</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -6443,21 +6429,12 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="tooltip-text" translatable="yes">horizontal scaling. For x-y scaling, hold &lt;Ctrl&gt; and zoom via touchpad or mouse</property>
+                                        <property name="valign">end</property>
                                         <property name="adjustment">h_scale_adj</property>
                                         <property name="round-digits">0</property>
                                         <property name="digits">0</property>
                                         <property name="has-origin">False</property>
                                         <property name="value-pos">bottom</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">0</property>
-                                        <property name="top-attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
@@ -6474,6 +6451,18 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="left-attach">1</property>
                                         <property name="top-attach">0</property>
                                         <property name="height">3</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkImage" id="gbar">
+                                        <property name="name">gbar</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="no-show-all">True</property>
+                                        <property name="icon-name">image-missing</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">1</property>
                                       </packing>
                                     </child>
                                   </object>
@@ -6965,6 +6954,39 @@ Alternatively, a color legend would nicely fit here.</property>
           </object>
         </child>
       </object>
+    </child>
+  </object>
+  <object class="GtkStackSidebar">
+    <property name="can-focus">False</property>
+    <property name="no-show-all">True</property>
+    <property name="hexpand">False</property>
+    <property name="stack">ml_stack</property>
+  </object>
+  <object class="GtkHeaderBar" id="tbar">
+    <property name="name">tbar</property>
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">AB12PHYLO</property>
+    <property name="has-subtitle">False</property>
+    <property name="spacing">0</property>
+    <property name="show-close-button">True</property>
+    <property name="decoration-layout">menu:minimize,maximize,close</property>
+    <child>
+      <object class="GtkMenuButton">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="receives-default">True</property>
+        <property name="align-widget">win</property>
+        <property name="direction">none</property>
+        <property name="popover">pop_menu</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="pack-type">end</property>
+      </packing>
     </child>
   </object>
 </interface>

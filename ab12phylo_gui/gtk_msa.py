@@ -42,6 +42,8 @@ def init(gui):
     iface.remote_build.connect('clicked', start_align, gui, True)
     shared.bind_accelerator(gui.accelerators, iface.remote_build, '<Enter>')
 
+    data.msa.stack_child_name = iface.align_stack.get_visible_child_name()
+
 
 def get_help(widget, gui, remote=False, try_path=False):
     data, iface = gui.data, gui.iface

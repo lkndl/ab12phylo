@@ -200,7 +200,7 @@ def add_new_entries(model, new_paths, gui, *args):
         color = iface.AQUA
         is_ref = True
     elif 'trace' in args or 'csv' in args:
-        color = iface.FG
+        color = None  # iface.FG
         is_ref = False
     else:
         assert False

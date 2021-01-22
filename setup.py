@@ -1,6 +1,6 @@
 import sys
+
 from setuptools import setup
-from pathlib import Path
 
 if sys.version_info[0] < 3:
     sys.stdout.write('package requires python3')
@@ -27,8 +27,8 @@ setup(name='ab12phylo',
                                         'ab12phylo-view = ab12phylo.phylo:_view',
                                         'ab12phylo-add-xml = ab12phylo.blast:_add_xml'],
                     'gui_scripts': ['ab12phylo-gui = ab12phylo_gui.gtk_main:_main']},
-      install_requires=['biopython', 'pyyaml', 'jinja2', 'lxml', 'xmltramp2',
-                        'toyplot', 'toytree<=1.2.0', 'numpy', 'pandas', 'matplotlib'],
+      install_requires=['biopython', 'pyyaml', 'jinja2', 'lxml', 'xmltramp2', 'toyplot',
+                        'toytree<=1.2.0', 'numpy', 'pandas', 'matplotlib', 'svgutils'],
       classifiers=['Development Status :: 4 - Beta',
                    'Programming Language :: Python :: 3',
                    'License :: OSI Approved :: MIT License',

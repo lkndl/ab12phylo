@@ -12,6 +12,7 @@ import gi
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import svgutils.transform as sg
 import toyplot
 import toytree
 from Bio import SeqIO
@@ -19,6 +20,8 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)
+from matplotlib.cm import get_cmap
+from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 from toyplot import html, pdf, png, svg, color
@@ -26,9 +29,10 @@ from toyplot import html, pdf, png, svg, color
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
-from ab12phylo_gui import static, shared
-from ab12phylo_gui.static import PATHS as p, seqtoint, SEP, tohex, \
-    blue, red, dark_red, rocket, black
+from ab12phylo_gui import shared
+from ab12phylo_gui.static import PATHS as p, \
+    seqtoint, tohex, toint, SEP, DPI, \
+    colors, blue, red, dark_red, rocket, black
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
@@ -51,7 +55,7 @@ def init(gui):
     for w_name in ['matches', 'subtree']:
         iface.__getattribute__(w_name).connect('clicked', start_popgen, gui)
 
-    iface.save_plot.connect('clicked', lambda *args: on_save_plot(gui))
+    iface.save_plot.connect('clicked', lambda *args: on_save_tree(gui))
 
     iface.view_msa_ids.set_model(data.tree_anno_model)
     col = Gtk.TreeViewColumn(title='id', cell_renderer=Gtk.CellRendererText(), text=0)
@@ -76,21 +80,10 @@ def init(gui):
     iface.msa_eventbox.connect('button_press_event', shared.select_seqs, PAGE, iface.zoomer,
                                iface.view_msa_ids, iface.tempspace)  # in-preview selection
     iface.tree_pane.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
-    iface.tree_pane.connect('notify::position', _keep_scrollbar_sizes,
+    iface.tree_pane.connect('notify::position', _size_scrollbars,
                             iface.tree_left_scrollbar, iface.tree_right_scrollbar,
                             iface.tree_spacer, iface.view_msa_ids, )
     iface.tree = None
-
-
-def boink(*args):
-    print(args)
-
-
-def _keep_scrollbar_sizes(pane, pos, scl, scr, sp, tv):
-    pos = pane.get_position()
-    scl.set_size_request(pos, -1)
-    sp.set_size_request(tv.get_allocated_width(), -1)
-    scr.set_size_request(pane.get_allocated_width() - pos - tv.get_allocated_width(), -1)
 
 
 def refresh(gui):
@@ -163,8 +156,6 @@ def start_popgen(widget, gui):
     data.pop_model.clear()
 
     # TODO popgen calc
-    # TODO compound plot with MSA
-    # TODO MSA legend
     # TODO rooting, dropping
     init_popgen_columns(iface.popgen)
     return
@@ -179,26 +170,57 @@ def init_popgen_columns(tv):
             title=ti, cell_renderer=Gtk.CellRendererText(), text=i))
 
 
-def on_save_plot(gui):
-    """Save the current plot in different formats"""
+def on_save_tree(gui):
+    """Save the current tree in different formats"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     LOG.debug('rendering tree')
     if 'canvas' not in iface:
         start_phy(gui)
         return
-    if phy.png:
-        iface.text = 'rendering png'
-        png.render(iface.canvas, str(gui.wd / (phy.tx + '.png')), scale=1.6)
+    tx = gui.wd / phy.tx
+    iface.text = 'rendering png'
+    png.render(iface.canvas, str(tx.with_suffix('.png')), scale=1.6)
     if phy.pdf:
         iface.text = 'rendering pdf'
-        pdf.render(iface.canvas, str(gui.wd / (phy.tx + '.pdf')))
-    if phy.svg:
+        pdf.render(iface.canvas, str(tx.with_suffix('.pdf')))
+    if phy.svg or phy.pmsa:
         iface.text = 'rendering svg'
-        svg.render(iface.canvas, str(gui.wd / (phy.tx + '.svg')))
+        svg.render(iface.canvas, str(tx.with_suffix('.svg')))
     if phy.html:
         iface.text = 'rendering html'
-        html.render(iface.canvas, str(gui.wd / (phy.tx + '.html')))
+        html.render(iface.canvas, str(tx.with_suffix('.html')))
     return
+
+
+def on_save_msa(gui):
+    """Save the current msa in different formats"""
+    data, phy, iface = gui.data, gui.data.phy, gui.iface
+    LOG.debug('rendering msa')
+    Path.mkdir(gui.wd / p.phylo_msa.parent, exist_ok=True)
+    msa = gui.wd / p.phylo_msa.parent / p.phylo_msa.stem
+    dpi = iface.scale * DPI
+    iface.text = 'rendering png'
+    iface.fig.savefig(msa.with_suffix('.png'), transparent=True, dpi=dpi,
+                      bbox_inches='tight', pad_inches=0.00001)
+    if phy.svg:
+        iface.text = 'rendering svg'
+        iface.fig.savefig(msa.with_suffix('.svg'), transparent=True)
+    if phy.pdf or phy.pmsa:
+        iface.text = 'rendering pdf'
+        iface.fig.savefig(msa.with_suffix('.pdf'), transparent=True, dpi=dpi)
+
+    if phy.pmsa:
+        iface.text = 'collating tree and msa'
+        tree = sg.fromfile((gui.wd / phy.tx).with_suffix('.svg'))
+        m = sg.fromfile(msa.with_suffix('.svg'))
+        mw, mh = [float(i[:-2]) * 96 / 72 for i in m.get_size()]  # now in px
+        pt = tree.getroot()
+        tw, th = [float(i[:-2]) for i in tree.get_size()]  # already in px
+        pm = m.getroot()
+        pm.moveto(tw, 0, th / mh / 6, th / mh * 96 / 72)
+        fig = sg.SVGFigure()  # '%.0fpx' % (tw + th / mh / 8), '%.0fpx' % th)
+        fig.append([pt, pm])
+        fig.save(gui.wd / (phy.tx + '_msa.svg'))
 
 
 def start_phy(gui):
@@ -302,11 +324,13 @@ def do_phy2(gui):
         if pd.isna(sp):
             sp = ''
         nd['species'] = sp
-        c = iface.BLUE if 'accession' in nd else iface.FG
-        data.tree_anno_model.append([t, sp, c, iface.BG])
+        c = iface.BLUE if 'accession' in nd else None  # iface.FG
+        data.tree_anno_model.append([t, sp, c, None])  # iface.BG])
 
-    gui.win.show_all()
-    sleep(.1)
+    for wi in [iface.tree_left_vp, iface.msa_eventbox]:
+        wi.get_child().destroy()
+    iface.view_msa_ids.realize()
+    sleep(.05)
 
     # re-direct to thread
     iface.thread = threading.Thread(target=do_phy3, args=[gui])
@@ -346,9 +370,9 @@ def do_phy3(gui):
     LOG.debug('wrote updated MSA')
     iface.i += 1
 
-    # get lengths of genes
-    phy.g_lens = [(gene, len(seq)) for gene, seq in
-                  zip(data.genes, records[next(iter(records))].split(SEP))]
+    # # get lengths of genes # TODO test existing data
+    # phy.g_lens = [(gene, len(seq)) for gene, seq in
+    #               zip(data.genes, records[next(iter(records))].split(SEP))]
     multi = True if len(data.genes) > 1 else False
 
     # cat: REF_ -> 1, no_BLAST_hit -> -1, regular -> 0
@@ -430,6 +454,8 @@ def do_phy3(gui):
     iface.i += 1
 
     iface.text = 'prepare plot attributes'
+    iface.view_msa_ids.set_margin_bottom(50 * phy.axis)
+    iface.view_msa_ids.realize()
     # get model height
     phy.height = iface.view_msa_ids.get_allocated_height() + 50 * phy.axis
 
@@ -476,6 +502,8 @@ def do_phy3(gui):
     else:
         assert False
 
+    phy.tx += '_TBE' if phy.tbe else '_FBP'
+
     iface.text = 'plotting %s tree' + phy.tx
     try:
         iface.tup = iface.tree.draw(
@@ -511,7 +539,7 @@ def do_phy3(gui):
             # therefore this inverted x domain.
         iface.i += 1
 
-        on_save_plot(gui)
+        on_save_tree(gui)
         iface.i += 1
 
     except ET.ParseError as ex:
@@ -559,7 +587,7 @@ def do_phy5(gui):
 
     array = np.array(phy.seqdata)
     # make gaps transparent
-    array = np.ma.masked_where(array > static.toint('else'), array)
+    array = np.ma.masked_where(array > toint('else'), array)
 
     # adjust maximum size
     scale = 6
@@ -569,31 +597,60 @@ def do_phy5(gui):
 
     f = Figure()
     f.set_facecolor('none')
-    f.set_figheight(array.shape[0] / static.DPI)
-    f.set_figwidth(array.shape[1] / static.DPI)
-    ax = f.add_subplot(111)
-    ax.axis('off')
+    f.set_figheight(array.shape[0] / DPI)
+    f.set_figwidth(array.shape[1] / DPI)
+
+    # this line is now redundant
     f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-    mat = ax.matshow(array, alpha=1, cmap=ListedColormap(static.colors),
-                     vmin=-.5, vmax=len(static.colors) - .5, aspect='auto')
+
+    # leave 50px at the bottom for the tree axis and gene legend bar
+    b = (50 * phy.axis) / phy.height
+
+    ax = f.add_axes([0, b, 1, 1 - b])
+    ax.axis('off')
+    mat = ax.matshow(array, alpha=1, cmap=ListedColormap(colors),
+                     vmin=-.5, vmax=len(colors) - .5, aspect='auto')
+
+    # plot a gene marker bar
+    if b > 0 and len(data.genes) > 1:
+        LOG.debug('adding gene marker bar')
+        # build matrix of gene indicators
+        gm = [[data.genes.index(g)] * gl for g, gl in zip(data.genes, data.msa_lens)]
+        gm = [gi for gl in gm for gi in gl]
+        gm = np.vstack([np.array(gm)] * 2)
+        gene_colors = get_cmap('GnBu', len(data.genes))
+
+        # plot the marker bar onto the MSA graphic
+        bax = f.add_axes([0, b / 3, 1, b / 3])
+        bar = bax.pcolormesh(gm, cmap=gene_colors)  # , aspect='auto')
+        bax.axis('off')
+
+        # plot a legend for the gene marker bar
+        with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
+            iface.text = 'gene marker bar'
+            LOG.debug(iface.text)
+            fig = plt.figure(figsize=(4, .2))
+            cax = fig.add_subplot(111)
+            cbar = ColorbarBase(ax=cax, cmap=gene_colors, orientation='horizontal',
+                                ticks=[(j + .5) for j in range(len(data.genes))])
+            cbar.ax.set_xticklabels(data.genes)
+            fig.savefig(gui.wd / p.gbar, transparent=True,
+                        bbox_inches='tight', pad_inches=0, dpi=600)
+            plt.close(fig)
+            del fig, cbar
 
     iface.i += 1
-    iface.text = 'save PNG'
-    LOG.debug(iface.text)
-    Path.mkdir(gui.wd / p.phylo.parent, exist_ok=True)
-    f.savefig(gui.wd / p.phylo, transparent=True,
-              dpi=scale * static.DPI, bbox_inches='tight', pad_inches=0.00001)
-    f.savefig(gui.wd / (str(p.phylo)[:-4] + '.svg'), transparent=True,
-              dpi=scale * static.DPI, bbox_inches='tight', pad_inches=0.00001)
-    plt.close(f)
+    iface.fig = f
+    iface.scale = scale
+    on_save_msa(gui)
 
-    phy.shape = array.shape[1], phy.height - 50 * phy.axis
+    phy.shape = array.shape[1], phy.height
 
     if iface.rasterize.props.active:
-        iface.text = 'place PNG MSA: %d:%d' % (array.shape)
+        iface.text = 'place PNG MSA: %d:%d' % array.shape
         LOG.debug(iface.text)
         sleep(.05)
-        shared.load_image(iface.zoomer, PAGE, iface.msa_eventbox, gui.wd / p.phylo,
+        shared.load_image(iface.zoomer, PAGE, iface.msa_eventbox, gui.wd / p.phylo_msa,
                           w=phy.shape[0] * shared.get_hadj(iface), h=phy.shape[1])
     else:
         iface.text = 'place vector'
@@ -605,11 +662,13 @@ def do_phy5(gui):
             iface.qal_eventbox.add(canvas)
         except Gtk.Error as ex:
             LOG.error(ex)
+    plt.close(f)
+    del f
     iface.i += 1
     shared.load_colorbar(iface.palplot1, gui.wd)
-
-    for wi in [iface.tree_right, iface.view_msa_ids]:
-        wi.set_margin_bottom(50 * phy.axis)
+    if b > 0 and len(data.genes) > 1:
+        shared.load_colorbar(iface.gbar, gui.wd, gbar=True)
+        iface.gbar.set_visible(True)
 
     # save for re-use in popgen part?
     phy.array = array
@@ -621,9 +680,30 @@ def do_phy5(gui):
 
 
 def stop_phy(gui):
-    gui.iface.thread.join()
+    data, phy, iface = gui.data, gui.data.phy, gui.iface
+    iface.thread.join()
     LOG.info('phylo thread idle')
-    gui.iface.view_msa_ids.set_model(gui.data.tree_anno_model)
+    iface.view_msa_ids.set_model(data.tree_anno_model)
     gui.win.show_all()
-    gui.data.change_indicator[PAGE] = False
+    data.change_indicator[PAGE] = False
     return False
+
+
+def _size_scrollbars(pane, pos, scl, scr, sp, tv):
+    """
+    Set a size request for the scrollbar below the narrower
+    side of the GtkPaned and set the other one to hexpand.
+    """
+    p = pane.get_position()
+    w = pane.get_allocated_width()
+    if p > w / 2:
+        scl.set_size_request(-1, -1)
+        scl.set_hexpand(True)
+        scr.set_size_request(pane.get_allocated_width() - p - tv.get_allocated_width(), -1)
+        scr.set_hexpand(False)
+    elif p < w / 2:
+        scl.set_size_request(p, -1)
+        scl.set_hexpand(False)
+        scr.set_size_request(-1, -1)
+        scr.set_hexpand(True)
+    sp.set_size_request(tv.get_allocated_width(), -1)

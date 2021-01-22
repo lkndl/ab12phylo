@@ -298,7 +298,7 @@ def do_trim(gui):
     with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
         iface.text = 'colorbar'
         LOG.debug(iface.text)
-        fig = plt.figure(figsize=(4, .5))
+        fig = plt.figure(figsize=(4, .2))
         cax = fig.add_subplot(111)
         i = static.NUCLEOTIDES.index('-')
         cbar = ColorbarBase(ax=cax, cmap=ListedColormap(static.colors[:i]),

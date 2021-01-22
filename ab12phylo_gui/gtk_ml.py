@@ -63,19 +63,20 @@ def import_tree(widget, gui):
             shared.show_message_dialog('Please select at most two tree files.')
         else:
             errors = list()
-            for p in paths:
-                if 'FBP' in p.name.upper():
-                    shutil.copy(p, gui.wd / p.fbp)
-                elif 'TBE' in p.name.upper():
-                    shutil.copy(p, gui.wd / p.tbe)
+            for path in paths:
+                if 'FBP' in path.name.upper():
+                    shutil.copy(path, gui.wd / p.fbp)
+                elif 'TBE' in path.name.upper():
+                    shutil.copy(path, gui.wd / p.tbe)
                 else:
-                    errors.append(p.name)
+                    errors.append(path.name)
             if errors:
                 shared.show_message_dialog('Not immediately recognized as either '
                                            'tree_FBP.nwk or tree_TBE.nwk. You can also copy '
                                            'it/them to %s manually.' % gui.wd, list_to_print=errors)
             else:
-                shared.show_notification(gui, 'imported trees:', [p.name for p in paths], 2)
+                shared.show_notification(gui, 'imported trees:',
+                                         [path.name for path in paths], 2)
 
     dialog.destroy()
 
@@ -333,13 +334,15 @@ def do_ML(gui, mode):
             return True
 
     if ml.raxml_shell and mode == 'raxml':
-        with open(shell, 'a') as sh:
-            sh.write('# restart AB12PHYLO afterwards\n'
-                     'ab12phylo-gui --open %s --proceed\n'
-                     % str(gui.wd / gui.project_path))
+        # with open(shell, 'a') as sh:
+        #     sh.write('# restart AB12PHYLO afterwards\n'
+        #              'ab12phylo-gui --open %s --proceed\n'
+        #              % str(gui.wd / gui.project_path))
         shell.chmod(shell.stat().st_mode | stat.S_IEXEC)
         gui.hold()
         gui.win.hide()
+        Popen(['notify-send', 'AB12PHYLO', 'ML Tree Inference running in background.',
+               '-i', str(Path(__file__).resolve().parent / 'files' / 'favi.png')])
         os.system(shell)
         gui.win.show_all()
         gui.release()
@@ -396,23 +399,3 @@ def _save_somewhere_else(path):
         except Exception as ex:
             LOG.error(ex)
     dialog.destroy()
-
-
-# def _zenity():
-#     run(args='zenity --notification --text="AB12PHYLO\n'
-#              'ML Tree Inference finished" --window-icon="%s"'
-#              % p.icon_path, shell=True)
-#     return True
-
-
-def _extend_buffer(bf, ml_help, stdout):
-    bf = ml_help.get_buffer()
-    bf.props.text = bf.props.text + '\n' + '\n'.join(stdout)
-    bf.insert_markup(bf.get_end_iter(),
-                     '<span foreground="#2374AF">'
-                     '________________________________________________'
-                     '________________________________\n</span>', -1)
-    mark = bf.create_mark(None, bf.get_end_iter(), True)
-    ml_help.scroll_mark_onscreen(mark)
-    # bf.add_mark(Gtk.TextMark.new(stage, True), bf.get_end_iter())
-    # ml_help.scroll_to_iter(bf.get_end_iter(), .1, False, 0, .9)

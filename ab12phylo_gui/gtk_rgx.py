@@ -138,7 +138,7 @@ def parse_single_group(widget, gui, entry, col, fifth=None, refresh_after=True):
                 if not changed:
                     changed = m != row[col]
                 model[i][col] = m
-                model[i][-1] = iface.FG
+                model[i][-1] = None  # iface.FG
                 continue
             except ValueError as ve:
                 # maybe wrong number of groups
@@ -160,14 +160,14 @@ def parse_single_group(widget, gui, entry, col, fifth=None, refresh_after=True):
                     changed = row[col] is not True
                 model[i][col] = True
                 if model[i][-1] != iface.RED:
-                    model[i][-1] = iface.FG
+                    model[i][-1] = None  # iface.FG
             except AttributeError as ae:
                 # forward read
                 if not changed:
                     changed = row[col] is not False
                 model[i][col] = False
                 if model[i][-1] != iface.RED:
-                    model[i][-1] = iface.FG
+                    model[i][-1] = None  # iface.FG
             except (IndexError, ValueError):
                 errors, changed = True, True
                 model[i][-1] = iface.RED
@@ -203,7 +203,7 @@ def parse_all(widget, gui):
                 if not changed:
                     changed = not bool(row[2:5] == [well, plate, gene])
                 data.trace_store[idx] = row[:2] + [well, plate, gene] + row[5:]
-                data.trace_store[idx][-1] = iface.FG
+                data.trace_store[idx][-1] = None  # iface.FG
                 continue
             except ValueError as ve:
                 data.trace_store[idx][2:5] = [ERRORS[0], '', '']
@@ -234,7 +234,7 @@ def cell_edit(cell, path, new_text, gui, tv, col):
     # set row to error-free. also for references
     if tv == iface.view_trace_regex:
         mo = tv.get_model()
-        mo[path][-1] = iface.BLUE if mo[path][5] else iface.FG
+        mo[path][-1] = iface.BLUE if mo[path][5] else None  # iface.FG
     refresh(gui)
 
 

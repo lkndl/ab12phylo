@@ -31,7 +31,7 @@ Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
 
 class ab12phylo_app(Gtk.Application):
     TEMPLATE = BASE_DIR / 'ab12phylo_gui' / 'files' / 'gui.glade'
-    ICON = BASE_DIR / 'ab12phylo_gui' / 'files' / 'favi.ico'
+    # ICON = BASE_DIR / 'ab12phylo_gui' / 'files' / 'favi.ico'
 
     def do_activate(self):
         self.add_window(self.win)
@@ -82,7 +82,7 @@ class ab12phylo_app(Gtk.Application):
         iface = Namespace(**iface)
         self.iface = iface
         self.win = iface.win
-        self.win.set_icon_from_file(str(ab12phylo_app.ICON))
+        # self.win.set_icon_from_file(str(ab12phylo_app.ICON))
 
         self.win.set_titlebar(iface.tbar)
         self.win.set_hide_titlebar_when_maximized(True)

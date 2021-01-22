@@ -44,7 +44,7 @@ def init(gui):
     iface.blast_exe.connect('file_set', lambda *args: prep0(gui, iface.blast_exe.get_filename()))
     iface.blast_db.connect('button-release-event', lambda co, *args: co.
                            popdown() if co.props.popup_shown else co.popup())
-    iface.blast_gene.connect('changed', lambda *args: _refill(gui))
+    iface.blast_gene.connect('changed', lambda *args: _refill(gui))  # TODO
 
     # set up the species annotation table
     spi = iface.sp_info
@@ -355,7 +355,7 @@ def _refill(gui, gene=None, fresh=False):
     data.sp_model.clear()
     df = df.loc[df['gene'] == gene]
     for sample, r in df.iterrows():
-        if isnan(r.pid):
+        if 'pid' not in r or isnan(r.pid):  # TODO errors ?
             pid, r.BLAST_species, r.extra_species = '', '', ''
         elif type(r.pid) == float:
             pid = '%.2f' % r.pid if r.pid < 100 else '100'
