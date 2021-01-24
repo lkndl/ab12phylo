@@ -24,7 +24,8 @@ PATHS = Namespace(**{
     'RAxML': Path('raxml-ng_v1.0.1_linux_x86_64') / 'raxml-ng',
     'tbe': 'tree_TBE.nwk', 'tben': 'tree_TBE_annotated.nwk',
     'fbp': 'tree_FBP.nwk', 'fbpn': 'tree_FBP_annotated.nwk',
-    'icon_path': str(Path(__file__).resolve().parent / 'files' / 'favi.png')
+    'icon_path': str(Path(__file__).resolve().parent / 'files' / 'favi.png'),
+    'modified_tree': 'modified_tree.nwk'
 })
 
 algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',

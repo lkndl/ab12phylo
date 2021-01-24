@@ -27,6 +27,7 @@ from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 from toyplot import html, pdf, png, svg, color
+from toytree.utils import TreeError, ToytreeError
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gdk
@@ -59,13 +60,13 @@ def init(gui):
     action_group = Gtk.ActionGroup(name='context_menu')
     action_group.add_actions(
         [('root', None, 'Root', None,
-          'Root the tree at the selected node(s).', gui.root_extract),
+          'Root the tree at the selected node(s).', gui.tree_modify),
          ('drop', None, 'Drop', '<Delete>',
-          'Drop the selected nodes from the tree.', gui.drop_collapse),
+          'Drop the selected nodes from the tree.', gui.tree_modify),
          ('collapse', None, 'Collapse', None,
-          'Collapse all descendants to a placeholder.', gui.drop_collapse),
+          'Collapse all descendants to a placeholder.', gui.tree_modify),
          ('extract', None, 'Extract', None,
-          'Drop all other nodes from the tree.', gui.root_extract)])
+          'Drop all other nodes from the tree.', gui.tree_modify)])
 
     uimanager = Gtk.UIManager()
     uimanager.add_ui_from_string(UI_INFO)
@@ -75,7 +76,7 @@ def init(gui):
 
     for w_name in ['tree_eventbox', 'view_msa_ids', 'msa_eventbox']:
         iface.__getattribute__(w_name).connect(
-            'button-press-event', _on_right_click, iface.contextmenu)
+            'button-press-event', __on_right_click__, iface.contextmenu)
 
     for w_name in ['gap_share', 'unk_share']:
         iface.__getattribute__(w_name).get_adjustment().connect(
@@ -87,7 +88,7 @@ def init(gui):
     iface.save_plot.connect('clicked', lambda *args: on_save_tree(gui))
 
     iface.view_msa_ids.set_model(data.tree_anno_model)
-    col = Gtk.TreeViewColumn(title='id', text=0, foreground=2,
+    col = Gtk.TreeViewColumn(title='id', text=0, foreground=2, background=3,
                              cell_renderer=Gtk.CellRendererText())
     col.set_resizable(True)
     iface.view_msa_ids.append_column(col)
@@ -112,21 +113,34 @@ def init(gui):
     iface.tree_eventbox.connect_after('button_press_event', shared.select_seqs, PAGE, iface.zoomer,
                                       iface.view_msa_ids, iface.tempspace)  # in-preview selection
     iface.tree_pane.connect('scroll-event', shared.xy_scale, gui, PAGE)  # zooming
-    iface.tree_pane.connect('notify::position', _size_scrollbars,
+    iface.tree_pane.connect('notify::position', __size_scrollbars__,
                             iface.tree_left_scrollbar, iface.tree_right_scrollbar,
                             iface.tree_spacer, iface.view_msa_ids, )
+
+    iface.calculate.connect('clicked', do_popgen, gui)
+    iface.subtree.connect('clicked', expand_popgen, gui)
+    iface.tree_reset.connect('clicked', _reset, gui)
 
     phy.tx = 'circular' if phy.circ else 'rectangular'
     phy.tx += '_TBE' if phy.tbe else '_FBP'
 
     iface.tree = None
+    iface.kwargs = dict()
 
 
-def _on_right_click(widget, event, menu):
-    # Check if right mouse button was pressed
-    if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
-        menu.popup(None, None, None, None, event.button, event.time)
-        return True  # event has been handled
+# TODO popgen calc
+
+
+def _reset(wi, gui):
+    """
+    Re-set the tree modifications by deleting
+    the dictionary and the modified tree
+    """
+    if gui.iface.thread.is_alive():
+        gui.iface.thread.join()
+    gui.iface.kwargs = dict()
+    (gui.wd / p.modified_tree).unlink()
+    start_phy(gui)
 
 
 def refresh(gui):
@@ -136,7 +150,7 @@ def refresh(gui):
     iface.tree_pane.set_position(301)
 
     if (gui.wd / phy.tx).with_suffix('.png').is_file() \
-            and (gui.wd / p.phylo_msa).is_file():
+            and (gui.wd / p.phylo_msa).is_file() and 'shape' in phy:
         # load tree PNG
         shared.load_image(iface.zoomer, PAGE, iface.tree_eventbox,
                           gui.wd / (phy.tx + '.png'), h=phy.shape[1])
@@ -186,11 +200,27 @@ def select_popgen(widget, ev, gui):
     [iface.tree_sel.select_path(i) for i in sel]
 
 
-def expand_popgen(gui):
-    # TODO popgen calc
-    # TODO check rooting, dropping, extracting, replacing. and make chainable
+def expand_popgen(wi, gui):
+    """Select a subtree starting from a GtkTreeSelection"""
+    data, phy, iface = gui.data, gui.data.phy, gui.iface
+    if not gui.iface.tree:
+        shared.show_notification(gui, 'No tree in memory, re-drawing first', stay_secs=2)
+        start_phy(gui)
+        return
+    sel_idx = [tp.get_indices()[0] for tp in iface.tree_sel.get_selected_rows()[1]]
+    if not sel_idx:
+        shared.show_notification(gui, 'Cannot expand to subtree, no selection', stay_secs=1)
+        return
 
-    return
+    # get a list of tip labels
+    id_sel = [(_id, i in sel_idx) for i, _id in enumerate(
+        shared.get_column(gui.data.tree_anno_model, 0))]
+
+    # move up in the tree
+    mrca = iface.tree.get_mrca_idx_from_tip_labels(names=[_id for _id, sel in id_sel if sel])
+    # move down in the tree
+    sel_idx = [[_id for _id, sel in id_sel].index(_id) for _id in iface.tree.get_tip_labels(mrca)]
+    [iface.tree_sel.select_path(i) for i in sel_idx]
 
 
 def do_popgen(widget, gui):
@@ -292,8 +322,17 @@ def start_phy(gui, kwargs=None):
         shared.show_notification(gui, 'Busy', stay_secs=1)
         return
     LOG.debug('start_plotting')
-    if not kwargs:
-        kwargs = dict()
+    if kwargs:
+        k, v = kwargs.popitem()
+        phy.kwargs[k] = phy.kwargs.get(k, list()) + v
+    else:
+        phy.kwargs = dict()
+
+    # empty placeholder early to avoid over-high graphics
+    for wi in [iface.tree_eventbox, iface.msa_eventbox]:
+        ch = wi.get_child()
+        if ch:
+            ch.destroy()
 
     # parse plot settings only when needed
     [phy.__setattr__(w_name, iface.__getattribute__(w_name).get_active()) for w_name in
@@ -304,7 +343,7 @@ def start_phy(gui, kwargs=None):
     phy.sel_gene = iface.sp_genes.get_active_text()
 
     # re-direct to thread
-    iface.thread = threading.Thread(target=do_phy1, args=[gui, kwargs])
+    iface.thread = threading.Thread(target=__do_phy1__, args=[gui])
     iface.k = (phy.rect + phy.circ + phy.unro) * 2 + 9
     iface.i = 0
     iface.text = 'read tree'
@@ -315,38 +354,64 @@ def start_phy(gui, kwargs=None):
     # return to main loop
 
 
-def do_phy1(gui, kwargs):
+def __do_phy1__(gui):
     data, phy, iface = gui.data, gui.data.phy, gui.iface
-    tree_file = gui.wd / p.fbp if phy.fbp else gui.wd / p.tbe
+
+    # pick a tree file
+    if iface.kwargs and gui.wd / p.modified_tree.is_file():
+        tree_file = gui.wd / p.modified_tree
+    else:
+        tree_file = gui.wd / p.fbp if phy.fbp else gui.wd / p.tbe
 
     # read tree file
-    iface.tree = toytree.tree(open(tree_file, 'r').read(), tree_format=0)
+    tr = toytree.tree(open(tree_file, 'r').read(), tree_format=0)
 
-    if 'collapse' in kwargs:
-        for idx in kwargs['collapse']:
-            iface.tree.idx_dict[idx].add_sister(name='%d_replaced' % idx, dist=1)
-            iface.tree.idx_dict[idx].detach()
-        # saving the node names now saves some work
-        kwargs['collapse'] = ['%d_replaced' % idx for idx in kwargs['collapse']]
-    else:
-        # save empty list
-        kwargs['collapse'] = list()
+    if 'collapse' in phy.kwargs:
+        names = [i for i in phy.kwargs['collapse'] if i in tr.get_tip_labels()]
+        if names:
+            mrca = tr.get_mrca_idx_from_tip_labels(names=names)
+            try:
+                [t.detach() for t in tr.idx_dict[mrca].get_children()]
+                tr.idx_dict[mrca].add_child(
+                    name='%d_clade' % mrca,
+                    dist=1 - tr.idx_dict[mrca].dist)
+            except (TreeError, ToytreeError) as te:
+                GObject.idle_add(__do_phy2__, gui, [str(te)])
+                sleep(.1)
+                return True
+            phy.kwargs['collapse'] = ['%d_clade' % mrca]
+            tr = toytree.tree(tr.newick)
 
-    if 'drop' in kwargs:
-        [iface.tree.idx_dict[idx].detach() for idx in kwargs['drop']]
+    if 'drop' in phy.kwargs:
+        names = [i for i in phy.kwargs['drop'] if i in tr.get_tip_labels()]
+        if names:
+            tr = tr.drop_tips(names=names)
+            tr = toytree.tree(tr.newick)
 
-    # outgroup rooting
-    if 'root' in kwargs:
-        iface.tree = iface.tree.root(names=kwargs['root'])
+    if 'root' in phy.kwargs:
+        try:
+            names = [i for i in phy.kwargs['root'] if i in tr.get_tip_labels()]
+            if names:
+                tr = tr.root(names=names)
+        except ToytreeError as te:
+            GObject.idle_add(__do_phy2__, gui, [str(te)])
+            sleep(.1)
+            return True
 
-    if 'extract' in kwargs:
-        treenode = iface.tree.idx_dict[iface.tree.
-            get_mrca_idx_from_tip_labels(names=kwargs['extract'])]
-        iface.tree = toytree.tree(treenode.write())
+    if 'extract' in phy.kwargs:
+        names = [i for i in phy.kwargs['extract'] if i in tr.get_tip_labels()]
+        if names:
+            treenode = tr.idx_dict[tr.get_mrca_idx_from_tip_labels(names=names)]
+            tr = toytree.tree(treenode.write())
 
-    # fetch tips labels
-    phy.tips = list(reversed(iface.tree.get_tip_labels()))
+    if phy.kwargs:
+        # save the modified tree
+        tr.write(gui.wd / p.modified_tree, tree_format=0)
+
+    # fetch tips labels, now top-to-bottom
+    phy.tips = list(reversed(tr.get_tip_labels()))
     iface.i += 1
+    iface.tree = tr
 
     iface.text = 'read metadata'
     # read in tabular data
@@ -368,15 +433,19 @@ def do_phy1(gui, kwargs):
     df = df.fillna(value={'pid': 0})
     pid = 'pid' in df
     if phy.sel_gene != 'best pid' or len(data.genes) == 1:
+        # picked species labels for a single, unique gene
         df = df.loc[df['gene'] == phy.sel_gene]
-        df = df.loc[phy.tips]
+        df = df.loc[[t for t in phy.tips if t in df.index]]  # skip dropped nodes
         phy.ndf = df.to_dict(orient='index')
     else:
+        # picked species labels from best pid across several genes
         # split into per-gene dataframes
         dfs = [i[1] for i in df.groupby(df['gene'])]
         # find row with highest pid from all genes
         phy.ndf = dict()
         for t in phy.tips:
+            if any([t not in d.index for d in dfs]):
+                continue  # a dropped node   # TODO check if works
             rows = [d.loc[t] for d in dfs]
             if pid:
                 phy.ndf[t] = [dict(r) for r in rows if r.pid == max([q.pid for q in rows])][0]
@@ -384,21 +453,30 @@ def do_phy1(gui, kwargs):
                 phy.ndf[t] = [dict(r) for r in rows][0]
 
     iface.i += 1
-    GObject.idle_add(do_phy2, gui)
+    GObject.idle_add(__do_phy2__, gui)
     sleep(.1)
     return True
 
 
-def do_phy2(gui):
+def __do_phy2__(gui, errors=None):
     """Bounce to idle to size the id column"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     iface.thread.join()
+
+    if errors:
+        iface.text = 'idle'
+        shared.show_notification(gui, 'Tree modification failed', errors)
+        return
+
     iface.text = 'fill id column'
     LOG.debug(iface.text)
     data.tree_anno_model.clear()
 
     # write samples to model
     for t in phy.tips:
+        if t not in phy.ndf:
+            data.tree_anno_model.append([t, '', None, iface.BLUE])
+            continue  # a dropped node
         nd = phy.ndf[t]
         # make sure pid field is present
         pid = nd.get('pid', 0)
@@ -418,18 +496,17 @@ def do_phy2(gui):
             c = None  # iface.FG
         data.tree_anno_model.append([t, sp, c, None])
 
-    for wi in [iface.tree_eventbox, iface.msa_eventbox]:
-        wi.get_child().destroy()
+    iface.view_msa_ids.set_margin_bottom(50 * phy.axis)
     iface.view_msa_ids.realize()
-    sleep(.05)
+    sleep(.1)
 
     # re-direct to thread
-    iface.thread = threading.Thread(target=do_phy3, args=[gui])
+    iface.thread = threading.Thread(target=__do_phy3__, args=[gui])
     GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
 
 
-def do_phy3(gui):
+def __do_phy3__(gui):
     """Write new, annotated MSA, annotated nwk tree and plot tree"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     iface.text = 'write new MSA'
@@ -441,6 +518,9 @@ def do_phy3(gui):
     # write re-named re-ordered MSA
     with open(gui.wd / p.msa_anno, 'w') as new_msa:
         for tip in phy.tips:
+            if tip not in records:
+                phy.seqdata.append(None)
+                continue  # a dropped node
             # get seq and cut out artificial separator
             seq = str(records[tip]).replace(SEP, '')
             # get metadata
@@ -478,7 +558,7 @@ def do_phy3(gui):
             node.add_feature('support', 0)
         elif type(node.support) != float:
             node.support = float(node.support)
-        if node.is_leaf():
+        if node.is_leaf() and node.name in phy.ndf:
             entry = phy.ndf[node.name]
 
             if node.name.startswith('REF_'):
@@ -513,6 +593,7 @@ def do_phy3(gui):
             # use support values for node size
             if phy.fbp:
                 node.support /= 100
+            node.add_feature('species', '')
             node.add_feature('confident', 1 if node.support >= phy.flip else 0)
             node.add_feature('pid', -1)  # dark_red for no BLAST hit
             node.add_feature('cat', cat_ignore)  # black, just so the field exists
@@ -549,6 +630,7 @@ def do_phy3(gui):
     iface.view_msa_ids.realize()
     # get model height
     phy.height = iface.view_msa_ids.get_allocated_height() + 50 * phy.axis
+    # print(phy.height)
 
     # pre-calculate plot attributes
     # internal node size -> support
@@ -636,17 +718,21 @@ def do_phy3(gui):
     except ET.ParseError as ex:
         e = 'XML ParseError. Invalid character in a sample ID? Please check metadata.tsv'
         LOG.error(e)
-        errors.append(e)
+        GObject.idle_add(_reset, None, gui)
+        sleep(.1)
+        return True
     except ValueError as ex:
         LOG.exception(ex)
-        errors.append(ex)
+        GObject.idle_add(_reset, None, gui)
+        sleep(.1)
+        return True
 
-    GObject.idle_add(do_phy4, gui, errors)
+    GObject.idle_add(__do_phy4__, gui, errors)
     sleep(.1)
     return True
 
 
-def do_phy4(gui, errors):
+def __do_phy4__(gui, errors):
     """Bounce the plotting to the main loop"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     iface.thread.join()
@@ -667,16 +753,22 @@ def do_phy4(gui, errors):
 
     # re-direct to thread
     iface.text = 'plotting MSA'
-    iface.thread = threading.Thread(target=do_phy5, args=[gui])
+    iface.thread = threading.Thread(target=__do_phy5__, args=[gui])
     GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
 
 
-def do_phy5(gui):
+def __do_phy5__(gui):
     """Plot the MSA matrix"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
 
-    array = np.array(phy.seqdata)
+    # the tips are saved top-down, but in the treee they're bottom-up. so reverse
+    full_len = sum(phy.g_lens.values()) + (len(data.genes) - 1) * len(SEP)
+    for i, seq in enumerate(phy.seqdata):
+        if not seq:
+            phy.seqdata[i] = [toint('?')] * full_len
+
+    array = np.array(phy.seqdata[::-1])
     # make gaps transparent
     array = np.ma.masked_where(array > toint('else'), array)
 
@@ -705,7 +797,6 @@ def do_phy5(gui):
     # plot a gene marker bar
     if phy.axis and len(data.genes) > 1:
         LOG.debug('adding gene marker bar')
-        # print(phy.g_lens)
         # build matrix of gene indicators
         gm = [[data.genes.index(g)] * phy.g_lens[g] for g in data.genes]
         # add the spacer
@@ -774,11 +865,11 @@ def do_phy5(gui):
 
     iface.text = 'idle'
     sleep(.1)
-    GObject.idle_add(stop_phy, gui)
+    GObject.idle_add(__stop_phy__, gui)
     return True
 
 
-def stop_phy(gui):
+def __stop_phy__(gui):
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     iface.thread.join()
     LOG.info('phylo thread idle')
@@ -788,7 +879,14 @@ def stop_phy(gui):
     return False
 
 
-def _size_scrollbars(pane, pos, scl, scr, sp, tv):
+def __on_right_click__(widget, event, menu):
+    # Check if right mouse button was pressed
+    if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
+        menu.popup(None, None, None, None, event.button, event.time)
+        return True  # event has been handled
+
+
+def __size_scrollbars__(pane, pos, scl, scr, sp, tv):
     """
     Set a size request for the scrollbar below the narrower
     side of the GtkPaned and set the other one to hexpand.

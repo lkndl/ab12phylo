@@ -27,8 +27,6 @@ REFRESH = [module.refresh for module in [gtk_io, gtk_rgx, gtk_qal, gtk_msa,
 # re-run background threads. -> "REFRESH" button
 RERUN = {1: gtk_rgx.start_read, 2: gtk_qal.start_trim,
          4: gtk_gbl.start_gbl, 7: gtk_tree.start_phy}
-# where the gene selector is visible
-SELECT = {2}
 
 regex = re.compile('\\.[\\d]+$')
 
@@ -222,7 +220,8 @@ def refresh(gui, *args):
     REFRESH[page](gui)
     # hide or show these two actions depending on applicability
     gui.iface.refresh.props.visible = bool(page in RERUN)
-    gui.iface.gene_roll.props.visible = bool(page in SELECT)
+    gui.iface.tree_reset.props.visible = page == 7
+    gui.iface.gene_roll.props.visible = page == 2
 
 
 def select_gene_and_redo(gui, *args):

@@ -348,13 +348,12 @@ class ab12phylo_app(Gtk.Application):
                         website_label='GitLab Repo', license_type=Gtk.License.MIT_X11,
                         logo=GdkPixbuf.Pixbuf.new_from_file(str(ab12phylo_app.ICON))).present()
 
-    def root_extract(self, action):
+    def tree_modify(self, action):
         # TODO move to gtk_tree once refactored
         if not self.iface.tree:
             shared.show_notification(self, 'No tree in memory, re-drawing first', stay_secs=2)
             gtk_tree.start_phy(self)
             return
-
         sel_idx = [tp.get_indices()[0] for tp in self.iface.tree_sel.get_selected_rows()[1]]
         if not sel_idx:
             shared.show_notification(self, 'Cannot %s, no selection' % action.get_name(), stay_secs=2)
@@ -372,24 +371,6 @@ class ab12phylo_app(Gtk.Application):
                 names.append(_id)
         LOG.debug('re-plot and %s' % action.get_name())
         gtk_tree.start_phy(self, {action.get_name(): names})
-
-    def drop_collapse(self, action):
-        # TODO move to gtk_tree once refactored
-        if not self.iface.tree:
-            shared.show_notification(self, 'No tree in memory, re-drawing first', stay_secs=2)
-            gtk_tree.start_phy(self)
-            return
-        sel_idx = [tp.get_indices()[0] for tp in self.iface.tree_sel.get_selected_rows()[1]]
-        if not sel_idx:
-            shared.show_notification(self, 'Cannot %s, no selection' % action.get_name(), stay_secs=2)
-            return
-
-        # return a list of indices
-        indices = [idx for row, idx in
-                   enumerate([t.idx for t in self.iface.tree.treenode.
-                             traverse('postorder') if t.is_leaf()]) if row in sel_idx]
-        LOG.debug('re-plotting and %sing' % action.get_name())
-        gtk_tree.start_phy(self, {action.get_name(): indices})
 
     def _init_log(self, **kwargs):
         self.log.setLevel(logging.DEBUG)

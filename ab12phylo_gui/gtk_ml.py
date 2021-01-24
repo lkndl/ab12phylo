@@ -192,7 +192,7 @@ def start_ML(widget, gui, mode, run_after=None):
         iface.k = ml.bootstraps + ml.rand + ml.pars + 3 if mode == 'raxml' else 2
     else:
         raise NotImplementedError
-    # ab12phylo_app.save(gui)
+    # ab12phylo_app.save(gui)  # TODO solve after refactoring
 
     iface.thread = threading.Thread(target=do_ML, args=[gui, mode])
     GObject.timeout_add(100, shared.update_ML, iface, PAGE, ml)
@@ -243,7 +243,7 @@ def do_ML(gui, mode):
             sh.write('#!/bin/bash\n\ntrap \'\' SIGINT\n\n')
 
     # loop over the stages
-    for desc, key, prev, arg, add in zip(
+    for i, (desc, key, prev, arg, add) in enumerate(zip(
             ['check MSA', 'infer ML tree', 'bootstrapping', 'calc. branch support'],
             [False, 'ML', 'BS', False], [0, 1, ml.rand + ml.pars + 1, iface.k - 2],
             [chck, inML, boot, supp],
@@ -252,13 +252,34 @@ def do_ML(gui, mode):
              (ml.raxml, msa, prefix / 'ml.raxml.bestModel',
               prefix / 'ml.raxml.bestTree', prefix / 'bs'),
              (ml.raxml, prefix / 'ml.raxml.bestTree',
-              prefix / 'bs.raxml.bootstraps', prefix / 'sp')]):
+              prefix / 'bs.raxml.bootstraps', prefix / 'sp')])):
 
         if ml.raxml_shell and mode == 'raxml':
             with open(shell, 'a') as sh:
                 sh.write('# %s\n' % desc)
-                sh.write(arg % add)
-                sh.write('\n\necho "%s done"\nsleep 2s\n\n' % desc)
+                if i != 2:
+                    sh.write(arg % add)
+                else:
+                    # special case bootstrapping:
+                    bash = '''     
+mkfifo pipe || exit 1
+(%s) > pipe &
+pid=$!
+echo "AB12PHYLO: Bootstrapping PID is $pid"
+while read -r line; do
+    echo "$line"
+    if [[ "${line::12}" == "Elapsed time" ]]; then
+        echo "AB12PHYLO: Finished bootstrapping, terminating process $pid to ensure it exits."
+        kill -s SIGTERM $pid
+        break
+    fi
+done < pipe
+rm pipe
+                    '''.strip() % (arg % add)
+                    sh.write(bash)
+                sh.write('\n\necho "AB12PHYLO: %s done"\n' % desc)
+                if i != 3:
+                    sh.write('sleep 1s\n\n')
                 continue
 
         iface.text = desc
@@ -278,7 +299,7 @@ def do_ML(gui, mode):
                 lane = line.decode().rstrip()
                 ml.stdout.append(lane)
                 LOG.debug(lane)
-                if lane.startswith('Consumed energy'):
+                if lane.startswith('Elapsed time'):
                     break
             else:
                 sleep(.2)
@@ -341,6 +362,7 @@ def do_ML(gui, mode):
         shell.chmod(shell.stat().st_mode | stat.S_IEXEC)
         gui.hold()
         gui.win.hide()
+        sleep(.1)
         Popen(['notify-send', 'AB12PHYLO', 'ML Tree Inference running in background.',
                '-i', str(Path(__file__).resolve().parent / 'files' / 'favi.png')])
         os.system(shell)
