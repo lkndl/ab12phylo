@@ -51,7 +51,8 @@ class project_dataset:
                              did_BLAST=False, query='', exclude='',
                              rect=True, circ=False, unro=False, tbe=True, fbp=False, supp=True,
                              spec=True, axis=True, align=False, pmsa=False,
-                             pdf=False, svg=False, png=True, nwk=True, html=False)
+                             pdf=False, svg=False, png=True, nwk=True, html=False,
+                             h=dict(), qh=dict())
 
         self.gbl_model = picklable_liststore(str)  # id
         # set up indicator of changes, tabs are not disabled initially

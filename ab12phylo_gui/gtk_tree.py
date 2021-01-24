@@ -34,7 +34,7 @@ from gi.repository import Gtk, GObject, Gdk
 
 from ab12phylo_gui import shared
 from ab12phylo_gui.static import PATHS as p, \
-    seqtoint, tohex, toint, SEP, DPI, \
+    seqtoint, tohex, toint, SEP, DPI, ALPHA, \
     colors, blue, red, dark_red, rocket, black
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -78,10 +78,6 @@ def init(gui):
         iface.__getattribute__(w_name).connect(
             'button-press-event', __on_right_click__, iface.contextmenu)
 
-    for w_name in ['gap_share', 'unk_share']:
-        iface.__getattribute__(w_name).get_adjustment().connect(
-            'value-changed', lambda adj: phy.__setattr__(w_name, adj.props.value))
-
     for w_name in ['query', 'exclude']:
         iface.__getattribute__(w_name).connect('focus_out_event', select_popgen, gui)
 
@@ -95,7 +91,6 @@ def init(gui):
     iface.view_msa_ids.set_tooltip_column(1)
 
     iface.popgen.set_model(data.pop_model)
-    init_popgen_columns(iface.popgen)
 
     # set some plot_menu MenuButton images
     iface.flip.set_image(iface.flipim)
@@ -117,18 +112,15 @@ def init(gui):
                             iface.tree_left_scrollbar, iface.tree_right_scrollbar,
                             iface.tree_spacer, iface.view_msa_ids, )
 
-    iface.calculate.connect('clicked', do_popgen, gui)
     iface.subtree.connect('clicked', expand_popgen, gui)
+    iface.calculate.connect('clicked', start_popgen, gui)
     iface.tree_reset.connect('clicked', _reset, gui)
 
     phy.tx = 'circular' if phy.circ else 'rectangular'
     phy.tx += '_TBE' if phy.tbe else '_FBP'
-
+    phy.array = None
     iface.tree = None
-    iface.kwargs = dict()
-
-
-# TODO popgen calc
+    iface.modify = dict()
 
 
 def _reset(wi, gui):
@@ -138,8 +130,9 @@ def _reset(wi, gui):
     """
     if gui.iface.thread.is_alive():
         gui.iface.thread.join()
-    gui.iface.kwargs = dict()
-    (gui.wd / p.modified_tree).unlink()
+    gui.iface.modify = dict()
+    if (gui.wd / p.modified_tree).is_file():
+        (gui.wd / p.modified_tree).unlink()
     start_phy(gui)
 
 
@@ -147,6 +140,7 @@ def refresh(gui):
     """Re-view the page. Get suggested commands for RAxML-NG and IQ-Tree"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     reload_ui_state(gui)
+    init_popgen_columns(iface.popgen)
     iface.tree_pane.set_position(301)
 
     if (gui.wd / phy.tx).with_suffix('.png').is_file() \
@@ -223,22 +217,67 @@ def expand_popgen(wi, gui):
     [iface.tree_sel.select_path(i) for i in sel_idx]
 
 
-def do_popgen(widget, gui):
+def start_popgen(wi, gui):
     data, phy, iface = gui.data, gui.data.phy, gui.iface
-
     data.pop_model.clear()
+
+    if phy.array is None:
+        start_phy(gui)
+        return
+
+    for w_name in ['gap_share', 'unk_share']:
+        phy.__setattr__(w_name, iface.__getattribute__(
+            w_name).get_adjustment().props.value)
+
+    # re-direct to thread
+    iface.i = 0
+    iface.k = len(data.genes) + 2
+    iface.text = 'calculating'
+    iface.thread = threading.Thread(target=do_popgen, args=[gui])
+    GObject.timeout_add(100, shared.update, iface, PAGE)
+    iface.thread.start()
+
+
+def do_popgen(gui):
+    data, phy, iface = gui.data, gui.data.phy, gui.iface
+    mo, tps = iface.tree_sel.get_selected_rows()
+    tps = [tp[0] for tp in tps]
+
+    start, overall, drops = 0, set(), set()
+    for i, gene in enumerate(data.genes):
+        iface.text = 'popgen: %s' % gene
+        LOG.debug(iface.text)
+        _range = range(start, start + phy.g_lens[gene])
+        overall.update(_range)
+        row, drops = _per_gene_diversity(gene, phy, tps, _range)
+        data.pop_model.append(row)
+        start += phy.g_lens[gene] + len(SEP)
+        iface.i += 1
+
+    if len(data.genes) > 1:
+        iface.text = 'popgen: overall'
+        LOG.debug(iface.text)
+        row, drops = _per_gene_diversity('overall', phy, tps, overall)
+        data.pop_model.append(row)
+        iface.i += 1
+
     init_popgen_columns(iface.popgen)
 
-    pass
+    # plot using tps and drops
+    __do_phy5__(gui, (tps, drops))
 
 
 def init_popgen_columns(tv):
-    if len(tv.get_model()) == 0 or tv.get_n_columns > 0:
+    if len(tv.get_model()) == 0 or tv.get_n_columns() > 0:
         return
-    for i, ti in enumerate(['gene', 'sites', 'S', 'k', 'π', 'θ',
-                            'Tajima\'s D', 'unique', 'gap', 'unknown']):
-        tv.append_column(Gtk.TreeViewColumn(
-            title=ti, cell_renderer=Gtk.CellRendererText(), text=i))
+    for i, ti in enumerate(['gene', 'sites', 'S', 'k', 'π', 'Watterson\'s θ',
+                            'Tajima\'s D', 'unique seqs', 'gaps', 'unknown']):
+        col = Gtk.TreeViewColumn(
+            title=ti, cell_renderer=Gtk.CellRendererText(), text=i)
+        col.set_resizable(True)
+        tv.append_column(col)
+    tv.realize()
+    tv.columns_autosize()
 
 
 def init_sp_genes(sp_genes, genes, sel_gene=None):
@@ -315,18 +354,18 @@ def on_save_msa(gui):
         fig.save(gui.wd / (phy.tx + '_msa.svg'))
 
 
-def start_phy(gui, kwargs=None):
+def start_phy(gui, modify=None):
     """Get settings and block GUI"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     if iface.thread.is_alive():
         shared.show_notification(gui, 'Busy', stay_secs=1)
         return
     LOG.debug('start_plotting')
-    if kwargs:
-        k, v = kwargs.popitem()
-        phy.kwargs[k] = phy.kwargs.get(k, list()) + v
+    if modify:
+        k, v = modify.popitem()
+        phy.modify[k] = phy.modify.get(k, list()) + v
     else:
-        phy.kwargs = dict()
+        phy.modify = dict()
 
     # empty placeholder early to avoid over-high graphics
     for wi in [iface.tree_eventbox, iface.msa_eventbox]:
@@ -358,7 +397,7 @@ def __do_phy1__(gui):
     data, phy, iface = gui.data, gui.data.phy, gui.iface
 
     # pick a tree file
-    if iface.kwargs and gui.wd / p.modified_tree.is_file():
+    if iface.modify and gui.wd / p.modified_tree.is_file():
         tree_file = gui.wd / p.modified_tree
     else:
         tree_file = gui.wd / p.fbp if phy.fbp else gui.wd / p.tbe
@@ -366,8 +405,8 @@ def __do_phy1__(gui):
     # read tree file
     tr = toytree.tree(open(tree_file, 'r').read(), tree_format=0)
 
-    if 'collapse' in phy.kwargs:
-        names = [i for i in phy.kwargs['collapse'] if i in tr.get_tip_labels()]
+    if 'collapse' in phy.modify:
+        names = [i for i in phy.modify['collapse'] if i in tr.get_tip_labels()]
         if names:
             mrca = tr.get_mrca_idx_from_tip_labels(names=names)
             try:
@@ -379,18 +418,18 @@ def __do_phy1__(gui):
                 GObject.idle_add(__do_phy2__, gui, [str(te)])
                 sleep(.1)
                 return True
-            phy.kwargs['collapse'] = ['%d_clade' % mrca]
+            phy.modify['collapse'] = ['%d_clade' % mrca]
             tr = toytree.tree(tr.newick)
 
-    if 'drop' in phy.kwargs:
-        names = [i for i in phy.kwargs['drop'] if i in tr.get_tip_labels()]
+    if 'drop' in phy.modify:
+        names = [i for i in phy.modify['drop'] if i in tr.get_tip_labels()]
         if names:
             tr = tr.drop_tips(names=names)
             tr = toytree.tree(tr.newick)
 
-    if 'root' in phy.kwargs:
+    if 'root' in phy.modify:
         try:
-            names = [i for i in phy.kwargs['root'] if i in tr.get_tip_labels()]
+            names = [i for i in phy.modify['root'] if i in tr.get_tip_labels()]
             if names:
                 tr = tr.root(names=names)
         except ToytreeError as te:
@@ -398,13 +437,13 @@ def __do_phy1__(gui):
             sleep(.1)
             return True
 
-    if 'extract' in phy.kwargs:
-        names = [i for i in phy.kwargs['extract'] if i in tr.get_tip_labels()]
+    if 'extract' in phy.modify:
+        names = [i for i in phy.modify['extract'] if i in tr.get_tip_labels()]
         if names:
             treenode = tr.idx_dict[tr.get_mrca_idx_from_tip_labels(names=names)]
             tr = toytree.tree(treenode.write())
 
-    if phy.kwargs:
+    if phy.modify:
         # save the modified tree
         tr.write(gui.wd / p.modified_tree, tree_format=0)
 
@@ -445,7 +484,7 @@ def __do_phy1__(gui):
         phy.ndf = dict()
         for t in phy.tips:
             if any([t not in d.index for d in dfs]):
-                continue  # a dropped node   # TODO check if works
+                continue  # a dropped node
             rows = [d.loc[t] for d in dfs]
             if pid:
                 phy.ndf[t] = [dict(r) for r in rows if r.pid == max([q.pid for q in rows])][0]
@@ -489,9 +528,12 @@ def __do_phy2__(gui, errors=None):
             sp = ''
         nd['species'] = sp
         if 'accession' in nd and not pd.isna(nd['accession']):
+            if len(data.genes) > 1 and 'strain' in nd['species']:
+                t = nd['species'][nd['species'].find('strain') + 7:]
+            else:
+                t = nd['accession']
             c = iface.BLUE
             sp = t + ': ' + sp
-            t = nd['accession']
         else:
             c = None  # iface.FG
         data.tree_anno_model.append([t, sp, c, None])
@@ -535,7 +577,10 @@ def __do_phy3__(gui):
 
             # rename REFs
             if tip.startswith('REF_'):
-                tip = entry['accession']
+                if len(data.genes) > 1 and 'strain' in entry['species']:
+                    tip = entry['species'][entry['species'].find('strain') + 7:]
+                else:
+                    tip = entry['accession']
 
             SeqIO.write(SeqRecord(Seq(seq), id=tip, description=des), new_msa, 'fasta')
     LOG.debug('wrote updated MSA')
@@ -634,7 +679,7 @@ def __do_phy3__(gui):
 
     # pre-calculate plot attributes
     # internal node size -> support
-    min_size = .2  # TODO fails on drop
+    min_size = .2
     ns = [min_size + s / 10 for s in iface.tree.get_node_values('support', 1, 1)]
 
     # internal node color -> support
@@ -677,7 +722,7 @@ def __do_phy3__(gui):
 
     phy.tx += '_TBE' if phy.tbe else '_FBP'
 
-    iface.text = 'plotting %s tree' + phy.tx
+    iface.text = 'plotting %s tree' % phy.tx
     try:
         iface.tup = iface.tree.draw(
             axes=iface.axes, scalebar=phy.axis,
@@ -758,7 +803,7 @@ def __do_phy4__(gui, errors):
     iface.thread.start()
 
 
-def __do_phy5__(gui):
+def __do_phy5__(gui, popgen_markup=None):
     """Plot the MSA matrix"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
 
@@ -768,9 +813,16 @@ def __do_phy5__(gui):
         if not seq:
             phy.seqdata[i] = [toint('?')] * full_len
 
-    array = np.array(phy.seqdata[::-1])
+    phy.array = np.array(phy.seqdata[::-1])
     # make gaps transparent
-    array = np.ma.masked_where(array > toint('else'), array)
+    array = np.ma.masked_where(phy.array > toint('else'), phy.array)
+
+    if popgen_markup:
+        # make selection non-transparent
+        rows, drop_cols = popgen_markup
+        tree_mask = np.full(array.shape, 1.0)
+        tree_mask[[i for i in range(array.shape[0]) if i not in rows], :] = ALPHA
+        tree_mask[:, sorted(drop_cols)] = ALPHA
 
     # adjust maximum size
     scale = 6
@@ -790,8 +842,12 @@ def __do_phy5__(gui):
     b = (50 * phy.axis) / phy.height
 
     ax = f.add_axes([0, b, 1, 1 - b])
-    mat = ax.pcolormesh(array, alpha=1, cmap=ListedColormap(colors),
-                        vmin=-.5, vmax=len(colors) - .5)  # , aspect='auto')
+    if popgen_markup:
+        mat = ax.matshow(array, alpha=tree_mask, cmap=ListedColormap(colors),
+                         vmin=-.5, vmax=len(colors) - .5, aspect='auto')
+    else:
+        mat = ax.pcolormesh(array, alpha=1, cmap=ListedColormap(colors),
+                            vmin=-.5, vmax=len(colors) - .5)
     ax.axis('off')
 
     # plot a gene marker bar
@@ -859,9 +915,6 @@ def __do_phy5__(gui):
     if phy.axis and len(data.genes) > 1:
         shared.load_colorbar(iface.gbar, gui.wd, gbar=True)
         iface.gbar.set_visible(True)
-
-    # save for re-use in popgen part?
-    phy.array = array
 
     iface.text = 'idle'
     sleep(.1)
@@ -932,30 +985,6 @@ def reload_ui_state(gui):
 
 # from ab12phylo.py
 
-def _exclude(ex_motifs, leaves):
-    # filter leaves with exclusion motifs
-    if ex_motifs != '':
-        # compile exclusion regex.
-        queries = ['.*' + re.escape(word.strip()) + '.*' for word in ex_motifs.split(',')]
-        if '.*.*' in queries and len(queries) > 1:
-            queries.remove('.*.*')
-        regex = re.compile(r'|'.join(queries))
-
-        # drop excluded tips
-        for dropped_tip in list(filter(regex.match, leaves)):
-            leaves.remove(dropped_tip)
-    return leaves
-
-
-def _to_files(leaves):
-    # translate to file paths
-    with open('metadata.tsv', 'r') as tsv:
-        sam_to_file = {leaves.index(sample): _file for sample, _file
-                       in [line.split('\t')[0:3:2]  # get first and third column
-                           for line in tsv.readlines()] if sample in leaves}
-    return [_file for sample, _file in sorted(sam_to_file.items())]
-
-
 def _h(a):
     # harmonic number
     b = 0
@@ -972,50 +1001,47 @@ def _qh(a):
     return b
 
 
-def _diversity_stats(gene_now, records, limits, poly):
-    # translate dictionary of sequences to numpy int array
-    seqs = np.array([seq for seq in records.values()])
-    n_sequences = len(records)
-    bases = ['A', 'C', 'G', 'T', '-']
-    weird_chars = np.setdiff1d(np.unique(seqs), bases)
-    codes = dict(zip(bases + list(weird_chars), range(len(bases) + len(weird_chars))))
-    coded_seqs = np.vectorize(codes.get)(seqs)
-
+def _per_gene_diversity(gene, phy, rows, _range):
     conserved, biallelic, polyallelic, unknown, gaps = 0, 0, 0, 0, 0
+    start, end = min(_range), max(_range)
     drop = set()
+    nrows = len(rows)
+    N = toint('N')
+    poly = True
 
     # iterate over MSA columns, search for segregating sites
-    for j in range(coded_seqs.shape[1]):
-        col = coded_seqs[:, j]
+    for j in _range:
+        col = phy.array[rows, j]
         if len(set(col)) == 1:
             # only one char at site
             it = col[0]
-            if it > 4:
+            if it > N:
                 # all-unknown-site. can happen as we selected a subset of sequences
                 unknown += 1
-                drop.add(j)
-            elif it == 4:
+                drop.add(start + j)
+            elif it == N:
                 # all-gap-site
                 gaps += 1
-                drop.add(j)
+                drop.add(start + j)
             else:
                 conserved += 1
         else:  # more than one character in the whole column
-            if max(col) > 4 and len(col[col > 4]) > limits[1] * n_sequences:
+            if max(col) > N and len(col[col > N]) > phy.unk_share * nrows:
                 # there are too many unknown chars in the column
                 unknown += 1
-                drop.add(j)
-            elif max(col) == 4 and len(col[col >= 4]) > limits[0] * n_sequences:
+                drop.add(start + j)
+            elif max(col) == N and len(col[col >= N]) > phy.gap_share * nrows:
                 # there are too many gaps at the site
                 gaps += 1
-                drop.add(j)
+                drop.add(start + j)
             else:
-                # if gaps or unknown characters are at the site, replace them with the most common nucleotide
+                # if gaps or unknown characters are at the site,
+                # replace them with the most common nucleotide
                 try:
-                    col[col >= 4] = np.bincount(col[col < 4]).argmax()
+                    col[col >= N] = np.bincount(col[col < N]).argmax()
                 except ValueError:
                     # there are no nucleotides
-                    drop.add(j)
+                    drop.add(start + j)
                     continue
 
                 # ordinary site treatment
@@ -1023,55 +1049,55 @@ def _diversity_stats(gene_now, records, limits, poly):
                 if num_diff_chars > 2:
                     polyallelic += 1
                     if not poly:
-                        drop.add(j)
+                        drop.add(start + j)
                 elif num_diff_chars == 2:
                     biallelic += 1
                 else:
                     conserved += 1
-    # print('GENE:%s\tallsites:%d\tconserved:%d\tbiallelic:%d\tpolyallelic:%d\tunknown:%d\tgaps:%d\tpoly:%s\ndrop:%d\n'
-    #       % (gene_now, coded_seqs.shape[1], conserved, biallelic, polyallelic, unknown, gaps, poly, len(drop)))
 
     seg_sites = biallelic
-    n_sites = coded_seqs.shape[1] - unknown - gaps
+    n_sites = end - start - unknown - gaps
     if poly:
         seg_sites += polyallelic
     else:
         n_sites -= polyallelic
 
-    if seg_sites == 0:
-        return '<tr><td>%s</td><td>%d</td><td>0</td><td>--</td><td>--</td><td>--</td><td>--</td>' \
-               '<td>--</td><td>%d</td><td>%d</td></tr>' % (gene_now, n_sites, gaps, unknown)
-
     # crop to allowed sites
-    coded_seqs = coded_seqs[:, list(set(range(coded_seqs.shape[1])) - drop)]
+    crop = phy.array[rows, :][:, [i for i in range(start, end) if i not in drop]]
 
     k = 0
     # count pairwise differences
-    for combi in itertools.combinations(range(n_sequences), 2):
-        k += np.sum(coded_seqs[combi[0]] != coded_seqs[combi[1]])
+    for combi in itertools.combinations(range(nrows), 2):
+        k += np.sum(crop[combi[0]] != crop[combi[1]])
 
     # binomial coefficient, k = k^ in formula (10) from Tajima1989
-    k = k * 2 / n_sequences / (n_sequences - 1)
+    k = k * 2 / nrows / (nrows - 1)
     pi = k / n_sites
 
-    a1 = _h(n_sequences)
+    # look up or compute
+    if nrows in phy.h:
+        a1 = phy.h[nrows]
+        a2 = phy.qh[nrows]
+    else:
+        a1 = _h(nrows)
+        phy.h[nrows] = a1
+        a2 = _qh(nrows)
+        phy.qh[nrows] = a2
+
     theta_w = seg_sites / a1 / n_sites  # per site from Yang2014
+    n_genotypes = len(np.unique(crop, axis=0))
 
     # Tajima's D Formula:
     # d = k - seg_sites/a1 = k - theta_W
     # D = d / sqrt(Var(d))
     try:
-        a2 = _qh(n_sequences)
-        e1 = 1 / a1 * ((n_sequences + 1) / (3 * n_sequences - 3) - 1 / a1)
-        b2 = (2 * (n_sequences * n_sequences + n_sequences + 3)) / (9 * n_sequences * (n_sequences - 1))
-        c2 = b2 - ((n_sequences + 2) / (n_sequences * a1)) + (a2 / (a1 * a1))
+        e1 = 1 / a1 * ((nrows + 1) / (3 * nrows - 3) - 1 / a1)
+        b2 = (2 * (nrows * nrows + nrows + 3)) / (9 * nrows * (nrows - 1))
+        c2 = b2 - ((nrows + 2) / (nrows * a1)) + (a2 / (a1 * a1))
         e2 = c2 / (a1 * a1 + a2)
         tajima = (k - theta_w) / np.sqrt(e1 * seg_sites + e2 * seg_sites * (seg_sites - 1))
     except (ZeroDivisionError, RuntimeWarning) as z:
         tajima = float('inf')
 
-    n_genotypes = len(np.unique(coded_seqs, axis=0))
-
-    return '<tr><td>%s</td><td>%d</td><td>%d</td><td>%.5f</td><td>%.5f</td>' \
-           '<td>%.5f</td><td>%.5f</td><td>%d</td><td>%d</td><td>%d</td></tr>' \
-           % (gene_now, n_sites, seg_sites, k, pi, theta_w, tajima, n_genotypes, gaps, unknown)
+    return ([gene, n_sites, seg_sites, k, pi, theta_w, tajima,
+             n_genotypes, gaps, unknown], drop)
