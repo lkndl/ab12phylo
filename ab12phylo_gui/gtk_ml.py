@@ -79,6 +79,7 @@ def import_tree(widget, gui):
                                          [path.name for path in paths], 2)
 
     dialog.destroy()
+    shared.set_changed(gui, PAGE, False)
 
 
 def _change_evo_model(entry, event_focus, evo_modify, ml):
@@ -223,8 +224,7 @@ def do_ML(gui, mode):
     boot = '%s --bootstrap --msa %s --model %s --tree %s' + \
            ' --prefix %s' + ' --bs-trees %d' % ml.bootstraps + \
            ' --seed %d' % ml.raxml_seed + \
-           ' --threads auto{16} --workers auto{16} --redo &'
-    # ampersand helps Bootstrapping not returning
+           ' --threads auto{16} --workers auto{16} --redo'
 
     supp = '%s --support --tree %s --bs-trees %s --bs-metric fbp,tbe ' \
            '--prefix %s --threads auto{16} --workers auto{16} --redo'

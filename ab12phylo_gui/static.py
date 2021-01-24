@@ -31,7 +31,7 @@ algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-C
          'RAxML-NG': 'raxml-ng', 'IQ-Tree': 'iqtree2', 'FastTree': 'FastTree'}
 toalgo = lambda c: algos[c]
 
-NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S']
+NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S', '?']
 toint_map = dict(zip(NUCLEOTIDES, range(len(NUCLEOTIDES))))
 toint = lambda c: toint_map.get(c, 5)
 seqtoint = lambda s: list(map(toint, s))
@@ -50,7 +50,9 @@ KXLIN = {
     'else': (0, 0, 0, 1),
     '-': (1, 1, 1, 0),
     ' ': (1, 1, 1, 0),
-    'S': (1, 1, 1, 0)}
+    'S': (1, 1, 1, 0),
+    '?': (0, 0, 0, 0)
+}
 
 colors = list(map(tohex, map(KXLIN.get, NUCLEOTIDES)))
 USER = 'leo.kaindl@tum.de'

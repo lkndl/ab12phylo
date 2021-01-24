@@ -309,7 +309,7 @@ class reader:
                 except ValueError:
                     strain = species
 
-                # catch some illegal characters
+                # catch some illegal weird html characters
                 for char in ['<', '>', '\'', '"', '&']:
                     strain = strain.replace(char, '')
 

@@ -25,13 +25,13 @@ LOG = logging.getLogger(__name__)
 __verbose__, __info__ = 1, 0
 
 # set the icon theme
-Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
-Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
+# Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
+# Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')
 
 
 class ab12phylo_app(Gtk.Application):
     TEMPLATE = BASE_DIR / 'ab12phylo_gui' / 'files' / 'gui.glade'
-    # ICON = BASE_DIR / 'ab12phylo_gui' / 'files' / 'favi.ico'
+    ICON = BASE_DIR / 'ab12phylo_gui' / 'files' / 'favi.ico'
 
     def do_activate(self):
         self.add_window(self.win)
@@ -119,7 +119,7 @@ class ab12phylo_app(Gtk.Application):
         css_provider = Gtk.CssProvider()
         css = b'''
         .seqid { font-size: xx-small; padding-left: 3px; }
-        separator.wide { min-width: 18px }
+        #gbl_pane separator.wide { min-width: 18px }
         #tree_pane separator { min-width: 3px; }
         progressbar trough progress { 
             min-height: 6px; 
@@ -263,7 +263,10 @@ class ab12phylo_app(Gtk.Application):
             self.iface.notebook.set_current_page(self.data.page)
 
             for module in [gtk_rgx, gtk_qal, gtk_msa, gtk_gbl, gtk_ml, gtk_tree]:
-                module.reload_ui_state(self)
+                try:
+                    module.reload_ui_state(self)
+                except AttributeError as e:
+                    LOG.exception(e)
         except Exception as e:
             LOG.exception(e)
             shared.show_notification(self, 'Project could not be loaded')
@@ -344,6 +347,49 @@ class ab12phylo_app(Gtk.Application):
                         website='https://gitlab.lrz.de/leokaindl/ab12phylo',
                         website_label='GitLab Repo', license_type=Gtk.License.MIT_X11,
                         logo=GdkPixbuf.Pixbuf.new_from_file(str(ab12phylo_app.ICON))).present()
+
+    def root_extract(self, action):
+        # TODO move to gtk_tree once refactored
+        if not self.iface.tree:
+            shared.show_notification(self, 'No tree in memory, re-drawing first', stay_secs=2)
+            gtk_tree.start_phy(self)
+            return
+
+        sel_idx = [tp.get_indices()[0] for tp in self.iface.tree_sel.get_selected_rows()[1]]
+        if not sel_idx:
+            shared.show_notification(self, 'Cannot %s, no selection' % action.get_name(), stay_secs=2)
+            return
+
+        # return a list of tip labels
+        idsp = [(_id, sp) for i, (_id, sp) in enumerate(shared.get_column(
+            self.data.tree_anno_model, (0, 1))) if i in sel_idx]
+
+        names = list()
+        for _id, sp in idsp:
+            if sp.startswith('REF_'):
+                names.append(sp.split(':')[0])
+            else:
+                names.append(_id)
+        LOG.debug('re-plot and %s' % action.get_name())
+        gtk_tree.start_phy(self, {action.get_name(): names})
+
+    def drop_collapse(self, action):
+        # TODO move to gtk_tree once refactored
+        if not self.iface.tree:
+            shared.show_notification(self, 'No tree in memory, re-drawing first', stay_secs=2)
+            gtk_tree.start_phy(self)
+            return
+        sel_idx = [tp.get_indices()[0] for tp in self.iface.tree_sel.get_selected_rows()[1]]
+        if not sel_idx:
+            shared.show_notification(self, 'Cannot %s, no selection' % action.get_name(), stay_secs=2)
+            return
+
+        # return a list of indices
+        indices = [idx for row, idx in
+                   enumerate([t.idx for t in self.iface.tree.treenode.
+                             traverse('postorder') if t.is_leaf()]) if row in sel_idx]
+        LOG.debug('re-plotting and %sing' % action.get_name())
+        gtk_tree.start_phy(self, {action.get_name(): indices})
 
     def _init_log(self, **kwargs):
         self.log.setLevel(logging.DEBUG)
