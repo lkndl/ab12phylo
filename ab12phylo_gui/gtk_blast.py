@@ -355,7 +355,7 @@ def _refill(gui, gene=None, fresh=False):
     data.sp_model.clear()
     df = df.loc[df['gene'] == gene]
     for sample, r in df.iterrows():
-        if 'pid' not in r or isnan(r.pid):  # TODO errors ?
+        if 'pid' not in r or isnan(r.pid):  # TODO
             pid, r.BLAST_species, r.extra_species = '', '', ''
         elif type(r.pid) == float:
             pid = '%.2f' % r.pid if r.pid < 100 else '100'

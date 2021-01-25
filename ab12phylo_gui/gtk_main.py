@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 # 2021 Leo Kaindl
 
+import ast
 import logging
+import mmap
 import pickle
 import shutil
 import sys
@@ -13,10 +15,9 @@ from pathlib import Path
 import gi
 
 from ab12phylo.__init__ import __version__, __author__, __email__
-
-from ab12phylo_gui.static import BASE_DIR
 from ab12phylo_gui import gtk_proj, shared, gtk_io, gtk_rgx, \
     gtk_qal, gtk_msa, gtk_gbl, gtk_blast, gtk_ml, gtk_tree
+from ab12phylo_gui.static import BASE_DIR, PATHS as pp
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Gio, GdkPixbuf, GLib
@@ -47,8 +48,8 @@ class ab12phylo_app(Gtk.Application):
     def do_startup(self):
         Gtk.Application.do_startup(self)
         # connect menu actions and shortcuts
-        for act, acc in zip(['new', 'open', 'save', 'save_as', 'help', 'about', 'on_quit'],
-                            ['n', 'o', 's', '<Shift>s', 'h', '<Shift>h', 'q']):
+        for act, acc in zip(['new', 'open', '_import', 'save', 'save_as', 'help', 'about', 'on_quit'],
+                            ['n', 'o', 'i', 's', '<Shift>s', 'h', '<Shift>h', 'q']):
             action = Gio.SimpleAction.new(act)
             action.connect('activate', self.__getattribute__(act))  # can pass parameters here
             self.add_action(action)
@@ -266,7 +267,7 @@ class ab12phylo_app(Gtk.Application):
                 try:
                     module.reload_ui_state(self)
                 except AttributeError as e:
-                    LOG.exception(e)
+                    LOG.debug(e)
         except Exception as e:
             LOG.exception(e)
             shared.show_notification(self, 'Project could not be loaded')
@@ -297,7 +298,10 @@ class ab12phylo_app(Gtk.Application):
                 shutil.rmtree(path=new_wd)
             except FileNotFoundError:
                 pass
-            shutil.copytree(src=self.wd, dst=new_wd)  # not dirs_exist_ok=True
+            try:
+                shutil.copytree(src=self.wd, dst=new_wd)  # not dirs_exist_ok=True
+            except FileNotFoundError:
+                pass
 
             # delete old data if it was in the prelim directory
             if self.wd == Path('untitled'):  # Path.cwd() / 'untitled':
@@ -330,6 +334,60 @@ class ab12phylo_app(Gtk.Application):
             self.project_path = Path(dialog.get_filename())
             LOG.debug('got save path to %s' % self.project_path)
             self.save(None)
+        dialog.destroy()
+
+    def _import(self, *args):
+        """
+        Import results from an AB12PHYLO commandline version analysis
+        :param args:
+        :return:
+        """
+        dialog = Gtk.FileChooserDialog(title='import commandline project',
+                                       parent=None, select_multiple=False,
+                                       action=Gtk.FileChooserAction.SELECT_FOLDER)
+        dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                           Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        errors = list()
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            folder = Path(dialog.get_filename()).resolve()
+            for src, dst in zip(['metadata.tsv', 'msa.fasta', 'tree_TBE.nwk', 'tree_FBP.nwk'],
+                                [pp.tsv, pp.msa, pp.tbe, pp.fbp]):
+                try:
+                    shutil.copy(folder / src, self.wd / dst)
+                except FileNotFoundError:
+                    errors.append('%s not found' % src)
+                except Exception as ex:
+                    LOG.exception(ex)
+            if errors:
+                shared.show_notification(self, 'import failed', errors, stay_secs=2)
+                dialog.destroy()
+                return
+
+            got_annotations = False
+            for log in ['ab12phylo-p1.log', 'ab12phylo.log']:
+                try:
+                    with open(folder / log) as fh:
+                        s = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
+                        pos = s.find(b'--GENES--')
+                        if pos != -1:
+                            self.data.genes = s[pos + 10:pos + 190].decode().split('\n')[0].split('::')
+                            pos = s.find(b'gene lengths:')
+                            if pos == -1:
+                                break
+                            self.data.phy.g_lens = {k: v for k, v in ast.literal_eval(
+                                s[pos + 14:pos + 190].decode().split('\n')[0])}
+                            got_annotations = True
+                            break
+                except FileNotFoundError:
+                    continue
+            if not got_annotations:
+                shared.show_notification(self, 'import failed, couldn\'t read '
+                                               'annotations from log file', stay_secs=2)
+                dialog.destroy()
+                return
+            LOG.debug('imported from %s' % folder)
+            self.iface.notebook.set_current_page(7)
         dialog.destroy()
 
     def help(self, *args):

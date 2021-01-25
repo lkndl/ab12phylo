@@ -18,7 +18,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
 from ab12phylo_gui import shared
-from ab12phylo_gui.static import PATHS as p, TOOLS
+from ab12phylo_gui.static import PATHS as pp, TOOLS
 
 # from ab12phylo_gui.gtk_main import ab12phylo_app
 
@@ -52,7 +52,8 @@ def import_tree(widget, gui):
     """Import a tree file or two"""
     data, ml, iface = gui.data, gui.data.ml, gui.iface
 
-    dialog = Gtk.FileChooserDialog(parent=None, select_multiple=True,
+    dialog = Gtk.FileChooserDialog(title='import tree(s)',
+                                   parent=None, select_multiple=True,
                                    action=Gtk.FileChooserAction.OPEN)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                        Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
@@ -124,7 +125,7 @@ def _load_raxml_help(gui):
     data, iface = gui.data, gui.iface
     binary = shutil.which('raxml-ng')
     if not binary:
-        binary = str(TOOLS / p.RAxML)
+        binary = str(TOOLS / pp.RAxML)
     iface.raxml_exe.set_filename(binary)
     res = run(stdout=PIPE, stderr=PIPE, shell=True,
               args='%s --help' % binary)
@@ -153,7 +154,7 @@ def refresh(gui):
         iface.evo_model.set_active_id(data.ml.evo_model)
         iface.raxml_seen = True
 
-    shared.set_errors(gui, PAGE, not any((gui.wd / a).is_file() for a in [p.tbe, p.fbp]))
+    shared.set_errors(gui, PAGE, not any((gui.wd / a).is_file() for a in [pp.tbe, pp.fbp]))
 
 
 def start_ML(widget, gui, mode, run_after=None):
@@ -204,7 +205,7 @@ def do_ML(gui, mode):
     """Run the ML inference thread"""
     start = time()
     data, ml, iface = gui.data, gui.data.ml, gui.iface
-    msa = gui.wd / p.msa
+    msa = gui.wd / pp.msa
     prefix = gui.wd / 'RAxML'
     shell = gui.wd / 'raxml_run.sh'
     errors = list()
@@ -373,8 +374,8 @@ rm pipe
 
     iface.text = 'copy tree files'
     iface.i = iface.k - 1
-    shutil.copy(prefix / 'sp.raxml.supportFBP', gui.wd / p.fbp)
-    shutil.copy(prefix / 'sp.raxml.supportTBE', gui.wd / p.tbe)
+    shutil.copy(prefix / 'sp.raxml.supportFBP', gui.wd / pp.fbp)
+    shutil.copy(prefix / 'sp.raxml.supportTBE', gui.wd / pp.tbe)
     iface.text = 'idle'
     iface.frac = 1
     sleep(.1)

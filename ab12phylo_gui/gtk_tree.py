@@ -13,7 +13,6 @@ import gi
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import re
 import svgutils.transform as sg
 import toyplot
 import toytree
@@ -30,11 +29,11 @@ from toyplot import html, pdf, png, svg, color
 from toytree.utils import TreeError, ToytreeError
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject, Gdk
+from gi.repository import Gtk, GObject, Gdk, GLib
 
 from ab12phylo_gui import shared
-from ab12phylo_gui.static import PATHS as p, \
-    seqtoint, tohex, toint, SEP, DPI, ALPHA, \
+from ab12phylo_gui.static import PATHS as pp, \
+    seqtoint, tohex, toint, rgx, SEP, DPI, ALPHA, \
     colors, blue, red, dark_red, rocket, black
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -61,7 +60,7 @@ def init(gui):
     action_group.add_actions(
         [('root', None, 'Root', None,
           'Root the tree at the selected node(s).', gui.tree_modify),
-         ('drop', None, 'Drop', '<Delete>',
+         ('drop', None, 'Drop', None,
           'Drop the selected nodes from the tree.', gui.tree_modify),
          ('collapse', None, 'Collapse', None,
           'Collapse all descendants to a placeholder.', gui.tree_modify),
@@ -78,8 +77,8 @@ def init(gui):
         iface.__getattribute__(w_name).connect(
             'button-press-event', __on_right_click__, iface.contextmenu)
 
-    for w_name in ['query', 'exclude']:
-        iface.__getattribute__(w_name).connect('focus_out_event', select_popgen, gui)
+    iface.query.connect('focus_out_event', select_popgen, gui)
+    iface.exclude.connect('focus_out_event', constrain_selection, gui)
 
     iface.save_plot.connect('clicked', lambda *args: on_save_tree(gui))
 
@@ -120,7 +119,6 @@ def init(gui):
     phy.tx += '_TBE' if phy.tbe else '_FBP'
     phy.array = None
     iface.tree = None
-    iface.modify = dict()
 
 
 def _reset(wi, gui):
@@ -130,34 +128,36 @@ def _reset(wi, gui):
     """
     if gui.iface.thread.is_alive():
         gui.iface.thread.join()
-    gui.iface.modify = dict()
-    if (gui.wd / p.modified_tree).is_file():
-        (gui.wd / p.modified_tree).unlink()
+    gui.data.phy.modify = dict()
+    if (gui.wd / pp.modified_tree).is_file():
+        (gui.wd / pp.modified_tree).unlink()
     start_phy(gui)
 
 
 def refresh(gui):
-    """Re-view the page. Get suggested commands for RAxML-NG and IQ-Tree"""
+    """Re-view the page"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     reload_ui_state(gui)
-    init_popgen_columns(iface.popgen)
     iface.tree_pane.set_position(301)
 
     if (gui.wd / phy.tx).with_suffix('.png').is_file() \
-            and (gui.wd / p.phylo_msa).is_file() and 'shape' in phy:
-        # load tree PNG
-        shared.load_image(iface.zoomer, PAGE, iface.tree_eventbox,
-                          gui.wd / (phy.tx + '.png'), h=phy.shape[1])
-        # load MSA PNG
-        shared.load_image(iface.zoomer, PAGE, iface.msa_eventbox, gui.wd / p.phylo_msa,
-                          w=phy.shape[0] * shared.get_hadj(iface), h=phy.shape[1])
-        # load colorbars
-        shared.load_colorbar(iface.palplot1, gui.wd)
-        if phy.axis and len(data.genes) > 1:
-            shared.load_colorbar(iface.gbar, gui.wd, gbar=True)
-            iface.gbar.set_visible(True)
-        gui.win.show_all()
-        return
+            and (gui.wd / pp.phylo_msa).is_file() and 'shape' in phy:
+        try:
+            # load tree PNG
+            shared.load_image(iface.zoomer, PAGE, iface.tree_eventbox,
+                              gui.wd / (phy.tx + '.png'), h=phy.shape[1])
+            # load MSA PNG
+            shared.load_image(iface.zoomer, PAGE, iface.msa_eventbox, gui.wd / pp.phylo_msa,
+                              w=phy.shape[0] * shared.get_hadj(iface), h=phy.shape[1])
+            # load colorbars
+            shared.load_colorbar(iface.palplot1, gui.wd, iface.FG)
+            if phy.axis and len(data.genes) > 1:
+                shared.load_colorbar(iface.gbar, gui.wd, iface.FG, gbar=True)
+                iface.gbar.set_visible(True)
+            gui.win.show_all()
+            return
+        except GLib.Error:
+            pass
 
     start_phy(gui)
     gui.win.show_all()
@@ -165,16 +165,14 @@ def refresh(gui):
 
 def select_popgen(widget, ev, gui):
     """Select samples for popgen calculations by name / species matching"""
-    LOG.debug('select_popgen')
     data, phy, iface = gui.data, gui.data.phy, gui.iface
-    phy.__setattr__(widget.get_name(), widget.get_text())
+    phy.query = widget.get_text()
+    phy.exclude = iface.exclude.get_text()
 
     if not phy.query and not phy.exclude:
         return
     mo = data.tree_anno_model
-    rgx = lambda c: re.compile(r'|'.join(
-        ['.*' + re.escape(word.strip()) + '.*' for word in
-         c.strip().strip(',').split(',')]))
+
     search_space = [_id + sp for _id, sp in shared.get_column(mo, (0, 1))]
     sel = list()
 
@@ -182,7 +180,8 @@ def select_popgen(widget, ev, gui):
     if not phy.query:
         sel = list(range(len(mo)))
     else:
-        sel = [i for i, label in enumerate(search_space) if rgx(phy.query).match(label)]
+        sel = [i for i, label in enumerate(search_space)
+               if rgx(phy.query).match(label)]
 
     # then exclude
     if phy.exclude:
@@ -194,32 +193,78 @@ def select_popgen(widget, ev, gui):
     [iface.tree_sel.select_path(i) for i in sel]
 
 
-def expand_popgen(wi, gui):
+def constrain_selection(widget, ev, gui, passed=None):
+    data, phy, iface = gui.data, gui.data.phy, gui.iface
+    if passed:
+        sel_idx = passed
+    else:
+        sel_idx = [tp.get_indices()[0] for tp
+                   in iface.tree_sel.get_selected_rows()[1]]
+    if not sel_idx:
+        return
+
+    # get exclusion search space
+    idx_and_label = [(idx, _id + sp) for idx, (_id, sp) in enumerate(
+        shared.get_column(data.tree_anno_model, (0, 1))) if idx in sel_idx]
+
+    # then exclude
+    phy.exclude = iface.exclude.get_text()
+    sel_idx = [i for i, label in idx_and_label if
+               not rgx(phy.exclude).match(label)]
+    if widget:
+        # then select in the model
+        iface.tree_sel.unselect_all()
+        [iface.tree_sel.select_path(i) for i in sel_idx]
+    else:
+        return sel_idx
+
+
+def expand_popgen(widget, gui):
     """Select a subtree starting from a GtkTreeSelection"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     if not gui.iface.tree:
-        shared.show_notification(gui, 'No tree in memory, re-drawing first', stay_secs=2)
+        shared.show_notification(
+            gui, 'No tree in memory, re-drawing first', stay_secs=5)
         start_phy(gui)
         return
-    sel_idx = [tp.get_indices()[0] for tp in iface.tree_sel.get_selected_rows()[1]]
+    sel_idx = [tp.get_indices()[0] for tp
+               in iface.tree_sel.get_selected_rows()[1]]
     if not sel_idx:
-        shared.show_notification(gui, 'Cannot expand to subtree, no selection', stay_secs=1)
+        shared.show_notification(
+            gui, 'Cannot expand to subtree, no selection', stay_secs=1)
         return
 
-    # get a list of tip labels
-    id_sel = [(_id, i in sel_idx) for i, _id in enumerate(
-        shared.get_column(gui.data.tree_anno_model, 0))]
+    # get a list of all tip labels and whether they are selected
+    id_and_ifsel = [(_id, i in sel_idx) for i, _id in enumerate(
+        shared.get_column(data.tree_anno_model, 0))]
 
-    # move up in the tree
-    mrca = iface.tree.get_mrca_idx_from_tip_labels(names=[_id for _id, sel in id_sel if sel])
-    # move down in the tree
-    sel_idx = [[_id for _id, sel in id_sel].index(_id) for _id in iface.tree.get_tip_labels(mrca)]
+    # move up in the tree: find the MRCA
+    mrca = iface.tree.get_mrca_idx_from_tip_labels(
+        names=[_id for _id, sel in id_and_ifsel if sel])
+
+    # move down in the tree: get tip positions
+    sel_idx = [[_id for _id, sel in id_and_ifsel].index(_id)
+               for _id in iface.tree.get_tip_labels(mrca)]
+
+    if phy.exclude:
+        sel_idx = constrain_selection(None, None, gui, sel_idx)
+
     [iface.tree_sel.select_path(i) for i in sel_idx]
+    iface.pop_size.set_text('population size: %d' % len(sel_idx))
+    iface.pop_size.set_visible(True)
 
 
-def start_popgen(wi, gui):
+def start_popgen(widget, gui):
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     data.pop_model.clear()
+    init_popgen_columns(iface.popgen)
+
+    mo, tps = iface.tree_sel.get_selected_rows()
+    tps = [tp[0] for tp in tps]
+
+    if len(tps) < 2:
+        shared.show_notification(gui, 'invalid selection', stay_secs=1)
+        return
 
     if phy.array is None:
         start_phy(gui)
@@ -233,23 +278,28 @@ def start_popgen(wi, gui):
     iface.i = 0
     iface.k = len(data.genes) + 2
     iface.text = 'calculating'
-    iface.thread = threading.Thread(target=do_popgen, args=[gui])
+    iface.thread = threading.Thread(target=do_popgen, args=[gui, tps])
     GObject.timeout_add(100, shared.update, iface, PAGE)
     iface.thread.start()
 
 
-def do_popgen(gui):
+def do_popgen(gui, tps):
     data, phy, iface = gui.data, gui.data.phy, gui.iface
-    mo, tps = iface.tree_sel.get_selected_rows()
-    tps = [tp[0] for tp in tps]
+    iface.pop_size.set_text('population size: %d' % len(tps))
+    iface.pop_size.set_visible(True)
 
+    # crop the array and shift the entries
+    ar = np.flipud(phy.array)[tps, :]
+    # shift 4|>7 to 5 and 6|7 to 4
+    ar = np.array([[5 if x == 4 or x > 7 else (4 if x in {6, 7} else x)
+                    for x in _ar] for _ar in ar])
     start, overall, drops = 0, set(), set()
     for i, gene in enumerate(data.genes):
         iface.text = 'popgen: %s' % gene
         LOG.debug(iface.text)
         _range = range(start, start + phy.g_lens[gene])
         overall.update(_range)
-        row, drops = _per_gene_diversity(gene, phy, tps, _range)
+        row, drops = _per_gene_diversity(gene, phy, ar, _range)
         data.pop_model.append(row)
         start += phy.g_lens[gene] + len(SEP)
         iface.i += 1
@@ -257,18 +307,16 @@ def do_popgen(gui):
     if len(data.genes) > 1:
         iface.text = 'popgen: overall'
         LOG.debug(iface.text)
-        row, drops = _per_gene_diversity('overall', phy, tps, overall)
+        row, drops = _per_gene_diversity('overall', phy, ar, overall)
         data.pop_model.append(row)
         iface.i += 1
-
-    init_popgen_columns(iface.popgen)
 
     # plot using tps and drops
     __do_phy5__(gui, (tps, drops))
 
 
 def init_popgen_columns(tv):
-    if len(tv.get_model()) == 0 or tv.get_n_columns() > 0:
+    if tv.get_n_columns() > 0:
         return
     for i, ti in enumerate(['gene', 'sites', 'S', 'k', 'π', 'Watterson\'s θ',
                             'Tajima\'s D', 'unique seqs', 'gaps', 'unknown']):
@@ -324,19 +372,22 @@ def on_save_tree(gui):
     return
 
 
-def on_save_msa(gui):
+def on_save_msa(gui, popgen=None):
     """Save the current msa in different formats"""
     data, phy, iface = gui.data, gui.data.phy, gui.iface
     LOG.debug('rendering msa')
-    Path.mkdir(gui.wd / p.phylo_msa.parent, exist_ok=True)
-    msa = gui.wd / p.phylo_msa.parent / p.phylo_msa.stem
+    Path.mkdir(gui.wd / pp.phylo_msa.parent, exist_ok=True)
+    msa = gui.wd / pp.phylo_msa.parent / pp.phylo_msa.stem
     dpi = iface.scale * DPI
     iface.text = 'rendering png'
     iface.fig.savefig(msa.with_suffix('.png'), transparent=True, dpi=dpi)
-    if phy.svg:
+
+    if popgen:
+        return
+    if phy.svg or phy.pmsa:
         iface.text = 'rendering svg'
         iface.fig.savefig(msa.with_suffix('.svg'), transparent=True)
-    if phy.pdf or phy.pmsa:
+    if phy.pdf:
         iface.text = 'rendering pdf'
         iface.fig.savefig(msa.with_suffix('.pdf'), transparent=True, dpi=dpi)
 
@@ -363,9 +414,10 @@ def start_phy(gui, modify=None):
     LOG.debug('start_plotting')
     if modify:
         k, v = modify.popitem()
-        phy.modify[k] = phy.modify.get(k, list()) + v
-    else:
-        phy.modify = dict()
+        if k == 'root':  # replace old root
+            phy.modify[k] = v
+        else:
+            phy.modify[k] = phy.modify.get(k, list()) + v
 
     # empty placeholder early to avoid over-high graphics
     for wi in [iface.tree_eventbox, iface.msa_eventbox]:
@@ -397,10 +449,11 @@ def __do_phy1__(gui):
     data, phy, iface = gui.data, gui.data.phy, gui.iface
 
     # pick a tree file
-    if iface.modify and gui.wd / p.modified_tree.is_file():
-        tree_file = gui.wd / p.modified_tree
+    if phy.modify and (gui.wd / pp.modified_tree).is_file():
+        LOG.debug('using modified tree')
+        tree_file = gui.wd / pp.modified_tree
     else:
-        tree_file = gui.wd / p.fbp if phy.fbp else gui.wd / p.tbe
+        tree_file = gui.wd / pp.fbp if phy.fbp else gui.wd / pp.tbe
 
     # read tree file
     tr = toytree.tree(open(tree_file, 'r').read(), tree_format=0)
@@ -445,7 +498,7 @@ def __do_phy1__(gui):
 
     if phy.modify:
         # save the modified tree
-        tr.write(gui.wd / p.modified_tree, tree_format=0)
+        tr.write(gui.wd / pp.modified_tree, tree_format=0)
 
     # fetch tips labels, now top-to-bottom
     phy.tips = list(reversed(tr.get_tip_labels()))
@@ -455,7 +508,7 @@ def __do_phy1__(gui):
     iface.text = 'read metadata'
     # read in tabular data
     if 'df' not in iface.tempspace:
-        iface.tempspace.df = pd.read_csv(gui.wd / p.tsv, sep='\t', dtype={'id': str})
+        iface.tempspace.df = pd.read_csv(gui.wd / pp.tsv, sep='\t', dtype={'id': str})
         iface.tempspace.df.set_index('id', inplace=True)
     df = iface.tempspace.df.copy(deep=True)
 
@@ -528,12 +581,12 @@ def __do_phy2__(gui, errors=None):
             sp = ''
         nd['species'] = sp
         if 'accession' in nd and not pd.isna(nd['accession']):
+            sp = t + ': ' + sp
             if len(data.genes) > 1 and 'strain' in nd['species']:
                 t = nd['species'][nd['species'].find('strain') + 7:]
             else:
                 t = nd['accession']
             c = iface.BLUE
-            sp = t + ': ' + sp
         else:
             c = None  # iface.FG
         data.tree_anno_model.append([t, sp, c, None])
@@ -555,16 +608,29 @@ def __do_phy3__(gui):
     errors = list()
 
     # read MSA
-    records = {r.id: r.seq for r in SeqIO.parse(gui.wd / p.msa, 'fasta')}
+    records = {r.id: r.seq for r in SeqIO.parse(gui.wd / pp.msa, 'fasta')}
     phy.seqdata = list()
     # write re-named re-ordered MSA
-    with open(gui.wd / p.msa_anno, 'w') as new_msa:
+    with open(gui.wd / pp.msa_anno, 'w') as new_msa:
         for tip in phy.tips:
             if tip not in records:
                 phy.seqdata.append(None)
                 continue  # a dropped node
-            # get seq and cut out artificial separator
-            seq = str(records[tip]).replace(SEP, '')
+
+            if SEP in records[tip]:
+                # get seq and cut out artificial separator
+                seq = str(records[tip]).replace(SEP, '')
+            elif 'g_lens' in phy:
+                # introduce separators for the sake of plotting
+                seq = str(records[tip])
+                pos = 0
+                for i in range(len(data.genes) - 1):
+                    nlen = phy.g_lens[data.genes[i]]
+                    seq = seq[:pos + nlen] + SEP + seq[pos + nlen:]
+                    pos += nlen + len(SEP)
+            else:
+                seq = str(records[tip])
+
             # get metadata
             entry = phy.ndf[tip]
 
@@ -587,8 +653,9 @@ def __do_phy3__(gui):
     iface.i += 1
 
     # get lengths of genes
-    phy.g_lens = {gene: len(seq) for gene, seq in
-                  zip(data.genes, records[next(iter(records))].split(SEP))}
+    if 'g_lens' not in phy:
+        phy.g_lens = {gene: len(seq) for gene, seq in
+                      zip(data.genes, records[next(iter(records))].split(SEP))}
     multi = True if len(data.genes) > 1 else False
 
     # cat: REF_ -> 1, no_BLAST_hit -> -1, regular -> 0
@@ -659,7 +726,7 @@ def __do_phy3__(gui):
                 except AttributeError:
                     continue
         # write new-ish newick file
-        tf = gui.wd / p.fbpn if phy.fbp else gui.wd / p.tben
+        tf = gui.wd / pp.fbpn if phy.fbp else gui.wd / pp.tben
         exp_tree.write(tf, tree_format=0)
 
     # tree plotting tweaks
@@ -819,6 +886,7 @@ def __do_phy5__(gui, popgen_markup=None):
 
     if popgen_markup:
         # make selection non-transparent
+        array = np.flipud(array)
         rows, drop_cols = popgen_markup
         tree_mask = np.full(array.shape, 1.0)
         tree_mask[[i for i in range(array.shape[0]) if i not in rows], :] = ALPHA
@@ -874,13 +942,14 @@ def __do_phy5__(gui, popgen_markup=None):
         with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
             iface.text = 'gene marker bar'
             LOG.debug(iface.text)
+            Path.mkdir(gui.wd / pp.phylo_msa.parent, exist_ok=True)
             fig = plt.figure(figsize=(4, .2))
             cax = fig.add_subplot(111)
             cbar = ColorbarBase(ax=cax, cmap=gene_colors, orientation='horizontal',
                                 ticks=[(.5 / len(data.genes) + j * 1 / len(data.genes))
                                        for j in range(len(data.genes))])
             cbar.ax.set_xticklabels(data.genes)
-            fig.savefig(gui.wd / p.gbar, transparent=True,
+            fig.savefig(gui.wd / pp.gbar, transparent=True,
                         bbox_inches='tight', pad_inches=0, dpi=600)
             plt.close(fig)
             del fig, cbar
@@ -888,7 +957,7 @@ def __do_phy5__(gui, popgen_markup=None):
     iface.i += 1
     iface.fig = f
     iface.scale = scale
-    on_save_msa(gui)
+    on_save_msa(gui, popgen_markup)
 
     phy.shape = array.shape[1], phy.height
 
@@ -896,7 +965,7 @@ def __do_phy5__(gui, popgen_markup=None):
         iface.text = 'place PNG MSA: %d:%d' % array.shape
         LOG.debug(iface.text)
         sleep(.05)
-        shared.load_image(iface.zoomer, PAGE, iface.msa_eventbox, gui.wd / p.phylo_msa,
+        shared.load_image(iface.zoomer, PAGE, iface.msa_eventbox, gui.wd / pp.phylo_msa,
                           w=phy.shape[0] * shared.get_hadj(iface), h=phy.shape[1])
     else:
         iface.text = 'place vector'
@@ -911,9 +980,10 @@ def __do_phy5__(gui, popgen_markup=None):
     plt.close(f)
     del f
     iface.i += 1
-    shared.load_colorbar(iface.palplot1, gui.wd)
+    shared.load_colorbar(iface.palplot1, gui.wd, iface.FG)
+
     if phy.axis and len(data.genes) > 1:
-        shared.load_colorbar(iface.gbar, gui.wd, gbar=True)
+        shared.load_colorbar(iface.gbar, gui.wd, iface.FG, gbar=True)
         iface.gbar.set_visible(True)
 
     iface.text = 'idle'
@@ -983,8 +1053,6 @@ def reload_ui_state(gui):
         raise ValueError('no genes')
 
 
-# from ab12phylo.py
-
 def _h(a):
     # harmonic number
     b = 0
@@ -1001,47 +1069,48 @@ def _qh(a):
     return b
 
 
-def _per_gene_diversity(gene, phy, rows, _range):
+def _per_gene_diversity(gene, phy, array, _range):
     conserved, biallelic, polyallelic, unknown, gaps = 0, 0, 0, 0, 0
     start, end = min(_range), max(_range)
-    drop = set()
-    nrows = len(rows)
-    N = toint('N')
+    nrows = array.shape[0]
+    too_unknown = phy.unk_share * nrows
+    too_gappy = phy.gap_share * nrows
     poly = True
+    drop = set()
 
     # iterate over MSA columns, search for segregating sites
     for j in _range:
-        col = phy.array[rows, j]
+        col = array[:, j]
         if len(set(col)) == 1:
             # only one char at site
             it = col[0]
-            if it > N:
+            if it > 4:
                 # all-unknown-site. can happen as we selected a subset of sequences
                 unknown += 1
-                drop.add(start + j)
-            elif it == N:
+                drop.add(j)
+            elif it == 4:
                 # all-gap-site
                 gaps += 1
-                drop.add(start + j)
+                drop.add(j)
             else:
                 conserved += 1
         else:  # more than one character in the whole column
-            if max(col) > N and len(col[col > N]) > phy.unk_share * nrows:
+            if max(col) > 4 and len(col[col > 4]) > too_unknown:
                 # there are too many unknown chars in the column
                 unknown += 1
-                drop.add(start + j)
-            elif max(col) == N and len(col[col >= N]) > phy.gap_share * nrows:
+                drop.add(j)
+            elif max(col) == 4 and len(col[col >= 4]) > too_gappy:
                 # there are too many gaps at the site
                 gaps += 1
-                drop.add(start + j)
+                drop.add(j)
             else:
                 # if gaps or unknown characters are at the site,
                 # replace them with the most common nucleotide
                 try:
-                    col[col >= N] = np.bincount(col[col < N]).argmax()
+                    col[col >= 4] = np.bincount(col[col < 4]).argmax()
                 except ValueError:
                     # there are no nucleotides
-                    drop.add(start + j)
+                    drop.add(j)
                     continue
 
                 # ordinary site treatment
@@ -1049,21 +1118,21 @@ def _per_gene_diversity(gene, phy, rows, _range):
                 if num_diff_chars > 2:
                     polyallelic += 1
                     if not poly:
-                        drop.add(start + j)
+                        drop.add(j)
                 elif num_diff_chars == 2:
                     biallelic += 1
                 else:
                     conserved += 1
 
     seg_sites = biallelic
-    n_sites = end - start - unknown - gaps
+    n_sites = end - start + 1 - unknown - gaps
     if poly:
         seg_sites += polyallelic
     else:
         n_sites -= polyallelic
 
     # crop to allowed sites
-    crop = phy.array[rows, :][:, [i for i in range(start, end) if i not in drop]]
+    crop = array[:, [i for i in _range if i not in drop]]
 
     k = 0
     # count pairwise differences

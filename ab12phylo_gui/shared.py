@@ -6,13 +6,17 @@ import re
 import threading
 from argparse import Namespace
 from time import sleep
+from time import time
 
 import gi
-from time import time
+import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.colorbar import ColorbarBase
+from matplotlib.colors import ListedColormap
 
 from ab12phylo import msa
-from ab12phylo_gui.static import PATHS, USER, SEP, BUF_SIZE
+from ab12phylo_gui.static import PATHS as pp, \
+    USER, SEP, BUF_SIZE, NUCLEOTIDES, colors
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
@@ -172,7 +176,7 @@ def proceed(widget, gui=None, page=None):
             gtk_gbl.start_gbl(gui)
         elif page == 5:
             iface.tempspace.df.to_csv(
-                gui.wd / PATHS.tsv, sep='\t', na_rep='', header=True, index=True)
+                gui.wd / pp.tsv, sep='\t', na_rep='', header=True, index=True)
             set_changed(gui, 5, False)
         elif page == 6:
             gtk_tree.start_phy(gui)
@@ -222,6 +226,7 @@ def refresh(gui, *args):
     gui.iface.refresh.props.visible = bool(page in RERUN)
     gui.iface.tree_reset.props.visible = page == 7
     gui.iface.gene_roll.props.visible = page == 2
+    gui.iface.next.props.visible = page != 7
 
 
 def select_gene_and_redo(gui, *args):
@@ -263,7 +268,6 @@ def load_image(zoom_ns, page, gtk_bin, img_path, w=None, h=None):
     child = Gtk.Image()
     gtk_bin.add(child)
     path = str(img_path)
-
     if h and w:
         pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
             filename=path, width=max(1, w), height=h,
@@ -279,13 +283,26 @@ def load_image(zoom_ns, page, gtk_bin, img_path, w=None, h=None):
     child.set_from_pixbuf(pb)
 
 
-def load_colorbar(gtk_image, wd, gbar=False):
+def load_colorbar(gtk_image, wd, line_color, gbar=False):
+    path = pp.gbar if gbar else pp.cbar
     try:
-        path = PATHS.gbar if gbar else PATHS.cbar
         gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
             str(wd / path), width=250, height=100, preserve_aspect_ratio=True))
-    except FileNotFoundError:
-        pass
+    except Exception as ex:
+        with plt.rc_context({'axes.edgecolor': line_color, 'xtick.color': line_color}):
+            LOG.debug('plotting colorbar')
+            fig = plt.figure(figsize=(4, .2))
+            cax = fig.add_subplot(111)
+            i = NUCLEOTIDES.index('-')
+            cbar = ColorbarBase(ax=cax, cmap=ListedColormap(colors[:i]),
+                                ticks=[(j + .5) / i for j in range(i)], orientation='horizontal')
+            cbar.ax.set_xticklabels(NUCLEOTIDES[:i])
+            fig.savefig(wd / path, transparent=True,
+                        bbox_inches='tight', pad_inches=0, dpi=600)
+            plt.close(fig)
+            del fig, cbar
+        gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            str(wd / path), width=250, height=100, preserve_aspect_ratio=True))
 
 
 def get_height_resize(widget, event, spacer, scroll_wins, lower=0):
@@ -352,15 +369,15 @@ def x_scale(adj, gui, zoom_ns):
             a.value = min(a.upper, a.value + 2 * a.step_increment)
             x = a.value / zoom_ns.bak
             if page == 2:
-                load_image(zoom_ns, page, iface.qal_eventbox, gui.wd / PATHS.preview,
+                load_image(zoom_ns, page, iface.qal_eventbox, gui.wd / pp.preview,
                            data.qal_shape[0] * a.value * 2, h_now)
             elif page == 4:
-                load_image(zoom_ns, page, iface.gbl_left_vp, gui.wd / PATHS.left,
+                load_image(zoom_ns, page, iface.gbl_left_vp, gui.wd / pp.left,
                            data.msa_shape[0] * a.value * 2, h_now)
-                load_image(zoom_ns, page, iface.gbl_right_vp, gui.wd / PATHS.right,
+                load_image(zoom_ns, page, iface.gbl_right_vp, gui.wd / pp.right,
                            data.msa_shape[2] * a.value * 2, h_now)
             elif page == 7:
-                load_image(zoom_ns, page, iface.msa_eventbox, gui.wd / PATHS.phylo_msa,
+                load_image(zoom_ns, page, iface.msa_eventbox, gui.wd / pp.phylo_msa,
                            data.phy.shape[0] * a.value * 2, h_now)
             zoom_ns.sizes[page] = [w_now * x, min_h, w_now * x, h_now]
         else:
@@ -421,15 +438,15 @@ def xy_scale(widget, event, gui, page):
                     new = a.value / bak
                     LOG.debug('re-loading images, scale xy: %.2f fold, %.1f' % (new, a.value))
                     if page == 2:
-                        load_image(iface.zoomer, page, iface.qal_eventbox, gui.wd / PATHS.preview,
+                        load_image(iface.zoomer, page, iface.qal_eventbox, gui.wd / pp.preview,
                                    data.qal_shape[0] * a.value * 2, data.qal_shape[1])
                     elif page == 4:
-                        load_image(iface.zoomer, page, iface.gbl_left_vp, gui.wd / PATHS.left,
+                        load_image(iface.zoomer, page, iface.gbl_left_vp, gui.wd / pp.left,
                                    data.msa_shape[0] * a.value * 2, data.gbl_shape[1])
-                        load_image(iface.zoomer, page, iface.gbl_right_vp, gui.wd / PATHS.right,
+                        load_image(iface.zoomer, page, iface.gbl_right_vp, gui.wd / pp.right,
                                    data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
                     elif page == 7:
-                        load_image(iface.zoomer, page, iface.msa_eventbox, gui.wd / PATHS.phylo_msa,
+                        load_image(iface.zoomer, page, iface.msa_eventbox, gui.wd / pp.phylo_msa,
                                    data.phy.shape[0] * a.value * 2, data.phy.shape[1])
                 else:
                     LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
@@ -630,7 +647,7 @@ def write_metadata(gui):
     df.index.names = ['gene', 'id']
     df.reset_index(level=0, inplace=True)
     # write to file
-    df.to_csv(gui.wd / PATHS.tsv, sep='\t', na_rep='', header=True, index=True)
+    df.to_csv(gui.wd / pp.tsv, sep='\t', na_rep='', header=True, index=True)
 
 
 def init_gene_roll(gui):
@@ -697,7 +714,7 @@ def get_msa_build_cmd(algo, wd, genes, remote=False):
         'genes': genes,
         'msa_algo': algo,
         'user': USER,
-        'msa': wd / PATHS.msa,
+        'msa': wd / pp.msa,
         'sep': SEP,
         'missing_samples': None
     })

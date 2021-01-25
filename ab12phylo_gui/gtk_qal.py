@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from Bio import SeqIO
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
-from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 
@@ -92,7 +91,7 @@ def refresh(gui):
     # place the png preview
     shared.load_image(iface.zoomer, PAGE, iface.qal_eventbox, gui.wd / PATHS.preview,
                       data.qal_shape[0] * shared.get_hadj(iface), data.qal_shape[1])
-    shared.load_colorbar(iface.palplot, gui.wd)
+    shared.load_colorbar(iface.palplot, gui.wd, iface.FG)
     gui.win.show_all()
 
 
@@ -294,21 +293,7 @@ def do_trim(gui):
         except Gtk.Error as ex:
             LOG.error(ex)
     iface.i += 1
-
-    with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
-        iface.text = 'colorbar'
-        LOG.debug(iface.text)
-        fig = plt.figure(figsize=(4, .2))
-        cax = fig.add_subplot(111)
-        i = static.NUCLEOTIDES.index('-')
-        cbar = ColorbarBase(ax=cax, cmap=ListedColormap(static.colors[:i]),
-                            ticks=[(j + .5) / i for j in range(i)], orientation='horizontal')
-        cbar.ax.set_xticklabels(static.NUCLEOTIDES[:i])
-        fig.savefig(gui.wd / PATHS.cbar, transparent=True,
-                    bbox_inches='tight', pad_inches=0, dpi=600)
-        plt.close(fig)
-        del fig, cbar
-    shared.load_colorbar(iface.palplot, gui.wd)
+    shared.load_colorbar(iface.palplot, gui.wd, iface.FG)
 
     iface.text = 'idle'
     iface.frac = 1

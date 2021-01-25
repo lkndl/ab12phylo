@@ -100,7 +100,7 @@ def refresh(gui):
     shared.load_image(iface.zoomer, PAGE, iface.gbl_right_vp, gui.wd / PATHS.right,
                       w=data.gbl_shape[0] * shared.get_hadj(iface) * x_ratio,
                       h=data.gbl_shape[1])
-    shared.load_colorbar(iface.palplot2, gui.wd)
+    shared.load_colorbar(iface.palplot2, gui.wd, iface.FG)
     re_preset(iface.gbl_preset, gui)
     gui.win.show_all()
 
@@ -401,7 +401,7 @@ def do_gbl(gui):
     for wi in [iface.gbl_left, iface.gbl_right]:
         wi.set_max_content_height(data.gbl_shape[1])
 
-    shared.load_colorbar(iface.palplot2, gui.wd)
+    shared.load_colorbar(iface.palplot2, gui.wd, iface.FG)
 
     iface.text = 'idle'
     iface.frac = 1

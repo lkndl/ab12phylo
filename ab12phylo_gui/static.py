@@ -1,5 +1,6 @@
 from argparse import Namespace
 from pathlib import Path
+import re
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 TOOLS = Path(__file__).resolve().parents[1] / 'ab12phylo' / 'tools'
@@ -36,9 +37,15 @@ NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S', '?']
 toint_map = dict(zip(NUCLEOTIDES, range(len(NUCLEOTIDES))))
 toint = lambda c: toint_map.get(c, 5)
 seqtoint = lambda s: list(map(toint, s))
+toseq = lambda c: NUCLEOTIDES[c]
+inttoseq = lambda s: ''.join(list(map(toseq, s)))
 togray_map = dict(zip(NUCLEOTIDES, seqtoint('N') * 5 + list(range(5, 9))))
 togray = lambda c: togray_map.get(c, 5)
 seqtogray = lambda s: list(map(togray, s))
+
+rgx = lambda c: re.compile(r'|'.join(
+    ['.*' + re.escape(word.strip()) + '.*' for word in
+     c.strip().strip(',').split(',')]))
 
 tohex = lambda c: '#' + ''.join([(hex(min(255, int(round(a * 256))))[2:] + '0')[:2].upper() for a in c])
 
