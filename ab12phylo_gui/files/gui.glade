@@ -293,6 +293,8 @@
       <object class="GtkGrid">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="margin-start">10</property>
+        <property name="margin-end">10</property>
         <property name="hexpand">False</property>
         <property name="row-spacing">1</property>
         <child>
@@ -1094,7 +1096,7 @@ Alternatively, a color legend would nicely fit here.</property>
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <child>
-          <!-- n-columns=1 n-rows=3 -->
+          <!-- n-columns=1 n-rows=4 -->
           <object class="GtkGrid" id="toplayer">
             <property name="name">toplayer</property>
             <property name="visible">True</property>
@@ -1735,46 +1737,6 @@ Alternatively, a color legend would nicely fit here.</property>
                     <property name="margin-top">18</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="margin-bottom">18</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="halign">start</property>
-                            <property name="vexpand">False</property>
-                            <property name="label" translatable="yes">Parse sample IDs / well coordinates, gene, orientation and wellsplate ID from the respective file name using &lt;a href="https://regex101.com/r/Yulwlf/8" title="look at some pre-publication/development stage examples"&gt;Regular Expressions&lt;/a&gt; with capturing groups. Fields may be manually corrected.</property>
-                            <property name="use-markup">True</property>
-                            <property name="wrap">True</property>
-                            <property name="wrap-mode">word-char</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkExpander" id="seq_expander">
                         <property name="name">seq_expander</property>
                         <property name="visible">True</property>
@@ -2126,7 +2088,7 @@ Alternatively, a color legend would nicely fit here.</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">1</property>
+                        <property name="position">0</property>
                       </packing>
                     </child>
                     <child>
@@ -2952,7 +2914,7 @@ Alternatively, a color legend would nicely fit here.</property>
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
-                      <!-- n-columns=2 n-rows=2 -->
+                      <!-- n-columns=2 n-rows=1 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -2965,48 +2927,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-bottom">16</property>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="halign">start</property>
-                                <property name="hexpand">False</property>
-                                <property name="vexpand">False</property>
-                                <property name="label" translatable="yes">Create per-gene multiple sequence alignments, which are then concatenated for ML tree inference. AB12PHYLO can construct MSAs locally, use the &lt;a href="https://www.ebi.ac.uk/Tools/msa/"&gt;EMBL-EBI&lt;/a&gt; API or import previously created data.</property>
-                                <property name="use-markup">True</property>
-                                <property name="wrap">True</property>
-                                <property name="wrap-mode">word-char</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
                             <property name="top-attach">0</property>
-                            <property name="width">2</property>
                           </packing>
                         </child>
                         <child>
@@ -3580,7 +3501,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">1</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                       </object>
@@ -3985,7 +3906,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
-                                        <property name="width-chars">3</property>
                                       </object>
                                     </child>
                                   </object>
@@ -4157,7 +4077,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
-                                        <property name="width-chars">3</property>
                                       </object>
                                     </child>
                                   </object>
@@ -4315,7 +4234,7 @@ Alternatively, a color legend would nicely fit here.</property>
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
-                      <!-- n-columns=4 n-rows=3 -->
+                      <!-- n-columns=4 n-rows=2 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -4329,49 +4248,8 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
-                            <property name="top-attach">1</property>
-                            <property name="height">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-bottom">16</property>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="halign">start</property>
-                                <property name="hexpand">False</property>
-                                <property name="vexpand">False</property>
-                                <property name="label" translatable="yes">Optionally include species annotation from a local BLAST+ in a &lt;a href="https://ftp.ncbi.nlm.nih.gov/blast/db/"&gt;pre-compiled&lt;/a&gt; or custom database, or by importing XML results of a manual web &lt;a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi"&gt;BLAST&lt;/a&gt;. Searching an online database such as &lt;a href="https://www.ncbi.nlm.nih.gov/nucleotide/"&gt;NCBI nt&lt;/a&gt; via the public BLAST API is also possible, but should not be the main search strategy.</property>
-                                <property name="use-markup">True</property>
-                                <property name="wrap">True</property>
-                                <property name="wrap-mode">word-char</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
                             <property name="top-attach">0</property>
-                            <property name="width">4</property>
+                            <property name="height">2</property>
                           </packing>
                         </child>
                         <child>
@@ -4537,7 +4415,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
-                                        <property name="width-chars">3</property>
                                       </object>
                                     </child>
                                   </object>
@@ -4795,7 +4672,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
-                                        <property name="width-chars">3</property>
                                       </object>
                                     </child>
                                   </object>
@@ -4832,7 +4708,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">1</property>
+                            <property name="top-attach">0</property>
                             <property name="height">2</property>
                           </packing>
                         </child>
@@ -4845,7 +4721,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
-                            <property name="top-attach">1</property>
+                            <property name="top-attach">0</property>
                             <property name="height">2</property>
                           </packing>
                         </child>
@@ -4904,7 +4780,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">3</property>
-                            <property name="top-attach">2</property>
+                            <property name="top-attach">1</property>
                           </packing>
                         </child>
                         <child>
@@ -4918,7 +4794,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">3</property>
-                            <property name="top-attach">1</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                       </object>
@@ -4957,52 +4833,11 @@ Alternatively, a color legend would nicely fit here.</property>
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
-                      <!-- n-columns=3 n-rows=2 -->
+                      <!-- n-columns=3 n-rows=1 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="column-spacing">10</property>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-bottom">16</property>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="halign">start</property>
-                                <property name="hexpand">False</property>
-                                <property name="vexpand">False</property>
-                                <property name="label" translatable="yes">Infer a phylogenetic tree using RAxML-NG in three stages. &lt;b&gt;1:&lt;/b&gt; Find the maximum-likelihood tree for the specified evolutionary model from multiple tree searches. &lt;b&gt;2:&lt;/b&gt; Estimate confidence values in this tree by Bootstrapping. &lt;b&gt;3:&lt;/b&gt; Map the result from 2 to the tree from 1 as branch support values.</property>
-                                <property name="use-markup">True</property>
-                                <property name="wrap">True</property>
-                                <property name="wrap-mode">word-char</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
-                            <property name="width">3</property>
-                          </packing>
-                        </child>
                         <child>
                           <object class="GtkStack" id="ml_stack">
                             <property name="name">ml_stack</property>
@@ -5769,7 +5604,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
-                            <property name="top-attach">1</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                         <child>
@@ -5781,7 +5616,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">1</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                         <child>
@@ -5815,7 +5650,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
-                            <property name="top-attach">1</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                       </object>
@@ -6443,7 +6278,19 @@ Alternatively, a color legend would nicely fit here.</property>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
+                                <property name="spacing">10</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">plot settings</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
                                 <child>
                                   <object class="GtkMenuButton">
                                     <property name="visible">True</property>
@@ -6461,7 +6308,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">0</property>
+                                    <property name="position">1</property>
                                   </packing>
                                 </child>
                               </object>
@@ -6495,7 +6342,7 @@ Alternatively, a color legend would nicely fit here.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -6824,7 +6671,7 @@ Alternatively, a color legend would nicely fit here.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
@@ -6837,7 +6684,84 @@ Alternatively, a color legend would nicely fit here.</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkInfoBar" id="infobar">
+                <property name="name">infobar</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="show-close-button">True</property>
+                <child internal-child="action_area">
+                  <object class="GtkButtonBox">
+                    <property name="can-focus">False</property>
+                    <property name="spacing">6</property>
+                    <property name="layout-style">end</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child internal-child="content_area">
+                  <object class="GtkBox">
+                    <property name="can-focus">False</property>
+                    <property name="spacing">16</property>
+                    <child>
+                      <object class="GtkLabel" id="helper">
+                        <property name="name">helper</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="label" translatable="yes">&lt;help text placeholder&gt;</property>
+                        <property name="wrap">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <accelerator key="F1" signal="close"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
           </object>

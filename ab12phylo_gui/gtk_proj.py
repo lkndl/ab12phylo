@@ -1,4 +1,4 @@
-# 2020 Leo Kaindl
+# 2021 Leo Kaindl
 
 import logging
 from argparse import Namespace
@@ -126,6 +126,13 @@ class picklable_liststore(Gtk.ListStore):
     def __reduce__(self):
         rows = [list(row) for row in self]
         return _unpickle_liststore, (self.__class__, self.col_types, rows)
+
+    def get_column(self, col_idx):
+        """Extract a column from a Gtk.ListStore, because they are annoying"""
+        col = list()
+        for row in self:
+            col.append(row[col_idx])
+        return col
 
 
 def _unpickle_liststore(cls, col_types, rows):
