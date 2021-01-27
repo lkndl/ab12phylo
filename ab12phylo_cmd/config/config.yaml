@@ -9,15 +9,15 @@
 ## [I/O]
 dir: results
 #genes: ITS1F, OPA10, EndoPG  # first entry used for BLAST+ -> prefer ITS1F
-#abi_dir: $ab12phylo/test_data
-#abi_set: $ab12phylo/test_data/file_set
-#sample_set: $ab12phylo/test_data/sample_set
-#csv_dir: $ab12phylo/test_data
+#abi_dir: $ab12phylo_cmd/test_data
+#abi_set: $ab12phylo_cmd/test_data/file_set
+#sample_set: $ab12phylo_cmd/test_data/sample_set
+#csv_dir: $ab12phylo_cmd/test_data
 regex_csv: (\d)+[^\d_]*.csv
 regex_abi: '[-_ ]pl([\d])[-_ ][\d]{1,2}[-_ ](.+)[-_ ]([A-Z][\d]{1,2})[-_ ]' # *DO* use single quotes here!
 #regex_3: ['[-_\s]pl([\d]+)[-_\s]' '[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s](.+)[-_\s][A-Z][\d]{1,2}[-_\s]' '[-_\s]([A-Z][\d]{1,2})[-_\s]']
 #regex_rev: '^[A-Z]-[a-zA-Z]*?[sSaA][0-9]+([Rr]+)[a-zA-Z|_|-]' # if option is set, use argument to identify reverse reads
-#ref: $ab12phylo/test_data/ITS1F.fasta # separate multiple entries with comma: R1, R2, R3
+#ref: $ab12phylo_cmd/test_data/ITS1F.fasta # separate multiple entries with comma: R1, R2, R3
 #ref_dir:
 
 ## [quality]
