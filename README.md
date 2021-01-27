@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.4a.01&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.4a.02&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.6&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -50,18 +50,18 @@ pip install .
 
 ## Getting Started
 
-As AB12PHYLO is primarily a command line tool, you might want to take a look at its interface by running `ab12phylo -h`.
+As AB12PHYLO is primarily a command line tool, you might want to take a look at its interface by running `ab12phylo-cmd -h`.
 
 
 #### Test run
-The pipeline comes with its own test data set. If you pass `-test`, it will read options from an auxiliary (or backup) config file at `<ab12phylo_root>/ab12phylo/config/test_config.yaml` and run on these. The test run is set to `--verbose` and will run `--no_remote` BLAST search.
+The pipeline comes with its own test data set. If you pass `-test`, it will read options from an auxiliary (or backup) config file at `<ab12phylo_root>/ab12phylo_cmd/config/test_config.yaml` and run on these. The test run is set to `--verbose` and will run `--no_remote` BLAST search.
 
 
 #### Basic options
 A simple real-world invocation might look like this:
 
 ```bash
-ab12phylo -abi <seq_dir> \
+ab12phylo-cmd -abi <seq_dir> \
     -csv <wellsplates_dir> \
     -g <barcode_gene> \
     -rf <ref.fasta> \
@@ -81,7 +81,7 @@ where:
 AB12PHYLO has reasonably smart defaults while allowing fine-grained access to its settings:
 
 ```bash
-ab12phylo -rf <ref.fasta> \
+ab12phylo-cmd -rf <ref.fasta> \
     -db <your_own> \
     -dbpath <your_dir> \
     -abiset <whitelist> \
@@ -92,7 +92,7 @@ ab12phylo -rf <ref.fasta> \
     -i \
     -p1
 
-ab12phylo -p2 \
+ab12phylo-cmd -p2 \
     -bst 1000 \
     -st [32,16]  \
     -s 4 \
@@ -144,7 +144,7 @@ Sometimes, this pipeline might run headless on a server. To keep it from running
 
 #### ab12phylo-visualize + ab12phylo-view
 `ab12phylo-visualize` will re-plot phylogenies and render a new `results.html`. An end user may use this to switch [support values](#support-values) or plot an MSA visualization with `-msa-viz`. This will take some rendering time for wider alignments.
- `ab12phylo-view` shows results of a previous run in a browser, with motif search enabled. Both commands accept a path to the AB12PHYLO results or default to `.`, and are equivalent to appending to the original `ab12phylo` call.
+ `ab12phylo-view` shows results of a previous run in a browser, with motif search enabled. Both commands accept a path to the AB12PHYLO results or default to `.`, and are equivalent to appending to the original `ab12phylo-cmd` call.
 
 ```bash
 ab12phylo-view <result_folder>
@@ -152,7 +152,7 @@ ab12phylo-view <result_folder>
 cd <results_folder>
 ab12phylo-view
 # or 
-ab12phylo -c <my-config.yaml> -bst 1000 (...) -view
+ab12phylo-cmd -c <my-config.yaml> -bst 1000 (...) -view
 ```
 
 
