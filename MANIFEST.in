@@ -6,8 +6,8 @@ include README.md
 # include entire package
 graft ab12phylo
 prune ab12phylo/__pycache__
-graft ab12phylo_gui
-prune ab12phylo_gui/__pycache__
+graft ab12phylo_cmd
+prune ab12phylo_cmd/__pycache__
 
 # include documentation
 graft docs
