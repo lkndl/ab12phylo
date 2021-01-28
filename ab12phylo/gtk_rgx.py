@@ -571,7 +571,6 @@ class rgx_page(ab12phylo_app_base):
         LOG.debug(iface.text)
         self.write_metadata()
 
-        # init_gene_roll() TODO replace this call to avoid circular import
         iface.text = 'idle'
         iface.frac = 1
         LOG.debug('reading done')

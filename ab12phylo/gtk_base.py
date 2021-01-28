@@ -470,7 +470,7 @@ class ab12phylo_app_base(Gtk.Application):
         self.set_changed(self.data.page, False)
         LOG.debug('stepped back to page %d' % self.data.page)
 
-    # TODO all the shared methods
+    # all the shared methods
     def get_errors(self, page):
         return self.data.errors_indicator[page]
 

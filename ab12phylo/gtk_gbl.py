@@ -256,7 +256,6 @@ class gbl_page(ab12phylo_app_base):
             LOG.debug(arg)
 
         # fetch IDs
-        # TODO catch empty gene case
         shared_ids = sorted(set.intersection(*data.gene_ids.values()) - data.gbl.ignore_ids)
         array = np.empty(shape=(len(shared_ids), 0), dtype=int)
         [data.gbl_model.append([_id]) for _id in shared_ids]

@@ -46,7 +46,7 @@ class blast_page(ab12phylo_app_base):
         iface.blast_exe.connect('file_set', lambda *args: self.prep0(iface.blast_exe.get_filename()))
         iface.blast_db.connect('button-release-event', lambda co, *args: co.
                                popdown() if co.props.popup_shown else co.popup())
-        iface.blast_gene.connect('changed', lambda *args: self._refill())  # TODO
+        iface.blast_gene.connect('changed', lambda *args: self._refill())
 
         # set up the species annotation table
         spi = iface.sp_info
@@ -351,7 +351,7 @@ class blast_page(ab12phylo_app_base):
         data.sp_model.clear()
         df = df.loc[df['gene'] == gene]
         for sample, r in df.iterrows():
-            if 'pid' not in r or isnan(r.pid):  # TODO
+            if 'pid' not in r or isnan(r.pid):
                 pid, r.BLAST_species, r.extra_species = '', '', ''
             elif type(r.pid) == float:
                 pid = '%.2f' % r.pid if r.pid < 100 else '100'
