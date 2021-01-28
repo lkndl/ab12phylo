@@ -4,7 +4,7 @@ import re
 from time import time
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-TOOLS = Path(__file__).resolve().parents[1] / 'ab12phylo_cmd' / 'tools'
+TOOLS = BASE_DIR / 'ab12phylo_cmd' / 'tools'
 
 PATHS = Namespace(**{
     'raw_msa': Path('Trim') / 'raw_msa.fasta',
@@ -23,10 +23,10 @@ PATHS = Namespace(**{
     'left': Path('Trim') / 'msa_gbl_pre.png',
     'right': Path('Trim') / 'msa_gbl_post.png',
     'phylo_msa': Path('Trim') / 'msa_phylo.png',
-    'RAxML': Path('raxml-ng_v1.0.1_linux_x86_64') / 'raxml-ng',
+    'RAxML': Path('raxml-ng-static') / 'raxml-ng',
     'tbe': 'tree_TBE.nwk', 'tben': 'tree_TBE_annotated.nwk',
     'fbp': 'tree_FBP.nwk', 'fbpn': 'tree_FBP_annotated.nwk',
-    'icon_path': str(Path(__file__).resolve().parent / 'files' / 'favi.png'),
+    'icon_path': BASE_DIR / 'ab12phylo' / 'files' / 'favi.png',
     'modified_tree': 'modified_tree.nwk'
 })
 
@@ -86,7 +86,11 @@ rocket = [blue] + [(0.1237, 0.0717, 0.1822), (0.2452, 0.1049, 0.2639),
                    (0.9689, 0.7980, 0.6851)]
 
 version_regex = re.compile('\\.[\\d]+$')
-inc_priv_timestamp = lambda c: str(time()).replace('.', '')[6:]
+
+
+def inc_priv_timestamp():
+    return str(time()).replace('.', '')[6:]
+
 
 help = {0: '<b>Welcome to AB12PHYLO!</b> \nPlease define your dataset of ABI trace '
            'files or sequence data in <i>.fasta</i> format here. For automatic '
@@ -102,7 +106,7 @@ help = {0: '<b>Welcome to AB12PHYLO!</b> \nPlease define your dataset of ABI tra
            '</a> with capturing groups. Fields may be manually corrected.',
         2: 'ABI trace files can be trimmed to remove low-quality regions here, based '
            'on phred quality scores. The maximum score is 60, indicating the probability '
-           'of an incorrect base call is 1:10^6. Analogously, 30 indicates 1:1000.',
+           'of an incorrect base call is 1:10^6. Equivalently, 30 indicates 1:1000.',
         3: 'Create per-gene multiple sequence alignments, which are then '
            'concatenated for ML tree inference. AB12PHYLO can construct '
            'MSAs locally, use the <a href="https://www.ebi.ac.uk/Tools/msa/">'

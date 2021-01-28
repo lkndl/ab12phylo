@@ -44,6 +44,14 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
             except AttributeError as e:
                 LOG.debug(e)
 
+    def reload_ui_state(self, page=False, *args):
+        if not page:
+            return
+        try:
+            self.supers[page].reload_ui_state(self)
+        except AttributeError as e:
+            LOG.debug(e)
+
     def save(self, *args):
         super().save(self, args)
         # tell the MSA pre-set about it
@@ -153,7 +161,7 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         self.start_phy({action.get_name(): names})
 
     def delete_and_ignore_rows(self, *args):
-        super().delete_and_ignore_rows(args)
+        super().delete_and_ignore_rows(*args)
         page = args[2]
         if page == 2:
             self.iface.view_qal.grab_focus()

@@ -143,7 +143,7 @@ class tree_page(ab12phylo_app_base):
         data = self.data
         iface = self.iface
         phy = data.phy
-        self.reload_ui_state()
+        self.reload_ui_state(page=PAGE)
         iface.tree_pane.set_position(301)
 
         if (self.wd / phy.tx).with_suffix('.png').is_file() \
@@ -1058,7 +1058,7 @@ class tree_page(ab12phylo_app_base):
             scr.set_hexpand(True)
         sp.set_size_request(tv.get_allocated_width(), -1)
 
-    def reload_ui_state(self):
+    def reload_ui_state(self, *args):
         data = self.data
         iface = self.iface
         phy = data.phy
@@ -1082,8 +1082,6 @@ class tree_page(ab12phylo_app_base):
 
         if data.genes:
             self.init_sp_genes(iface.sp_genes, data.genes, phy.sel_gene)
-        # else:
-        #     raise ValueError('no genes')
 
 
 def _h(a):
@@ -1185,6 +1183,10 @@ def _per_gene_diversity(gene, phy, array, _range):
         phy.h[nrows] = a1
         a2 = _qh(nrows)
         phy.qh[nrows] = a2
+
+    if n_sites == 0:
+        return ([gene, n_sites, seg_sites, k, pi, pi, pi,
+                 -1, gaps, unknown], drop)
 
     theta_w = seg_sites / a1 / n_sites  # per site from Yang2014
     n_genotypes = len(np.unique(crop, axis=0))

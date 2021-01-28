@@ -256,6 +256,7 @@ class gbl_page(ab12phylo_app_base):
             LOG.debug(arg)
 
         # fetch IDs
+        # TODO catch empty gene case
         shared_ids = sorted(set.intersection(*data.gene_ids.values()) - data.gbl.ignore_ids)
         array = np.empty(shape=(len(shared_ids), 0), dtype=int)
         [data.gbl_model.append([_id]) for _id in shared_ids]
@@ -378,6 +379,7 @@ class gbl_page(ab12phylo_app_base):
                 f.savefig(self.wd / png_path, transparent=True,
                           dpi=scale * repo.DPI, bbox_inches='tight', pad_inches=0.00001)
 
+                sleep(.04)
                 # experimentally good point to re-size
                 data.gbl_shape[1] = self.get_height_resize(iface.view_gbl, None, iface.gbl_spacer,
                                                            [iface.gbl_left, iface.gbl_right])
@@ -401,6 +403,7 @@ class gbl_page(ab12phylo_app_base):
                 iface.i += 1
 
         # re-size
+        LOG.debug('re-sizing again')
         for wi in [iface.gbl_left, iface.gbl_right]:
             wi.set_max_content_height(data.gbl_shape[1])
 

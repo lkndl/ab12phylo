@@ -232,6 +232,14 @@ class qal_page(ab12phylo_app_base):
         iface.k = sum([len(data.seqdata[gene]) for gene in genes_for_preview]) + 4  # number of all records + extra
         shared_ids = set.intersection(*data.gene_ids.values())
 
+        if not shared_ids:
+            msg = 'No shared sequences between all genes (%s)' % ','.join(data.genes)
+            self.show_notification(msg)
+            LOG.warning(msg)
+            sleep(.1)
+            GObject.idle_add(self.stop_trim, True)
+            return True
+
         try:
             for rid, gene in data.record_order:
                 # skip records from other genes for the trimming preview
@@ -268,7 +276,9 @@ class qal_page(ab12phylo_app_base):
             LOG.error(ke)
 
         if not rows:
-            LOG.warning('no sequence data remains')
+            msg = 'No sequence data remains'
+            self.show_notification(msg)
+            LOG.warning(msg)
             sleep(.1)
             GObject.idle_add(self.stop_trim)
             return True
@@ -336,9 +346,10 @@ class qal_page(ab12phylo_app_base):
         GObject.idle_add(self.stop_trim)
         return True
 
-    def stop_trim(self):
+    def stop_trim(self, errors=False):
         self.iface.thread.join()
         self.win.show_all()
+        self.set_errors(PAGE, errors)
         self.iface.prog_bar.set_text('idle')
         LOG.info('qal thread idle')
         return False

@@ -44,6 +44,7 @@ class ab12phylo_app_base(Gtk.Application):
         if self.wd == Path('untitled'):  # Path.cwd() / 'untitled':
             LOG.info('shutdown: delete prelim data')
             shutil.rmtree(path=self.wd)
+            self.project_path.unlink()
         Gtk.Application.do_shutdown(self)
 
     def do_startup(self):
@@ -473,7 +474,7 @@ class ab12phylo_app_base(Gtk.Application):
     def get_errors(self, page):
         return self.data.errors_indicator[page]
 
-    def set_errors(self, page, errors):
+    def set_errors(self, page, errors=True):
         self.data.errors_indicator[page] = errors
 
     def get_changed(self, page):
@@ -750,12 +751,13 @@ class ab12phylo_app_base(Gtk.Application):
         :param spacer: below the label column and next to the scrollbar that will be resized, too
         :param scroll_wins: one or two GtkScrolledWindows containing plots
         """
-        LOG.debug('re-sizing')
+        LOG.debug('re-sizing spacer')
         w, h = widget.get_allocated_width(), widget.get_allocated_height()
         spacer.set_size_request(w, -1)
         if lower:
             h = min(lower, h)
         for sw in scroll_wins:
+            LOG.debug('re-sizing %s' % sw.get_name())
             sw.set_max_content_height(h)
             try:
                 sw.get_children()[0].set_size_request(w, h)

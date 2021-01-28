@@ -34,7 +34,7 @@ class rgx_page(ab12phylo_app_base):
         data = self.data
         iface = self.iface
 
-        iface.single_rt.connect('toggled', self._switch_single_or_triple_regex,)
+        iface.single_rt.connect('toggled', self._switch_single_or_triple_regex, )
         iface.triple_rt.connect('toggled', self._switch_single_or_triple_regex)
         iface.triple_rt.join_group(iface.single_rt)
         iface.single_rt.set_active(True)
@@ -418,7 +418,8 @@ class rgx_page(ab12phylo_app_base):
         if len(data.trace_store) == 0:
             self.show_notification('No sequence data!')
             return
-        self.refresh()  # try matching reference files to genes
+        if run_after is None:
+            self.refresh()  # try matching reference files to genes
 
         # save_ui_state
         for w_name in ['single_rx', 'well_rx', 'gene_rx', 'plate_rx', 'reverse_rx', 'wp_rx']:

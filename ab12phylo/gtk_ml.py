@@ -20,7 +20,6 @@ from gi.repository import Gtk, GObject
 from ab12phylo import repo
 from ab12phylo.gtk_base import ab12phylo_app_base
 
-BASE_DIR = Path(__file__).resolve().parents[2]
 LOG = logging.getLogger(__name__)
 PAGE = 6
 
@@ -259,29 +258,30 @@ class ml_page(ab12phylo_app_base):
             if ml.raxml_shell and mode == 'raxml':
                 with open(shell, 'a') as sh:
                     sh.write('# %s\n' % desc)
-                    if i != 2:
-                        sh.write(arg % add)
-                    else:
-                        # special case bootstrapping:
-                        bash = '''     
-mkfifo pipe || exit 1
-(%s) > pipe &
-pid=$!
-echo "AB12PHYLO: Bootstrapping PID is $pid"
-while read -r line; do
-    echo "$line"
-    if [[ "${line::12}" == "Elapsed time" ]]; then
-        echo "AB12PHYLO: Finished bootstrapping, terminating process $pid to ensure it exits."
-        kill -s SIGTERM $pid
-        break
-    fi
-done < pipe
-rm pipe
-                        '''.strip() % (arg % add)
-                        sh.write(bash)
-                    sh.write('\n\necho "AB12PHYLO: %s done"\n' % desc)
+                    sh.write(arg % add)
+#                     if i != 2:
+#                         sh.write(arg % add)
+#                     else:
+#                         # special case bootstrapping:
+#                         bash = '''
+# mkfifo pipe || exit 1
+# (%s) > pipe &
+# pid=$!
+# echo "AB12PHYLO: Bootstrapping PID is $pid"
+# while read -r line; do
+#     echo "$line"
+#     if [[ "${line::12}" == "Elapsed time" ]]; then
+#         echo "AB12PHYLO: Finished bootstrapping, terminating process $pid to ensure it exits."
+#         kill -s SIGTERM $pid
+#         break
+#     fi
+# done < pipe
+# rm pipe
+#                         '''.strip() % (arg % add)
+#                         sh.write(bash)
+#                     sh.write('\n\necho "AB12PHYLO: %s done"\n' % desc)
                     if i != 3:
-                        sh.write('sleep 1s\n\n')
+                        sh.write('\nsleep 1s\n\n')
                     continue
 
             iface.text = desc
@@ -366,7 +366,7 @@ rm pipe
             self.win.hide()
             sleep(.1)
             Popen(['notify-send', 'AB12PHYLO', 'ML Tree Inference running in background.',
-                   '-i', str(Path(__file__).resolve().parent / 'files' / 'favi.png')])
+                   '-i', str(repo.PATHS.icon_path)])
             os.system(shell)
             self.win.show_all()
             self.release()
@@ -395,7 +395,7 @@ rm pipe
             self.show_notification('Errors during ML inference', errors)
         elif time() - start > 120:
             Popen(['notify-send', 'AB12PHYLO', 'ML Tree Inference finished',
-                   '-i', str(Path(__file__).resolve().parent / 'files' / 'favi.png')])
+                   '-i', str(repo.PATHS.icon_path)])
             # notify = threading.Thread(target=_zenity, args=())
             # notify.start()
         else:
