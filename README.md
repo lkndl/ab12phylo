@@ -71,7 +71,7 @@ The pipeline comes with its own test data set. If you pass `-test`, it will read
 #### Basic options
 A simple real-world invocation might look like this:
 
-```bash
+```shell script
 ab12phylo-cmd -abi <seq_dir> \
     -csv <wellsplates_dir> \
     -g <barcode_gene> \
@@ -91,7 +91,7 @@ where:
 #### Detailed settings
 `ab12phylo-cmd` has a lot of defaults, but still allows fine-grained access:
 
-```bash
+```console
 ab12phylo-cmd -rf <ref.fasta> \
     -db <your_own> \
     -dbpath <your_dir> \
