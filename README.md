@@ -26,7 +26,7 @@ conda activate <your_python3_conda_env>
 Then install the external tools in one go:
 
 ```shell script
-conda install -c bioconda "blast>=2.9.0" "raxml-ng>=1.0.1" "gblocks=0.91b" mafft clustalo muscle
+conda install -c bioconda "blast>=2.9.0" raxml-ng "gblocks=0.91b" mafft clustalo muscle
 
 # for development
 conda install -c conda-forge pygobject gtk3    
@@ -130,7 +130,9 @@ For the second invocation:
 
 
 ## Results + Motif Search
-Once ML tree inference, bootstrapping and BLAST has finished, the pipeline will display a `result.html` in your web browser. This page contains a form that allows **Motif search** across node attributes and calculates diversity metrics for the matching subset/subtree. Entering a space `' '` should match all samples, and entering multiple motifs separated by commas `,` will select all leaves that match at least one motif. 
+You can import results from `ab12phylo-cmd` into the graphical `ab12phylo`. It's faster, easier and more capable when it comes to viewing and modifying trees. Open a new window/project, press `Ctrl+i` or `Import from commandline version` and select the folder with your commandline results.
+
+Once ML tree inference, bootstrapping and BLAST has finished from the commandline, the pipeline will display a `result.html` in your web browser. This page contains a form that allows **Motif search** across node attributes and calculates diversity metrics for the matching subset/subtree. Entering a space `' '` should match all samples, and entering multiple motifs separated by commas `,` will select all leaves that match at least one motif. 
 
 To select a subtree, enter a motif that matches several leaves or at least two separate specific leaf motifs, with one of them as far left as possible. Entering a single, specific motif for a subtree search can be used to find the index of a node for tree modifications like rooting.
 
@@ -153,9 +155,8 @@ Sometimes, this pipeline might run headless on a server. To keep it from running
 
 ## Visualization
 
-First of all, you can import results from `ab12phylo-cmd` into the graphical `ab12phylo`. It's faster, easier and more capable when it comes to viewing and modifying trees. Open a new window/project, press `Ctrl+i` or `Import from commandline version` and select the folder with your commandline results.
+This is easier in the graphical `ab12phylo`. If you'd like to stick to the commandline:
 
-If you'd like to stick to the commandline:
 #### ab12phylo-visualize + ab12phylo-view
 `ab12phylo-visualize` will re-plot phylogenies and render a new `results.html`. An end user may use this to switch [support values](#support-values) or plot an MSA visualization with `-msa-viz`. This will take some rendering time for wider alignments.
  `ab12phylo-view` shows results of a previous run in a browser, with motif search enabled. Both commands accept a path to the AB12PHYLO results or default to `.`, and are equivalent to appending to the original `ab12phylo-cmd` call.
