@@ -28,7 +28,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Gio, GLib, GObject, GdkPixbuf
 
 LOG = logging.getLogger(__name__)
-__verbose__, __info__ = 1, 0
+__verbose__, __info__ = 0, 1
 
 
 class ab12phylo_app_base(Gtk.Application):
@@ -40,11 +40,10 @@ class ab12phylo_app_base(Gtk.Application):
         self.win.show_all()
 
     def do_shutdown(self):
-        # delete data if it was in the prelim directory
-        if self.wd == Path('untitled'):  # Path.cwd() / 'untitled':
+        # delete data if it was in the prelim directory and not saved
+        if self.wd == Path('untitled') and not self.project_path:
             LOG.info('shutdown: delete prelim data')
             shutil.rmtree(path=self.wd)
-            self.project_path.unlink()
         Gtk.Application.do_shutdown(self)
 
     def do_startup(self):
@@ -91,13 +90,19 @@ class ab12phylo_app_base(Gtk.Application):
         self.win = iface.win
         # self.win.set_icon_from_file(str(ab12phylo_app.ICON))
 
+        # set up preliminary working directory
+        self.project_path = None
+        # self.wd = Path.cwd() / 'untitled'
+        self.wd = Path('untitled')  # use relative path should make it movable
+        Path.mkdir(self.wd, exist_ok=True)
+
+        self.log = logging.getLogger()
+        self._init_log(filename=str(self.wd / 'ab12phylo.log'), mode='w')
+
         self.win.set_titlebar(iface.tbar)
         self.win.set_hide_titlebar_when_maximized(True)
         self.win.set_title('AB12PHYLO [untitled]')
         LOG.debug('GTK Window initialized')
-
-        self.log = logging.getLogger()
-        self._init_log()
 
         # set up an empty thread so Gtk can get used to it
         iface.thread = threading.Thread()
@@ -109,12 +114,6 @@ class ab12phylo_app_base(Gtk.Application):
         iface.zoomer = Namespace()
 
         # whether to draw raster (fast) or vector images is a button state
-
-        # set up preliminary working directory
-        self.project_path = None
-        # self.wd = Path.cwd() / 'untitled'
-        self.wd = Path('untitled')  # use relative path should make it movable
-        Path.mkdir(self.wd, exist_ok=True)
 
         # get some CSS styling
         mod = b'lighter', b'darker'
@@ -264,7 +263,7 @@ class ab12phylo_app_base(Gtk.Application):
 
         except Exception as e:
             LOG.exception(e)
-            self.show_notification('Project could not be loaded')
+            self.show_notification('Project could not be loaded', secs=10)
 
     def save(self, *args):
         """
@@ -302,6 +301,7 @@ class ab12phylo_app_base(Gtk.Application):
                 shutil.rmtree(path=self.wd)
 
             self.wd = new_wd
+            self._init_log(filename=str(self.wd / 'ab12phylo.log'), mode='a')
 
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
         self.show_notification('saved project', secs=2)
@@ -435,10 +435,10 @@ class ab12phylo_app_base(Gtk.Application):
 
         if 'filename' in kwargs:
             # init verbose logging to file
-            fh = logging.FileHandler(filename=kwargs['filename'], mode='w')
+            fh = logging.FileHandler(filename=kwargs['filename'], mode=kwargs['mode'])
             fh.setLevel(logging.DEBUG)
             fh.setFormatter(logging.Formatter('%(asctime)s: %(levelname)s\t%(name)s\t%(message)s',
-                                              datefmt='%Y-%m-%d %H:%M:%S'))
+                                              datefmt='%H:%M:%S'))
             self.log.addHandler(fh)
 
         # init shortened console logging

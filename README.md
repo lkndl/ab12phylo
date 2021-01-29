@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.4a.02&color=blue&style=flat)
+![gitlab version](https://img.shields.io/static/v1?label=version&message=0.4a04&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.6&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -19,7 +19,7 @@ First, clone the AB12PHYLO repository:
 git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
 ```
 All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, which can simplify installation. To create a new or activate an existing python3 [conda](https://docs.conda.io/) environment:
-```bash
+```console
 conda create -n <your_python3_conda_env> python=3
 conda activate <your_python3_conda_env>
 ```
@@ -32,11 +32,27 @@ conda install -c bioconda "blast>=2.9.0" "raxml-ng>=1.0.1" "gblocks=0.91b" mafft
 conda install -c conda-forge pygobject gtk3    
 ```
 
-This will require you to `conda activate <your_python3_conda_env>` anytime you want to run AB12PHYLO. Alternatively, installing BLAST+ and your preferred MSA tool will be sufficient.
+You will then have to `conda activate <your_python3_conda_env>` anytime you want to use AB12PHYLO. Alternatively, just install your MSA tool of choice and BLAST+ (if you'd like to include species annotations) yourself.
+
+If you are using conda, please check `which python` and `which pip` is active inside your environment (where you will see this `(<your_python3_conda_env>)` to the left of your shell prompt, shortened here to `<env>`).
+
+ ```console
+(<env>) foo@bar:~$ which python
+/home/foo/anaconda3/envs/<env>/bin/python
+
+(<env>) foo@bar:~$ which pip
+/usr/bin/pip
+
+(<env>) foo@bar:~$ which pip3
+/home/foo/anaconda3/envs/<env>/bin/pip3
+```
+In this case, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment.
  
-Install AB12PHYLO itself and all its python [dependencies](#dependencies) via `pip` or `pip3`:
  
- ```bash
+ 
+Install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or `pip3`, depending on 
+ 
+ ```shell script
 cd ab12phylo
 pip install --upgrade pip
 pip install .
@@ -45,7 +61,7 @@ pip install .
 
 ## Getting Started
 
-As AB12PHYLO is primarily a command line tool, you might want to take a look at its interface by running `ab12phylo-cmd -h`.
+AB12PHYLO has both a graphical and a commandline interface: `ab12phylo` and `ab12phylo-cmd`. The graphical version has its own help, so the following tutorial is intended mainly for the commandline tool. Take a look at the options by running `ab12phylo-cmd -h`.
 
 
 #### Test run
@@ -73,7 +89,7 @@ where:
 
 
 #### Detailed settings
-AB12PHYLO has reasonably smart defaults while allowing fine-grained access to its settings:
+`ab12phylo-cmd` has a lot of defaults, but still allows fine-grained access:
 
 ```bash
 ab12phylo-cmd -rf <ref.fasta> \
@@ -137,6 +153,9 @@ Sometimes, this pipeline might run headless on a server. To keep it from running
 
 ## Visualization
 
+First of all, you can import results from `ab12phylo-cmd` into the graphical `ab12phylo`. It's faster, easier and more capable when it comes to viewing and modifying trees. Open a new window/project, press `Ctrl+i` or `Import from commandline version` and select the folder with your commandline results.
+
+If you'd like to stick to the commandline:
 #### ab12phylo-visualize + ab12phylo-view
 `ab12phylo-visualize` will re-plot phylogenies and render a new `results.html`. An end user may use this to switch [support values](#support-values) or plot an MSA visualization with `-msa-viz`. This will take some rendering time for wider alignments.
  `ab12phylo-view` shows results of a previous run in a browser, with motif search enabled. Both commands accept a path to the AB12PHYLO results or default to `.`, and are equivalent to appending to the original `ab12phylo-cmd` call.

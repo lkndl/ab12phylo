@@ -3,6 +3,7 @@
 import logging
 import os
 import random
+import re
 import shlex
 import shutil
 import stat
@@ -119,6 +120,20 @@ class ml_page(ab12phylo_app_base):
     def _load_raxml_help(self):
         iface = self.iface
         binary = shutil.which('raxml-ng')
+        if binary:
+            # check if the packaged version is newer
+            try:
+                proc = run(stdout=PIPE, stderr=PIPE, shell=True, args='%s -v' % binary)
+                version = [int(i) for i in re.search(
+                    'RAxML-NG v[\.\s]+?([0-9\.]+)', proc.stdout.decode()).groups()[0].split('.')]
+                # version = proc.stdout.decode().strip().split(
+                #     '\n')[0].split('v.')[1].split('released')[0].strip()
+                if version[0] == 0 or version[0] == 1 and version[1] == 0 and version[2] <= 1:
+                    binary = None
+                    LOG.info('prefer out-of-the-box RAxML-NG')
+            except Exception as ex:
+                LOG.error('RAxML version check failed')
+                LOG.error(ex)
         if not binary:
             binary = str(repo.TOOLS / repo.PATHS.RAxML)
         iface.raxml_exe.set_filename(binary)
