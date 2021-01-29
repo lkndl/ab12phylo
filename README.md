@@ -15,17 +15,17 @@ AB12PHYLO was developed to identify plant pathogen populations possibly under ba
  
 First, clone the AB12PHYLO repository:
  
-```bash
+```shell script
 git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
 ```
 All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, which can simplify installation. To create a new or activate an existing python3 [conda](https://docs.conda.io/) environment:
-```console
+```shell script
 conda create -n <your_python3_conda_env> python=3
 conda activate <your_python3_conda_env>
 ```
 Then install the external tools in one go:
 
-```bash
+```shell script
 conda install -c bioconda "blast>=2.9.0" "raxml-ng>=1.0.1" "gblocks=0.91b" mafft clustalo muscle
 
 # for development
@@ -91,7 +91,7 @@ where:
 #### Detailed settings
 `ab12phylo-cmd` has a lot of defaults, but still allows fine-grained access:
 
-```console
+```shell script
 ab12phylo-cmd -rf <ref.fasta> \
     -db <your_own> \
     -dbpath <your_dir> \
@@ -160,7 +160,7 @@ If you'd like to stick to the commandline:
 `ab12phylo-visualize` will re-plot phylogenies and render a new `results.html`. An end user may use this to switch [support values](#support-values) or plot an MSA visualization with `-msa-viz`. This will take some rendering time for wider alignments.
  `ab12phylo-view` shows results of a previous run in a browser, with motif search enabled. Both commands accept a path to the AB12PHYLO results or default to `.`, and are equivalent to appending to the original `ab12phylo-cmd` call.
 
-```bash
+```shell script
 ab12phylo-view <result_folder>
 # or
 cd <results_folder>
@@ -196,7 +196,7 @@ Passing references is closely inter-linked: If a directory of reference files is
 
 If you're feeling this neat and precise and set both the genes and individual references, be careful: The pipeline will then deliberately match references and genes *by order*. Therefore, this will make a mess:
 
-```bash
+```shell script
 -g ITS1F OPA10 -rf ../opa10.fasta ITS1F.phy
 ```
 
