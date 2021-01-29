@@ -2,6 +2,24 @@
 <!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
+  <object class="GtkAdjustment" id="cpu_adj">
+    <property name="lower">1</property>
+    <property name="upper">400</property>
+    <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
+  <object class="GtkEntry" id="cpu_count_bak">
+    <property name="name">cpu_count_bak</property>
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="vexpand">False</property>
+    <property name="editable">False</property>
+    <property name="max-length">10</property>
+    <property name="width-chars">3</property>
+    <property name="placeholder-text" translatable="yes">1</property>
+    <property name="input-purpose">number</property>
+  </object>
   <object class="GtkAdjustment" id="dist_adj">
     <property name="upper">100</property>
     <property name="step-increment">0.20</property>
@@ -4864,7 +4882,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="hexpand">False</property>
                             <property name="vexpand">True</property>
                             <child>
-                              <!-- n-columns=2 n-rows=12 -->
+                              <!-- n-columns=2 n-rows=14 -->
                               <object class="GtkGrid" id="raxml">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -4956,7 +4974,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">6</property>
+                                    <property name="top-attach">8</property>
                                     <property name="width">2</property>
                                   </packing>
                                 </child>
@@ -5331,9 +5349,77 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">7</property>
+                                    <property name="top-attach">9</property>
                                     <property name="width">2</property>
                                     <property name="height">5</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes"> CPUs:</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">6</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">end</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes">use at most:</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">7</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="cpu_use">
+                                    <property name="name">cpu_use</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-markup" translatable="yes">You can also set this for the export bash script via &lt;i&gt;-f&lt;/i&gt;.</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="max-length">2</property>
+                                    <property name="width-chars">2</property>
+                                    <property name="text" translatable="yes">0,10</property>
+                                    <property name="input-purpose">number</property>
+                                    <property name="adjustment">cpu_adj</property>
+                                    <property name="climb-rate">1</property>
+                                    <property name="numeric">True</property>
+                                    <property name="value">1</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">7</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="cpu_count">
+                                    <property name="name">cpu_count</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="margin-start">8</property>
+                                    <property name="hexpand">False</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="label" translatable="yes">1</property>
+                                    <property name="use-underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">6</property>
                                   </packing>
                                 </child>
                               </object>

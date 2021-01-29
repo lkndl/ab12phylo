@@ -142,6 +142,18 @@ class ml_page(ab12phylo_app_base):
         iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
         LOG.debug('got RAxML --help')
 
+        try:
+            # get number of available CPUs
+            res = run(args='nproc ', stdout=PIPE, stderr=PIPE, shell=True)
+            cpus = int(res.stdout.decode().strip())
+            iface.cpu_count.set_text(str(cpus))
+            cpu_adj = iface.cpu_use.get_adjustment().props
+            cpu_adj.upper = cpus
+            cpu_adj.value = cpus
+            LOG.debug('found %d CPUs' % cpus)
+        except Exception as ex:
+            LOG.error('reading CPUs failed')
+
     def reload_ui_state(self):
         data = self.data
         iface = self.iface
@@ -180,7 +192,7 @@ class ml_page(ab12phylo_app_base):
 
         if mode in ['raxml', 'raxml_export']:
             ml.raxml = iface.raxml_exe.get_filename()
-            for w_name in ['evo_modify', 'bootstraps', 'rand', 'pars', 'raxml_seed']:
+            for w_name in ['evo_modify', 'bootstraps', 'rand', 'pars', 'raxml_seed', 'cpu_use']:
                 ml.__setattr__(w_name, iface.__getattribute__(w_name).get_text())
                 if w_name in ['bootstraps', 'rand', 'pars']:
                     ml.__setattr__(w_name, int(ml.__getattribute__(w_name)))
@@ -227,23 +239,24 @@ class ml_page(ab12phylo_app_base):
         iface.i = 0
 
         # prepare the calls
-        chck = '%s --msa %s --check --model %s' \
-               + ml.evo_modify + ' --prefix %s'
+        chck = '%s --msa "%s" --check --model %s' \
+               + ml.evo_modify + ' --prefix "%s"'
 
-        inML = '%s --msa %s --model %s' + ml.evo_modify + \
-               ' --prefix %s' + ' --seed %d' % ml.raxml_seed + \
-               ' --threads auto{16} --workers auto{16}' \
+        inML = '%s --msa "%s" --model %s' + ml.evo_modify + \
+               ' --prefix "%s"' + ' --seed %d' % ml.raxml_seed + \
+               ' --threads auto{%s} --workers auto{%s}' + \
                ' --redo --tree %s ' % ','.join(
             [a for a in ['rand{%d}' % ml.rand if ml.rand > 0 else None,
                          'pars{%d}' % ml.pars if ml.pars > 0 else None] if a])
 
-        boot = '%s --bootstrap --msa %s --model %s --tree %s' + \
-               ' --prefix %s' + ' --bs-trees %d' % ml.bootstraps + \
+        boot = '%s --bootstrap --msa "%s" --model %s --tree "%s"' + \
+               ' --prefix "%s"' + ' --bs-trees %d' % ml.bootstraps + \
                ' --seed %d' % ml.raxml_seed + \
-               ' --threads auto{16} --workers auto{16} --redo'
+               ' --threads auto{%s} --workers auto{%s} --redo'
 
-        supp = '%s --support --tree %s --bs-trees %s --bs-metric fbp,tbe ' \
-               '--prefix %s --threads auto{16} --workers auto{16} --redo'
+        supp = '%s --support --tree "%s" --bs-trees %s --bs-metric fbp,tbe ' + \
+               '--prefix "%s" --threads ' + \
+               'auto{%s} --workers auto{%s} --redo'
 
         # res = run(stdout=PIPE, stderr=PIPE, args=shlex.split(
         #     arg % (ml.raxml, msa, prefix / 'bs_')))
@@ -256,7 +269,7 @@ class ml_page(ab12phylo_app_base):
 
         if ml.raxml_shell:
             with open(shell, 'w') as sh:
-                sh.write('#!/bin/bash\n\ntrap \'\' SIGINT\n\n')
+                sh.write('#!/bin/bash\n\n')
 
         # loop over the stages
         for i, (desc, key, prev, arg, add) in enumerate(zip(
@@ -264,37 +277,40 @@ class ml_page(ab12phylo_app_base):
                 [False, 'ML', 'BS', False], [0, 1, ml.rand + ml.pars + 1, iface.k - 2],
                 [chck, inML, boot, supp],
                 [(ml.raxml, msa, ml.evo_model, prefix / 'chk'),
-                 (ml.raxml, msa, ml.evo_model, prefix / 'ml'),
+                 (ml.raxml, msa, ml.evo_model,
+                  prefix / 'ml', ml.cpu_use, ml.cpu_use),
                  (ml.raxml, msa, prefix / 'ml.raxml.bestModel',
-                  prefix / 'ml.raxml.bestTree', prefix / 'bs'),
+                  prefix / 'ml.raxml.bestTree',
+                  prefix / 'bs', ml.cpu_use, ml.cpu_use),
                  (ml.raxml, prefix / 'ml.raxml.bestTree',
-                  prefix / 'bs.raxml.bootstraps', prefix / 'sp')])):
+                  prefix / 'bs.raxml.bootstraps',
+                  prefix / 'sp', ml.cpu_use, ml.cpu_use)])):
 
             if ml.raxml_shell and mode == 'raxml':
                 with open(shell, 'a') as sh:
                     sh.write('# %s\n' % desc)
-                    sh.write(arg % add)
-#                     if i != 2:
-#                         sh.write(arg % add)
-#                     else:
-#                         # special case bootstrapping:
-#                         bash = '''
-# mkfifo pipe || exit 1
-# (%s) > pipe &
-# pid=$!
-# echo "AB12PHYLO: Bootstrapping PID is $pid"
-# while read -r line; do
-#     echo "$line"
-#     if [[ "${line::12}" == "Elapsed time" ]]; then
-#         echo "AB12PHYLO: Finished bootstrapping, terminating process $pid to ensure it exits."
-#         kill -s SIGTERM $pid
-#         break
-#     fi
-# done < pipe
-# rm pipe
-#                         '''.strip() % (arg % add)
-#                         sh.write(bash)
-#                     sh.write('\n\necho "AB12PHYLO: %s done"\n' % desc)
+                    # sh.write(arg % add)
+                    if i != 2:
+                        sh.write(arg % add)
+                    else:
+                        # special case bootstrapping:
+                        bash = '''
+mkfifo pipe || exit 1
+(%s) > pipe &
+pid=$!
+echo "AB12PHYLO: Bootstrapping PID is $pid"
+while read -r line; do
+    echo "$line"
+    if [[ "${line::12}" == "Elapsed time" ]]; then
+        echo "AB12PHYLO: Finished bootstrapping, terminating process $pid to ensure it exits."
+        kill -s SIGTERM $pid
+        break
+    fi
+done < pipe
+rm pipe
+                        '''.strip() % (arg % add)
+                        sh.write(bash)
+                    sh.write('\n\necho "AB12PHYLO: %s done"\n' % desc)
                     if i != 3:
                         sh.write('\nsleep 1s\n\n')
                     continue
@@ -346,17 +362,41 @@ class ml_page(ab12phylo_app_base):
                 LOG.debug(iface.text)
                 sh = 'raxml_run.sh'
                 with open(sh, 'w') as sf:
-                    sf.write('#!/bin/bash')
+                    bash = '''
+#!/bin/bash\n
+echo "You can set a CPU limit here! This will proceed in a bit, interrupt with Ctrl+C"\n
+print_usage() {
+  printf "Usage: Limit the number of threads/logical cores used via -f <number>"\n}\n
+print_usage\n
+sleep 10s\n
+cpu_limit=400\n
+while getopts 'f:' flag; do
+  case "${flag}" in
+    f) cpu_limit="${OPTARG}" ;;
+    *) print_usage
+       exit 1 ;;\n  esac\ndone\n
+# get the number of CPUs available
+cpus=$(nproc)\n
+# find the minimum of the CPUs allowed and available
+if [ $cpu_limit -lt $cpus ]; then
+    used=$cpu_limit\nfi
+if [ $cpus -lt $cpu_limit ];then
+    used=$cpus\nfi\n
+echo "CPUs available: $cpus, use at most $used"
+                    '''.strip()
+                    sf.write(bash)
                     sf.write('\n\n# Check MSA\n')
-                    sf.write(chck % ('./raxml-ng', 'msa.fasta', Path(ml.evo_model).name, 'chk'))
+                    sf.write(chck % ('./raxml-ng', 'msa.fasta',
+                                     Path(ml.evo_model).name, 'chk'))
                     sf.write('\n\n# Find best ML tree\n')
-                    sf.write(inML % ('./raxml-ng', 'msa.fasta', Path(ml.evo_model).name, 'ml'))
+                    sf.write(inML % ('./raxml-ng', 'msa.fasta',
+                                     Path(ml.evo_model).name, 'ml', '$used', '$used'))
                     sf.write('\n\n# Compute bootstrap iterations\n')
                     sf.write(boot % ('./raxml-ng', 'msa.fasta', 'ml.raxml.bestModel',
-                                     'ml.raxml.bestTree', 'bs'))
+                                     'ml.raxml.bestTree', 'bs', '$used', '$used'))
                     sf.write('\n\n# Calculate branch support\n')
                     sf.write(supp % ('./raxml-ng', 'ml.raxml.bestTree',
-                                     'bs.raxml.bootstraps', 'sp'))
+                                     'bs.raxml.bootstraps', 'sp', '$used', '$used'))
                     sf.write('\n\n')
 
                 with ZipFile(self.wd / 'RAxML_export.zip', 'w', ZIP_DEFLATED) as zf:

@@ -213,7 +213,13 @@ class msa_page(ab12phylo_app_base):
             self.wd / repo.PATHS.import_msa, 'fasta')}}
         iface.aligner, cmd = self.get_msa_build_cmd(
             repo.toalgo(iface.msa_algo.get_active_text()), self.wd, data.genes)
+        # write a metadata.tsv
+        with open(self.wd / repo.PATHS.tsv, 'w') as metadata:
+            metadata.write('id\tgene\n')
+            for _id in data.gene_ids['import']:
+                metadata.write('%s\timport\n' % _id)
         LOG.debug('using imported MSA')
+        self.set_changed(PAGE, False)
         self.save_ui_state()
 
     def refresh(self):

@@ -46,7 +46,7 @@ class project_dataset:
         self.msa = Namespace(cmd=dict(), remote_cmd=dict(), last_cmd='')
         self.gbl = Namespace(ignore_ids=set())
         self.ml = Namespace(evo_model='GTR', evo_modify='+G4', bootstraps=1000,
-                            rand=20, pars=20, raxml_shell=True)
+                            rand=20, pars=20, raxml_shell=True, cpu_count='1', cpu_use='1')
         self.phy = Namespace(gap_share=.1, unk_share=.1, flip=.7, dist=0, sel_gene=None,
                              did_BLAST=False, query='', exclude='',
                              rect=True, circ=False, unro=False, tbe=True, fbp=False, supp=True,
