@@ -6,8 +6,10 @@ include README.md
 # include entire package
 graft ab12phylo
 prune ab12phylo/__pycache__
+prune ab12phylo/test_data
 graft ab12phylo_cmd
 prune ab12phylo_cmd/__pycache__
+prune ab12phylo_cmd/tools/iqtree-2.1.2-Linux
 
 # include documentation
 graft docs
