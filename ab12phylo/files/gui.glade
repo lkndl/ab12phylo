@@ -185,6 +185,7 @@
                       <item translatable="yes">default</item>
                       <item translatable="yes">green-blue</item>
                       <item translatable="yes">viridis</item>
+                      <item translatable="yes">blue-pink</item>
                       <item translatable="yes">clustalx</item>
                     </items>
                     <child internal-child="entry">
@@ -5184,7 +5185,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="hexpand">False</property>
                                     <property name="vexpand">False</property>
                                     <property name="width-chars">5</property>
-                                    <property name="text" translatable="yes">+I+G</property>
+                                    <property name="placeholder-text" translatable="yes">+I+G</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -5196,11 +5197,12 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">bootstraps</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">default: 1000</property>
+                                    <property name="tooltip-text" translatable="yes">The number of bootstrap iterations to run.</property>
                                     <property name="vexpand">False</property>
                                     <property name="max-length">5</property>
                                     <property name="width-chars">5</property>
                                     <property name="text" translatable="yes">1000</property>
+                                    <property name="placeholder-text" translatable="yes">1000</property>
                                     <property name="input-purpose">number</property>
                                   </object>
                                   <packing>
@@ -5225,6 +5227,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">raxml_seed</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">For reproducibility. Fixing the seed value enables re-generating identical results if the other parameters are equally unchanged.</property>
                                     <property name="vexpand">False</property>
                                     <property name="max-length">10</property>
                                     <property name="width-chars">6</property>
@@ -5358,12 +5361,12 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="name">rand</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">The number of ML tree searches starting from unique random starting trees. default: 20</property>
+                                        <property name="tooltip-markup" translatable="yes">The number of ML tree searches starting from unique &lt;b&gt;random&lt;/b&gt; starting trees.</property>
                                         <property name="vexpand">False</property>
                                         <property name="max-length">3</property>
-                                        <property name="width-chars">3</property>
-                                        <property name="text" translatable="yes">20</property>
+                                        <property name="width-chars">4</property>
                                         <property name="xalign">1</property>
+                                        <property name="placeholder-text" translatable="yes">20</property>
                                         <property name="input-purpose">number</property>
                                       </object>
                                       <packing>
@@ -5392,11 +5395,11 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="name">pars</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">The number of ML tree searches starting from unique starting trees that were generated using maximum parsimony. default: 20</property>
+                                        <property name="tooltip-markup" translatable="yes">ML tree searches starting from &lt;b&gt;maximum parsimony&lt;/b&gt; starting trees.</property>
                                         <property name="vexpand">False</property>
                                         <property name="max-length">3</property>
-                                        <property name="width-chars">3</property>
-                                        <property name="text" translatable="yes">20</property>
+                                        <property name="width-chars">4</property>
+                                        <property name="placeholder-text" translatable="yes">20</property>
                                         <property name="input-purpose">number</property>
                                       </object>
                                       <packing>
@@ -5422,11 +5425,12 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="row-spacing">10</property>
                                     <child>
                                       <object class="GtkToggleButton" id="raxml_shell">
-                                        <property name="label" translatable="yes">background</property>
+                                        <property name="label" translatable="yes">in shell</property>
                                         <property name="name">raxml_shell</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Toggle this to run the tree inference as a shell command; hiding and then re-opening AB12PHYLO. Try it if you run into trouble otherwise.</property>
                                         <property name="hexpand">False</property>
                                         <property name="vexpand">False</property>
                                       </object>
@@ -5513,7 +5517,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">True</property>
-                                        <property name="tooltip-markup" translatable="yes">Export a &lt;b&gt;.zip&lt;/b&gt; with the MSA, a 64-bit RAxML-NG linux binary and a shell script in order to run the tree inference on a more powerful computer.</property>
+                                        <property name="tooltip-markup" translatable="yes">Export a &lt;i&gt;.zip&lt;/i&gt; with the MSA, a 64-bit RAxML-NG linux binary and a Linux shell script in order to run the tree inference on a more powerful computer. There, unzip the archive, open a terminal and execute the script via &lt;b&gt;bash raxml_run.sh&lt;/b&gt;.</property>
                                         <property name="hexpand">False</property>
                                         <property name="vexpand">False</property>
                                         <child>
@@ -6351,21 +6355,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="row-spacing">10</property>
                                         <property name="column-spacing">10</property>
                                         <child>
-                                          <object class="GtkEntry" id="query">
-                                            <property name="name">query</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="tooltip-markup" translatable="yes">Search for sample IDs or species labels matching this query, replacing the current selection. To search for several motifs, separate them by a comma &lt;b&gt;,&lt;/b&gt; .</property>
-                                            <property name="hexpand">True</property>
-                                            <property name="width-chars">8</property>
-                                            <property name="placeholder-text" translatable="yes">query</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">0</property>
-                                            <property name="top-attach">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
                                           <object class="GtkEntry" id="exclude">
                                             <property name="name">exclude</property>
                                             <property name="visible">True</property>
@@ -6391,26 +6380,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="left-attach">1</property>
                                             <property name="top-attach">0</property>
                                             <property name="height">2</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkSpinButton" id="gap_share">
-                                            <property name="name">gap_share</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="tooltip-markup" translatable="yes">Accept at most this share of &lt;b&gt;gap characters&lt;/b&gt; per MSA site = column. </property>
-                                            <property name="hexpand">False</property>
-                                            <property name="width-chars">3</property>
-                                            <property name="text" translatable="yes">0,10</property>
-                                            <property name="input-purpose">number</property>
-                                            <property name="adjustment">gap_share_adj</property>
-                                            <property name="digits">2</property>
-                                            <property name="numeric">True</property>
-                                            <property name="value">0.10</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">2</property>
-                                            <property name="top-attach">0</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -6441,21 +6410,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="left-attach">3</property>
                                             <property name="top-attach">0</property>
                                             <property name="height">2</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkButton" id="subtree">
-                                            <property name="label" translatable="yes">subtree</property>
-                                            <property name="name">subtree</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="receives-default">True</property>
-                                            <property name="hexpand">False</property>
-                                            <property name="vexpand">False</property>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">4</property>
-                                            <property name="top-attach">0</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -6503,6 +6457,56 @@ Alternatively, a color legend would nicely fit here.</property>
                                             <property name="width">6</property>
                                           </packing>
                                         </child>
+                                        <child>
+                                          <object class="GtkEntry" id="query">
+                                            <property name="name">query</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="tooltip-markup" translatable="yes">Search for sample IDs or species labels matching this query, replacing the current selection. To search for several motifs, separate them by a comma &lt;b&gt;,&lt;/b&gt; .</property>
+                                            <property name="hexpand">True</property>
+                                            <property name="width-chars">8</property>
+                                            <property name="placeholder-text" translatable="yes">query</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="gap_share">
+                                            <property name="name">gap_share</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="tooltip-markup" translatable="yes">Accept at most this share of &lt;b&gt;gap characters&lt;/b&gt; per MSA site = column. </property>
+                                            <property name="hexpand">False</property>
+                                            <property name="width-chars">3</property>
+                                            <property name="text" translatable="yes">0,10</property>
+                                            <property name="input-purpose">number</property>
+                                            <property name="adjustment">gap_share_adj</property>
+                                            <property name="digits">2</property>
+                                            <property name="numeric">True</property>
+                                            <property name="value">0.10</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="subtree">
+                                            <property name="label" translatable="yes">subtree</property>
+                                            <property name="name">subtree</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="hexpand">False</property>
+                                            <property name="vexpand">False</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">4</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
                                       </object>
                                       <packing>
                                         <property name="resize">False</property>
@@ -6518,16 +6522,59 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="hexpand">True</property>
                                         <property name="vexpand">True</property>
                                         <child>
-                                          <object class="GtkTreeView" id="popgen">
-                                            <property name="name">popgen</property>
-                                            <property name="width-request">40</property>
-                                            <property name="height-request">80</property>
+                                          <!-- n-columns=2 n-rows=1 -->
+                                          <object class="GtkGrid">
                                             <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="hexpand">True</property>
-                                            <property name="vexpand">True</property>
-                                            <child internal-child="selection">
-                                              <object class="GtkTreeSelection"/>
+                                            <property name="can-focus">False</property>
+                                            <property name="column-spacing">10</property>
+                                            <child>
+                                              <object class="GtkTreeView" id="pop_metrics">
+                                                <property name="name">pop_metrics</property>
+                                                <property name="width-request">320</property>
+                                                <property name="height-request">80</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="hexpand">True</property>
+                                                <property name="vexpand">True</property>
+                                                <child internal-child="selection">
+                                                  <object class="GtkTreeSelection"/>
+                                                </child>
+                                              </object>
+                                              <packing>
+                                                <property name="left-attach">0</property>
+                                                <property name="top-attach">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkScrolledWindow">
+                                                <property name="width-request">40</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="hexpand">True</property>
+                                                <property name="vexpand">False</property>
+                                                <property name="hscrollbar-policy">never</property>
+                                                <property name="shadow-type">in</property>
+                                                <child>
+                                                  <object class="GtkTextView" id="pop_ids">
+                                                    <property name="name">pop_ids</property>
+                                                    <property name="width-request">40</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="margin-start">4</property>
+                                                    <property name="margin-end">4</property>
+                                                    <property name="margin-top">4</property>
+                                                    <property name="margin-bottom">4</property>
+                                                    <property name="hexpand">True</property>
+                                                    <property name="vexpand">False</property>
+                                                    <property name="editable">False</property>
+                                                    <property name="wrap-mode">word</property>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                              <packing>
+                                                <property name="left-attach">1</property>
+                                                <property name="top-attach">0</property>
+                                              </packing>
                                             </child>
                                           </object>
                                           <packing>

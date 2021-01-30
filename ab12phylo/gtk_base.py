@@ -449,6 +449,9 @@ class ab12phylo_app_base(Gtk.Application):
                                               datefmt='%H:%M:%S'))
             self.log.addHandler(fh)
 
+        if 'mode' in kwargs and kwargs['mode'] == 'a':
+            return  # otherwise double logging
+
         # init shortened console logging
         sh = logging.StreamHandler(sys.stdout)
         if __verbose__:
@@ -647,6 +650,8 @@ class ab12phylo_app_base(Gtk.Application):
                     model[row][0] = '---'
 
             self.set_changed(page, True)
+            return True
+        return False
 
     def shift_versions_down_on_deletion(self, _id, gene_data, gene_meta):
         match = repo.version_regex.search(_id)
@@ -706,7 +711,7 @@ class ab12phylo_app_base(Gtk.Application):
         :param args:
         :return:
         """
-        # LOG.debug('select_seqs')
+        LOG.debug('select_seqs')
         if tv.props.visible:
             tv.grab_focus()
         sel = tv.get_selection()
@@ -939,6 +944,7 @@ class ab12phylo_app_base(Gtk.Application):
         else:
             raise ValueError('Specify at least one out of width / height')
         child.set_from_pixbuf(pb)
+        gtk_bin.show_all()
 
     def load_colorbar(self, gtk_image, gbar=False):
         iface = self.iface
@@ -955,6 +961,7 @@ class ab12phylo_app_base(Gtk.Application):
                 cbar = ColorbarBase(ax=cax, cmap=ListedColormap(repo.colors[:i]),
                                     ticks=[(j + .5) / i for j in range(i)], orientation='horizontal')
                 cbar.ax.set_xticklabels(repo.NUCLEOTIDES[:i])
+                Path.mkdir(self.wd / path.parent, exist_ok=True)
                 fig.savefig(self.wd / path, transparent=True,
                             bbox_inches='tight', pad_inches=0, dpi=600)
                 plt.close(fig)
@@ -1024,6 +1031,7 @@ class ab12phylo_app_base(Gtk.Application):
         """
         Write the metadata dictionary to the metadata.tsv
         """
+        Path.mkdir(self.wd, exist_ok=True)
         md = self.data.metadata
         # convert metadata dict do pandas DataFrame
         df = pd.concat({gene: pd.DataFrame.from_dict(
@@ -1043,13 +1051,13 @@ class ab12phylo_app_base(Gtk.Application):
         for wi in iface.flowbox.get_children():
             wi.destroy()
         theme = [repo.technicolor, repo.green_blue, repo.viridis,
-                 repo.clustalx][combo.get_active()]
+                 repo.blue_pink, repo.clustalx][combo.get_active()]
         for nt in repo.NUCLEOTIDES[:6]:
             a = Gtk.ColorButton.new_with_rgba(
                 Gdk.RGBA(*theme[nt]))
             a.props.show_editor = True
-            a.props.visible = True
             iface.flowbox.add(a)
+        iface.flowbox.show_all()
         LOG.debug('changed color theme')
 
     def change_colors(self, *args):
@@ -1064,8 +1072,8 @@ class ab12phylo_app_base(Gtk.Application):
             a = Gtk.ColorButton.new_with_rgba(
                 Gdk.RGBA(*self.data.colors[nt]))
             a.props.show_editor = True
-            a.props.visible = True
             iface.flowbox.add(a)
+        iface.flowbox.show_all()
 
         response = self.iface.color_dialog.run()
         if response == Gtk.ResponseType.OK:

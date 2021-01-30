@@ -6,7 +6,7 @@
 
 [AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
 At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.com/amkozlov/raxml-ng) (Kozlov et al. 2019) and a BLAST search in a reference database. 
-It enables visual, effortless sample identification based on phylogenetic position and sequence similarity, as well as population subset selection aided by metrics like Tajima's D for estimations on ongoing evolution.
+It enables visual, effortless sample identification based on phylogenetic position and sequence similarity, as well as population subset selection aided by metrics like Tajima's D for estimations of ongoing evolution.
  
 AB12PHYLO was developed to identify plant pathogen populations possibly under balancing selection with *Solanum chilense*, especially in the genus *Alternaria*. With multi-gene phylogenies remaining a widely-used method in spite of the rise of whole-genome sequencing, future application on fungal phytopathogens or host plants appears likely.
 
@@ -34,7 +34,7 @@ conda install -c conda-forge pygobject gtk3
 
 You will then have to `conda activate <your_python3_conda_env>` anytime you want to use AB12PHYLO. Alternatively, just install your MSA tool of choice and BLAST+ (if you'd like to include species annotations) yourself.
 
-If you are using conda, please check `which python` and `which pip` is active inside your environment (where you will see this `(<your_python3_conda_env>)` to the left of your shell prompt, shortened here to `<env>`).
+If you are using conda, please check `which python` and `which pip` is active inside your environment (where you will see `(<your_python3_conda_env>)` to the left of your shell prompt, shortened here to `<env>`).
 
  ```console
 (<env>) foo@bar:~$ which python
@@ -46,11 +46,11 @@ If you are using conda, please check `which python` and `which pip` is active in
 (<env>) foo@bar:~$ which pip3
 /home/foo/anaconda3/envs/<env>/bin/pip3
 ```
-In this case, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment.
+In the case shown here, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment.
  
  
  
-Install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or `pip3`, depending on 
+Now install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or `pip3`:
  
  ```shell script
 cd ab12phylo
@@ -61,7 +61,9 @@ pip install .
 
 ## Getting Started
 
-AB12PHYLO has both a graphical and a commandline interface: `ab12phylo` and `ab12phylo-cmd`. The graphical version has its own help, so the following tutorial is intended mainly for the commandline tool. Take a look at the options by running `ab12phylo-cmd -h`.
+AB12PHYLO has both a graphical and a commandline interface: `ab12phylo` and `ab12phylo-cmd`. The graphical version has its own help, which you will see if you start it with `ab12phylo` from your terminal. 
+
+The following tutorial is intended for the commandline tool. First, take a look at the options by running `ab12phylo-cmd -h`.
 
 
 #### Test run

@@ -90,7 +90,7 @@ class tree_page(ab12phylo_app_base):
         iface.view_msa_ids.append_column(col)
         iface.view_msa_ids.set_tooltip_column(1)
 
-        iface.popgen.set_model(data.pop_model)
+        iface.pop_metrics.set_model(data.pop_model)
 
         # set some plot_menu MenuButton images
         iface.flip.set_image(iface.flipim)
@@ -267,7 +267,8 @@ class tree_page(ab12phylo_app_base):
         iface = self.iface
         phy = data.phy
         data.pop_model.clear()
-        self.init_popgen_columns(iface.popgen)
+        self.init_popgen_columns(iface.pop_metrics)
+        sleep(.1)  # prevent crash on re-load->Ctrl+A->calculate
 
         mo, tps = iface.tree_sel.get_selected_rows()
         tps = [tp[0] for tp in tps]
@@ -298,6 +299,13 @@ class tree_page(ab12phylo_app_base):
         phy = data.phy
         iface.pop_size.set_text('population size: %d' % len(tps))
         iface.pop_size.set_visible(True)
+
+        # show the ids of the selected samples
+        buf = Gtk.TextBuffer()
+        buf.props.text = ', '.join(
+            [_id for i, _id in enumerate(self.data.tree_anno_model
+                                         .get_column(0)) if i in tps])
+        iface.pop_ids.set_buffer(buf)
 
         # crop the array and shift the entries
         ar = np.flipud(phy.array)[tps, :]
@@ -588,7 +596,7 @@ class tree_page(ab12phylo_app_base):
         # write samples to model
         for t in phy.tips:
             if t not in phy.ndf:
-                data.tree_anno_model.append([t, '', None, iface.BLUE])
+                data.tree_anno_model.append([t, '', None, iface.AQUA])
                 continue  # a dropped node
             nd = phy.ndf[t]
             # make sure pid field is present
@@ -794,7 +802,7 @@ class tree_page(ab12phylo_app_base):
         if phy.circ:
             phy.tx = 'circular'
             ly = 'c'
-            w, h = 800, 800
+            w, h = 1400, 1400
             iface.canvas = toyplot.Canvas(width=w, height=h)
             iface.axes = iface.canvas.cartesian(bounds=(0, w, 0, h))
         elif phy.rect:
@@ -856,7 +864,7 @@ class tree_page(ab12phylo_app_base):
             GObject.idle_add(self._reset, None)
             sleep(.1)
             return True
-        except ValueError as ex:
+        except (ValueError, IndexError) as ex:
             LOG.exception(ex)
             GObject.idle_add(self._reset, None)
             sleep(.1)

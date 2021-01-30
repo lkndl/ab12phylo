@@ -193,9 +193,11 @@ class ml_page(ab12phylo_app_base):
         if mode in ['raxml', 'raxml_export']:
             ml.raxml = iface.raxml_exe.get_filename()
             for w_name in ['evo_modify', 'bootstraps', 'rand', 'pars', 'raxml_seed', 'cpu_use']:
-                ml.__setattr__(w_name, iface.__getattribute__(w_name).get_text())
+                wi = iface.__getattribute__(w_name)
+                val = [i for i in [wi.get_text(), wi.get_placeholder_text()] if i][0]
                 if w_name in ['bootstraps', 'rand', 'pars']:
-                    ml.__setattr__(w_name, int(ml.__getattribute__(w_name)))
+                    val = int(val)
+                ml.__setattr__(w_name, val)
             ml.evo_model = data.evo_models[iface.evo_model.get_active()]
             if ml.evo_model[1]:
                 ml.evo_modify = ''
@@ -204,7 +206,7 @@ class ml_page(ab12phylo_app_base):
                 ml.evo_model = ml.evo_model[0]
 
             ml.raxml_seed = random.randint(0, max(1000, ml.bootstraps)) \
-                if ml.raxml_seed == '' else int(ml.raxml_seed)
+                if ml.raxml_seed == 'random' else int(ml.raxml_seed)
             iface.raxml_seed.props.text = str(ml.raxml_seed)
             Path.mkdir(self.wd / 'RAxML', exist_ok=True)
             ml.raxml_shell = iface.raxml_shell.get_active()

@@ -161,14 +161,14 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         self.start_phy({action.get_name(): names})
 
     def delete_and_ignore_rows(self, *args):
-        super().delete_and_ignore_rows(*args)
-        page = args[2]
-        if page == 2:
-            self.iface.view_qal.grab_focus()
-            self.start_trim()
-        elif page == 4:
-            self.iface.view_gbl.grab_focus()
-            self.drop_seqs()
+        if super().delete_and_ignore_rows(*args):
+            page = args[2]
+            if page == 2:
+                self.iface.view_qal.grab_focus()
+                self.start_trim()
+            elif page == 4:
+                self.iface.view_gbl.grab_focus()
+                self.drop_seqs()
 
 
 def main():

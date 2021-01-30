@@ -383,7 +383,6 @@ class gbl_page(ab12phylo_app_base):
                 data.gbl_shape[1] = self.get_height_resize(iface.view_gbl, None, iface.gbl_spacer,
                                                            [iface.gbl_left, iface.gbl_right])
 
-                # TODO consider moving out of thread
                 if iface.rasterize.props.active:
                     iface.text = 'place PNG'
                     LOG.debug(iface.text)
@@ -402,6 +401,9 @@ class gbl_page(ab12phylo_app_base):
                     except Exception as ex:
                         LOG.error(ex)
                 iface.i += 1
+
+                gtk_bin.realize()
+                gtk_bin.show_all()
 
         # re-size
         LOG.debug('re-sizing again')

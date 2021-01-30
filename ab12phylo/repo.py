@@ -99,6 +99,18 @@ clustalx = dict(zip(NUCLEOTIDES, [
     (1, 1, 1, 0),
     (0, 0, 0, 0)]))
 
+blue_pink = dict(zip(NUCLEOTIDES, [
+    (.12, .21, .95, 1),
+    (.29, .19, 1, 1),
+    (.74, .2, 1, 1),
+    (1, .91, .96, 1),
+    (.94, .94, .94, .6),
+    (0, 0, 0, 1),
+    (1, 1, 1, 0),
+    (1, 1, 1, 0),
+    (1, 1, 1, 0),
+    (0, 0, 0, 0)]))
+
 colors = list(map(tohex, map(technicolor.get, NUCLEOTIDES)))
 USER = 'leo.kaindl@tum.de'
 SEP = '??'
@@ -158,11 +170,13 @@ help = {0: '<b>Welcome to AB12PHYLO!</b> \nPlease define your dataset of ABI tra
            '<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi">BLAST</a>. '
            'Searching an online database such as <a href="'
            'https://www.ncbi.nlm.nih.gov/nucleotide/">NCBI nt</a> via the public '
-           'BLAST API is also possible, but should not be the main search strategy.',
+           'BLAST API is also possible, but should not be the main search strategy. '
+           'You can continue while BLAST is running.',
         6: 'Infer a phylogenetic tree using <a href="https://github.com/amkozlov/raxml'
            '-ng/">RAxML-NG</a> in three stages: <b>1:</b> Find the maximum-likelihood '
            'tree for the specified evolutionary model from multiple tree searches. <b>'
-           '2:</b> Estimate confidence values in this tree by Bootstrapping. <b>3:</b> '
+           '2:</b> Estimate confidence values for the phylogenetic placement of the taxa '
+           'in the ML tree by Bootstrapping. <b>3:</b> '
            'Map the result of <b>2</b> to the tree from <b>1</b> as branch support values.',
         7: 'Plot the resulting ML tree and calculate basic diversity / neutrality metrics '
            'in the dataset. Click inside the visualizations to select samples, and right-'
