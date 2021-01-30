@@ -47,9 +47,10 @@ rgx = lambda c: re.compile(r'|'.join(
     ['.*' + re.escape(word.strip()) + '.*' for word in
      c.strip().strip(',').split(',')]))
 
-tohex = lambda c: '#' + ''.join([(hex(min(255, int(round(a * 256))))[2:] + '0')[:2].upper() for a in c])
+tohex = lambda c: '#' + ''.join([('0' + hex(min(255, int(round(a * 256))))[2:])[-2:].upper() for a in c])
+torgba = lambda a: tuple(round(int(a[1 + i * 2: 3 + i * 2], 16) / 255, 2) for i in range(len(a) // 2))
 
-KXLIN = {
+technicolor = {
     'A': (0.92, 1, 0.4, 1),
     'C': (0.46, 1, 0.44, 1),
     'G': (0.16, 0.44, 0.8, 1),
@@ -62,7 +63,43 @@ KXLIN = {
     '?': (0, 0, 0, 0)
 }
 
-colors = list(map(tohex, map(KXLIN.get, NUCLEOTIDES)))
+green_blue = dict(zip(NUCLEOTIDES, [
+    (.56, 1, .14, 1),
+    (.16, .44, .8, 1),
+    (.06, 1, .75, 1),  # rgb(15,255,192)
+    (.92, 1, .7, 1),
+    (.94, .94, .94, .6),
+    (0, 0, 0, 1),
+    (1, 1, 1, 0),
+    (1, 1, 1, 0),
+    (1, 1, 1, 0),
+    (0, 0, 0, 0)]))
+
+viridis = dict(zip(NUCLEOTIDES, [
+    (.48, .11, .44, 1),
+    (.22, .55, .77, 1),
+    (.1, .9, .51, 1),
+    (1, .9, 0, 1),
+    (.94, .94, .94, .6),
+    (0, 0, 0, 1),
+    (1, 1, 1, 0),
+    (1, 1, 1, 0),
+    (1, 1, 1, 0),
+    (0, 0, 0, 0)]))
+
+clustalx = dict(zip(NUCLEOTIDES, [
+    (.9, .2, .1, 1),  # clustal-red
+    (.1, .5, .9, 1),  # clustal-blue
+    (.9, .6, .3, 1),  # clustal-orange
+    (.1, .8, .1, 1),  # clustal-green
+    (.4, .4, .4, 1),  # clustal-dark-gray
+    (0, 0, 0, 1),
+    (1, 1, 1, 0),
+    (1, 1, 1, 0),
+    (1, 1, 1, 0),
+    (0, 0, 0, 0)]))
+
+colors = list(map(tohex, map(technicolor.get, NUCLEOTIDES)))
 USER = 'leo.kaindl@tum.de'
 SEP = '??'
 ALPHA = .25

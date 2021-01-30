@@ -156,7 +156,7 @@ class tree_page(ab12phylo_app_base):
                 # load MSA PNG
                 self.load_image(iface.zoomer, PAGE, iface.msa_eventbox,
                                 self.wd / repo.PATHS.phylo_msa,
-                                w=phy.shape[0] * self.get_hadj(), h=phy.shape[1])
+                                w=phy.shape[0] * self.get_hadj() * 2, h=phy.shape[1])
                 # load colorbars
                 self.load_colorbar(iface.palplot1)
                 if phy.axis and len(data.genes) > 1:
@@ -998,17 +998,18 @@ class tree_page(ab12phylo_app_base):
             sleep(.05)
             self.load_image(iface.zoomer, PAGE, iface.msa_eventbox,
                             self.wd / repo.PATHS.phylo_msa,
-                            w=phy.shape[0] * self.get_hadj(), h=phy.shape[1])
+                            w=phy.shape[0] * self.get_hadj() * 2, h=phy.shape[1])
         else:
             iface.text = 'place vector'
             LOG.debug(iface.text)
             canvas = FigureCanvas(f)  # a Gtk.DrawingArea
-            canvas.set_size_request(
-                w=phy.shape[0] * self.get_hadj(), h=phy.shape[1])
+            canvas.set_size_request(phy.shape[0] * self.get_hadj() * 2, phy.shape[1])
             try:
-                iface.qal_eventbox.get_child().destroy()
-                iface.qal_eventbox.add(canvas)
-            except Gtk.Error as ex:
+                ch = iface.msa_eventbox.get_child()
+                if ch:
+                    iface.msa_eventbox.remove(ch)
+                iface.msa_eventbox.add(canvas)
+            except Exception as ex:
                 LOG.error(ex)
         plt.close(f)
         del f

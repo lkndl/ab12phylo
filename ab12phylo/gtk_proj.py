@@ -90,6 +90,7 @@ class project_dataset:
                                                    str,  # species
                                                    str,  # foreground color
                                                    str)  # background color
+        self.colors = None
 
     def new_project(self):
         self.overwrite(project_dataset())

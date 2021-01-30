@@ -31,6 +31,6 @@ setup(name='ab12phylo',
       classifiers=['Development Status :: 4 - Beta',
                    'Programming Language :: Python :: 3',
                    'License :: OSI Approved :: MIT License',
-                   'Operating System :: OS Independent'],
+                   'Operating System :: Unix'],
       keywords=['bioinformatics', 'phylogenetics', 'population genetics'],
       python_requires='>=3.6')

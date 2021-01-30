@@ -210,10 +210,10 @@ class gbl_page(ab12phylo_app_base):
             if flank < cons:
                 flank = cons
             params = [cons, flank, bad, good, gaps]
-            # check if they have changed
-            if iface.tempspace.params == params:
-                self.show_notification('MSA already trimmed, please proceed')
-                return
+            # # check if they have changed
+            # if iface.tempspace.params == params:
+            #     self.show_notification('MSA already trimmed, please proceed')
+            #     return
             iface.tempspace.params = params
 
         # save_ui_state from iface.tempspace into data.gbl
@@ -395,9 +395,11 @@ class gbl_page(ab12phylo_app_base):
                     canvas = FigureCanvas(f)
                     canvas.set_size_request(len(blocks) * self.get_hadj(), data.gbl_shape[1])  # width, height
                     try:
-                        gtk_bin.remove(gtk_bin.get_child())
+                        ch = gtk_bin.get_child()
+                        if ch:
+                            gtk_bin.remove(ch)
                         gtk_bin.add(canvas)
-                    except Gtk.Error as ex:
+                    except Exception as ex:
                         LOG.error(ex)
                 iface.i += 1
 

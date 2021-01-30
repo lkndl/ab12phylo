@@ -333,9 +333,11 @@ class qal_page(ab12phylo_app_base):
             canvas = FigureCanvas(f)  # a Gtk.DrawingArea
             canvas.set_size_request(data.qal_shape[0] * self.get_hadj(), data.qal_shape[1])
             try:
-                iface.qal_eventbox.get_child().destroy()
+                ch = iface.qal_eventbox.get_child()
+                if ch:
+                    iface.qal_eventbox.remove(ch)
                 iface.qal_eventbox.add(canvas)
-            except Gtk.Error as ex:
+            except Exception as ex:
                 LOG.error(ex)
         iface.i += 1
         self.load_colorbar(iface.palplot)

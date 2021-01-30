@@ -49,9 +49,10 @@ class ab12phylo_app_base(Gtk.Application):
     def do_startup(self):
         Gtk.Application.do_startup(self)
         # connect menu actions and shortcuts
-        for act, acc in zip(['new', 'open', '_import', 'save', 'save_as',
-                             'help', 'about', 'test', 'on_quit'],
-                            ['n', 'o', 'i', 's', '<Shift>s', 'h', '<Shift>h', '<Shift>t', 'q']):
+        for act, acc in zip(['new', 'open', '_import', 'save', 'save_as', 'help',
+                             'about', 'test', 'on_quit', 'change_colors'],
+                            ['n', 'o', 'i', 's', '<Shift>s', 'h',
+                             '<Shift>h', '<Shift>t', 'q', '<Shift>c']):
             action = Gio.SimpleAction.new(act)
             action.connect('activate', self.__getattribute__(act))  # can pass parameters here
             self.add_action(action)
@@ -188,6 +189,9 @@ class ab12phylo_app_base(Gtk.Application):
 
         iface.dismiss.connect(
             'clicked', lambda *args: iface.revealer.set_reveal_child(False))
+        iface.theme_picker.connect('changed', self.change_theme)
+        self.iface.color_dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                            Gtk.STOCK_OK, Gtk.ResponseType.OK)
         self.bind_accelerator(self.accelerators, iface.dismiss, 'Escape')
         self.bind_accelerator(self.accelerators, iface.dismiss, 'Return')
 
@@ -260,6 +264,10 @@ class ab12phylo_app_base(Gtk.Application):
             Path.mkdir(self.wd, exist_ok=True)
             self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
             self.iface.notebook.set_current_page(self.data.page)
+
+            if self.data.colors:
+                repo.colors = list(map(repo.tohex, map(
+                    self.data.colors.get, repo.NUCLEOTIDES)))
 
         except Exception as e:
             LOG.exception(e)
@@ -951,8 +959,9 @@ class ab12phylo_app_base(Gtk.Application):
                             bbox_inches='tight', pad_inches=0, dpi=600)
                 plt.close(fig)
                 del fig, cbar
-            gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                str(self.wd / path), width=250, height=100, preserve_aspect_ratio=True))
+            if gtk_image:
+                gtk_image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                    str(self.wd / path), width=250, height=100, preserve_aspect_ratio=True))
 
     # MARK files
     def get_hashes(self, msa_path, page):
@@ -1028,3 +1037,42 @@ class ab12phylo_app_base(Gtk.Application):
     def bind_accelerator(self, accelerators, widget, accelerator, signal='clicked'):
         key, mod = Gtk.accelerator_parse(accelerator)
         widget.add_accelerator(signal, accelerators, key, mod, Gtk.AccelFlags.VISIBLE)
+
+    def change_theme(self, combo, *args):
+        iface = self.iface
+        for wi in iface.flowbox.get_children():
+            wi.destroy()
+        theme = [repo.technicolor, repo.green_blue, repo.viridis,
+                 repo.clustalx][combo.get_active()]
+        for nt in repo.NUCLEOTIDES[:6]:
+            a = Gtk.ColorButton.new_with_rgba(
+                Gdk.RGBA(*theme[nt]))
+            a.props.show_editor = True
+            a.props.visible = True
+            iface.flowbox.add(a)
+        LOG.debug('changed color theme')
+
+    def change_colors(self, *args):
+        iface = self.iface
+        if not self.data.colors:
+            self.data.colors = {nt: c for nt, c in repo.technicolor.items()}
+
+        for wi in iface.flowbox.get_children():
+            wi.destroy()
+
+        for nt in repo.NUCLEOTIDES[:6]:
+            a = Gtk.ColorButton.new_with_rgba(
+                Gdk.RGBA(*self.data.colors[nt]))
+            a.props.show_editor = True
+            a.props.visible = True
+            iface.flowbox.add(a)
+
+        response = self.iface.color_dialog.run()
+        if response == Gtk.ResponseType.OK:
+            for wi, nt in zip(iface.flowbox.get_children(), repo.NUCLEOTIDES[:6]):
+                self.data.colors[nt] = tuple(wi.get_child().get_rgba())
+
+            repo.colors = list(map(repo.tohex, map(self.data.colors.get, repo.NUCLEOTIDES)))
+            LOG.debug('changed colors')
+            self.load_colorbar(None)  # force a re-plot
+        self.iface.color_dialog.hide()

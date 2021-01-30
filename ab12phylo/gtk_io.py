@@ -83,7 +83,6 @@ class io_page(ab12phylo_app_base):
             iface.__getattribute__('delete_all_%s' % file_type) \
                 .connect('clicked', self.delete_files_from_input_selection, PAGE, sel, mo)
 
-        iface.rasterize.set_visible(False)
         # horizontal scaling
         iface.zoomer.adj = iface.qal_scale.get_adjustment()
         iface.zoomer.adj.configure(1, .2, 2.6, .2, 0, 0)
