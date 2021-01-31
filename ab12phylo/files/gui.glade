@@ -6092,7 +6092,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="hexpand">True</property>
-                                        <property name="position">300</property>
+                                        <property name="position">444</property>
                                         <property name="position-set">True</property>
                                         <child>
                                           <object class="GtkScrolledWindow" id="tree_left">

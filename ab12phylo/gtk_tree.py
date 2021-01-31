@@ -144,7 +144,7 @@ class tree_page(ab12phylo_app_base):
         iface = self.iface
         phy = data.phy
         self.reload_ui_state(page=PAGE)
-        iface.tree_pane.set_position(301)
+        iface.tree_pane.set_position(460)
 
         if (self.wd / phy.tx).with_suffix('.png').is_file() \
                 and (self.wd / repo.PATHS.phylo_msa).is_file() \
@@ -802,9 +802,9 @@ class tree_page(ab12phylo_app_base):
         if phy.circ:
             phy.tx = 'circular'
             ly = 'c'
-            w, h = 1400, 1400
+            w, h = 1600, 1600
             iface.canvas = toyplot.Canvas(width=w, height=h)
-            iface.axes = iface.canvas.cartesian(bounds=(0, w, 0, h))
+            iface.axes = iface.canvas.cartesian(bounds=(200, w - 200, 200, h - 200))
         elif phy.rect:
             phy.tx = 'rectangular'
             ly = 'r'

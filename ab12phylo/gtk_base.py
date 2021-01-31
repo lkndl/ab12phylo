@@ -723,7 +723,8 @@ class ab12phylo_app_base(Gtk.Application):
 
         h_now = zoom_ns.sizes[page][3]
         # print('%d:%d:%d:%d' % (tv.get_margin_bottom(), rect.height, h_now, loc.y))
-        idx = int((loc.y - (rect.height - h_now) / 2) / (h_now - tv.get_margin_bottom()) * len(mo))
+        idx = int((loc.y - (rect.height - h_now) / 2) /
+                  h_now / (1 - tv.get_margin_bottom() / tv.get_allocated_height()) * len(mo))
         if idx == '' or idx < 0:
             sel.unselect_all()
             return
@@ -791,10 +792,11 @@ class ab12phylo_app_base(Gtk.Application):
             LOG.info('won\'t rescale %s' % str(type(child)))
             return False
         pb = child.get_pixbuf()
+        new_x = min(14000, pb.get_width() * x)
+        new_y = min(14000, pb.get_height() * y)
         child.set_from_pixbuf(pb.scale_simple(
-            min(14000, pb.get_width() * x), min(14000, pb.get_height() * y),
-            GdkPixbuf.InterpType.BILINEAR))
-        return True
+            new_x, new_y, GdkPixbuf.InterpType.BILINEAR))
+        return new_x, new_y
 
     def x_scale(self, adj, zoom_ns):
         """Horizontally scale a preview"""
@@ -806,7 +808,7 @@ class ab12phylo_app_base(Gtk.Application):
             x = a.value / zoom_ns.bak
             min_w, min_h, w_now, h_now = zoom_ns.sizes[page]
 
-            if x * w_now > 2 * min_w:
+            if x * w_now > 1.4 * min_w:
                 LOG.debug('re-loading images')
                 # load larger, so zoom in won't happen so soon again
                 a.value = min(a.upper, a.value + 2 * a.step_increment)
@@ -830,12 +832,12 @@ class ab12phylo_app_base(Gtk.Application):
             else:
                 LOG.debug('scale x: %.2f fold' % x)
                 if page == 2:
-                    self.scale(self.iface.qal_eventbox, x, 1)
+                    w_now, h_now = self.scale(self.iface.qal_eventbox, x, 1)
                 elif page == 4:
                     self.scale(self.iface.gbl_left_vp, x, 1)
-                    self.scale(self.iface.gbl_right_vp, x, 1)
+                    w_now, h_now = self.scale(self.iface.gbl_right_vp, x, 1)
                 elif page == 7:
-                    self.scale(self.iface.msa_eventbox, x, 1)
+                    w_now, h_now = self.scale(self.iface.msa_eventbox, x, 1)
                 zoom_ns.sizes[page] = [min(w_now * x, min_w), min_h, w_now * x, h_now]
             zoom_ns.bak = a.value
 
@@ -852,6 +854,9 @@ class ab12phylo_app_base(Gtk.Application):
         iface = self.iface
         accel_mask = Gtk.accelerator_get_default_mod_mask()
         if event.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
+            if not iface.rasterize.props.active:
+                LOG.info('won\'t rescale Matplotlib')
+                return
             with GObject.signal_handler_block(iface.zoomer.adj, iface.zoomer.handle):
                 direction = event.get_scroll_deltas()[2]
                 a = iface.zoomer.adj.props
@@ -871,6 +876,7 @@ class ab12phylo_app_base(Gtk.Application):
                         self.scale(iface.gbl_right_vp, new, new)
                     elif page == 7:
                         self.scale(iface.msa_eventbox, new, new)
+                        self.scale(iface.tree_eventbox, new, new)
                     # adjust the saved sizes
                     iface.zoomer.sizes[page] = [min(min_w * new, min_w), min(min_h * new, min_h), w_now * new,
                                                 h_now * new]
@@ -882,14 +888,16 @@ class ab12phylo_app_base(Gtk.Application):
                     min_w, min_h, w_now, h_now = iface.zoomer.sizes[page]
                     if w_now / min_w * new > 3 or h_now / min_h * new > 4:
                         # re-load is due. jump ahead by incrementing again
-                        a.value = min(a.upper, a.value + 2 * a.step_increment)
+                        a.value = min(a.upper, a.value + a.step_increment)
                         new = a.value / bak
                         LOG.debug('re-loading images, scale xy: %.2f fold, %.1f' % (new, a.value))
                         if page == 2:
+                            h_now = data.qal_shape[1]
                             self.load_image(iface.zoomer, page, iface.qal_eventbox,
                                             self.wd / repo.PATHS.preview,
                                             data.qal_shape[0] * a.value * 2, data.qal_shape[1])
                         elif page == 4:
+                            h_now = data.gbl_shape[1]
                             self.load_image(iface.zoomer, page, iface.gbl_left_vp,
                                             self.wd / repo.PATHS.left,
                                             data.msa_shape[0] * a.value * 2, data.gbl_shape[1])
@@ -897,22 +905,24 @@ class ab12phylo_app_base(Gtk.Application):
                                             self.wd / repo.PATHS.right,
                                             data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
                         elif page == 7:
+                            h_now = data.phy.shape[1]
                             self.load_image(iface.zoomer, page, iface.msa_eventbox,
                                             self.wd / repo.PATHS.phylo_msa,
                                             data.phy.shape[0] * a.value * 2, data.phy.shape[1])
+                            self.load_image(iface.zoomer, page, iface.tree_eventbox,
+                                            self.wd / (data.phy.tx + '.png'), h=data.phy.shape[1])
                     else:
                         LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
                         # scale the easy way
                         if page == 2:
-                            self.scale(iface.qal_eventbox, new, new)
+                            w_now, h_now = self.scale(iface.qal_eventbox, new, new)
                         elif page == 4:
                             self.scale(iface.gbl_left_vp, new, new)
-                            self.scale(iface.gbl_right_vp, new, new)
+                            w_now, h_now = self.scale(iface.gbl_right_vp, new, new)
                         elif page == 7:
                             self.scale(iface.msa_eventbox, new, new)
-                    iface.zoomer.sizes[page] = [min_w, min_h, w_now * new, h_now * new]
-                if page == 7:
-                    iface.tree_pane.set_position(300)
+                            w_now, h_now = self.scale(iface.tree_eventbox, new, new)
+                    iface.zoomer.sizes[page] = [min_w, min_h, w_now, h_now]
                 iface.zoomer.bak = a.value
 
     # MARK images

@@ -1,14 +1,16 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![gitlab version](https://img.shields.io/static/v1?label=version&message=0.4b06&color=blue&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.4b07&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.6&color=orange&style=flat&logo=python)
 
-[AB12PHYLO](https://gitlab.lrz.de/leokaindl/ab12phylo/) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
+[AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
 At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.com/amkozlov/raxml-ng) (Kozlov et al. 2019) and a BLAST search in a reference database. 
 It enables visual, effortless sample identification based on phylogenetic position and sequence similarity, as well as population subset selection aided by metrics like Tajima's D for estimations of ongoing evolution.
  
-AB12PHYLO was developed to identify plant pathogen populations possibly under balancing selection with *Solanum chilense*, especially in the genus *Alternaria*. With multi-gene phylogenies remaining a widely-used method in spite of the rise of whole-genome sequencing, future application on fungal phytopathogens or host plants appears likely.
+ ![./ab12phylo/files/screen_04.png](./ab12phylo/files/screen_04.png)
+ 
+AB12PHYLO was developed to identify plant pathogen populations possibly under balancing selection with *Solanum chilense*, especially in the genus *Alternaria*. With multi-gene phylogenies still a widely-used method in spite of the rise of whole-genome sequencing, future application on fungal phytopathogens or host plants might be possible.
 
 
 ## Installation
@@ -16,7 +18,7 @@ AB12PHYLO was developed to identify plant pathogen populations possibly under ba
 First, clone the AB12PHYLO repository:
  
 ```shell script
-git clone https://gitlab.lrz.de/leokaindl/ab12phylo.git
+git clone https://github.com/lkndl/ab12phylo
 ```
 All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, which can simplify installation. To create a new or activate an existing python3 [conda](https://docs.conda.io/) environment:
 ```shell script
