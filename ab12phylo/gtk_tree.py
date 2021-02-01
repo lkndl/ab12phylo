@@ -771,9 +771,9 @@ class tree_page(ab12phylo_app_base):
         iface.text = 'prepare plot attributes'
         iface.view_msa_ids.set_margin_bottom(50 * phy.axis)
         iface.view_msa_ids.realize()
+        sleep(.1)
         # get model height
         phy.height = iface.view_msa_ids.get_allocated_height() + 50 * phy.axis
-        # print(phy.height)
 
         # pre-calculate plot attributes
         # internal node size -> support

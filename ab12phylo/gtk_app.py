@@ -114,7 +114,7 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
                 if 1 < sum(data.rx_fired) < 5:
                     self.show_notification('Make sure all columns have been parsed.')
                     return
-                self.start_read(run_after=[self.proceed])
+                self.start_read(run_after=[self.init_gene_roll, self.proceed])
                 return  # leave this alone
             elif page == 2:
                 self.trim_all(run_after=[self.proceed])

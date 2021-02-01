@@ -100,9 +100,9 @@ clustalx = dict(zip(NUCLEOTIDES, [
     (0, 0, 0, 0)]))
 
 blue_pink = dict(zip(NUCLEOTIDES, [
-    (.12, .21, .95, 1),
-    (.29, .19, 1, 1),
-    (.74, .2, 1, 1),
+    (.4, .65, .96, 1),
+    (.14, .05, .8, 1),
+    (.99, .33, .93, 1),
     (1, .91, .96, 1),
     (.94, .94, .94, .6),
     (0, 0, 0, 1),
@@ -181,5 +181,5 @@ help = {0: '<b>Welcome to AB12PHYLO!</b> \nPlease define your dataset of ABI tra
         7: 'Plot the resulting ML tree and calculate basic diversity / neutrality metrics '
            'in the dataset. Click inside the visualizations to select samples, and right-'
            'click for tree operations such as rooting, dropping nodes, collapsing or '
-           'extracting taxa.'
+           'extracting taxa. Species labels can be edited on the BLAST page.'
         }

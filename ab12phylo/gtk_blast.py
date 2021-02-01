@@ -215,6 +215,7 @@ class blast_page(ab12phylo_app_base):
         iface.blast_spinner.start()
         iface.spinbox.set_visible(True)
         gene = iface.blast_gene.get_active_text()
+        data.gene_for_preview = gene
         if mode == 'local':
             fasta = self.wd / gene / (gene + '.fasta')
             if not fasta.is_file():
