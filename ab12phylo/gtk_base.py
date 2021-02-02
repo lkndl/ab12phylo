@@ -265,7 +265,8 @@ class ab12phylo_app_base(Gtk.Application):
             self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
             self.iface.notebook.set_current_page(self.data.page)
 
-            del self.iface.tempspace.df
+            if 'df' in self.iface.tempspace:
+                del self.iface.tempspace.df
             if self.data.colors:
                 repo.colors = list(map(repo.tohex, map(
                     self.data.colors.get, repo.NUCLEOTIDES)))

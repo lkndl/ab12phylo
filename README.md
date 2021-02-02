@@ -29,14 +29,11 @@ Then install the external tools in one go:
 
 ```shell script
 conda install -c bioconda "blast>=2.9.0" raxml-ng "gblocks=0.91b" mafft clustalo muscle
-
-# for development
-conda install -c conda-forge pygobject gtk3    
 ```
 
 You will then have to `conda activate <your_python3_conda_env>` anytime you want to use AB12PHYLO. Alternatively, just install your MSA tool of choice and BLAST+ (if you'd like to include species annotations) yourself.
 
-If you are using conda, please check `which python` and `which pip` is active inside your environment (where you will see `(<your_python3_conda_env>)` to the left of your shell prompt, shortened here to `<env>`).
+If you are on Linux and using conda, please check `which python` and `which pip` is active inside your environment (where you will see `(<your_python3_conda_env>)` to the left of your shell prompt, shortened here to `<env>`).
 
  ```console
 (<env>) foo@bar:~$ which python
@@ -48,9 +45,7 @@ If you are using conda, please check `which python` and `which pip` is active in
 (<env>) foo@bar:~$ which pip3
 /home/foo/anaconda3/envs/<env>/bin/pip3
 ```
-In the case shown here, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment.
- 
- 
+In the case shown here, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment. Sometimes there is no `pip` at all, which can be fixed on Linux using your package manager or `sudo apt-get install python3-pip` on Ubuntu.
  
 Now install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or `pip3`:
  
@@ -58,6 +53,12 @@ Now install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or 
 cd ab12phylo
 pip install --upgrade pip
 pip install .
+```
+
+If starting AB12PHYLO via `ab12phylo` fails with something like `ValueError: Namespace Gtk not available` or `ModuleNotFoundError: No module named 'gi'`, the conda python cannot see GTK3. This can be fixed by installing GTK3 to `<env>` via:
+
+```shell script
+conda install -c conda-forge pygobject gtk3  
 ```
 
 
