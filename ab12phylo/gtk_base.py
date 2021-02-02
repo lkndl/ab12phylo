@@ -72,7 +72,7 @@ class ab12phylo_app_base(Gtk.Application):
         return 0
 
     def __init__(self):
-        Gtk.Application.__init__(self, application_id='de.lrz.gitlab.leokaindl.ab12phylo',
+        Gtk.Application.__init__(self, application_id='com.github.lkndl.ab12phylo',
                                  flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
         self.add_main_option('open', ord('o'), GLib.OptionFlags.IN_MAIN,  # ord converts it to integer
                              GLib.OptionArg.STRING, 'project to load',
@@ -436,8 +436,8 @@ class ab12phylo_app_base(Gtk.Application):
                         comments='An integrated pipeline for Maximum Likelihood (ML) '
                                  'phylogenetic tree inference from ABI sequencing data',
                         program_name='AB12PHYLO', version=__version__,
-                        website='https://gitlab.lrz.de/leokaindl/ab12phylo',
-                        website_label='GitLab Repo', license_type=Gtk.License.MIT_X11,
+                        website='https://github.com/lkndl/ab12phylo',
+                        website_label='Github Repo', license_type=Gtk.License.MIT_X11,
                         logo=GdkPixbuf.Pixbuf.new_from_file(str(ab12phylo_app_base.ICON))).present()
 
     def _init_log(self, **kwargs):

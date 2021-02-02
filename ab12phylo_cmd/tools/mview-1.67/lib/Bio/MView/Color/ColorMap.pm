@@ -1005,7 +1005,7 @@ Xx       ->  light-gray      #unknown
 *        =>  black           #stop
 
 [LEO]
-#color scheme for AB12PHYLO https://gitlab.lrz.de/leokaindl/ab12phylo based on KXLIN
+#color scheme for AB12PHYLO https://github.com/lkndl/ab12phylo based on KXLIN
 Aa       =>  lin-A
 Rr       =>  lin-R
 Nn       =>  lin-N
