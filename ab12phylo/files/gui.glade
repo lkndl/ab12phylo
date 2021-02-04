@@ -6781,6 +6781,7 @@ Alternatively, a color legend would nicely fit here.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="no-show-all">True</property>
+                        <property name="margin-end">10</property>
                         <child>
                           <object class="GtkSpinner" id="blast_spinner">
                             <property name="name">blast_spinner</property>
@@ -6799,7 +6800,8 @@ Alternatively, a color legend would nicely fit here.</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel">
+                          <object class="GtkLabel" id="spin_label">
+                            <property name="name">spin_label</property>
                             <property name="width-request">10</property>
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
@@ -6808,6 +6810,9 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="halign">start</property>
                             <property name="hexpand">False</property>
                             <property name="label" translatable="yes"> BLAST</property>
+                            <style>
+                              <class name="prog_labels"/>
+                            </style>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -6831,6 +6836,9 @@ Alternatively, a color legend would nicely fit here.</property>
                         <property name="no-show-all">True</property>
                         <property name="halign">start</property>
                         <property name="hexpand">False</property>
+                        <style>
+                          <class name="prog_labels"/>
+                        </style>
                       </object>
                       <packing>
                         <property name="expand">False</property>

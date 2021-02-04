@@ -45,7 +45,7 @@ If you are on Linux and using conda, please check `which python` and `which pip`
 (<env>) foo@bar:~$ which pip3
 /home/foo/anaconda3/envs/<env>/bin/pip3
 ```
-In the case shown here, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment. Sometimes there is no `pip` at all, which can be fixed on Linux using your package manager or `sudo apt-get install python3-pip` on Ubuntu.
+In the case shown here, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment. Sometimes there is no `pip` at all, which can be fixed on Linux using your package manager (or `sudo apt-get install python3-pip` on Ubuntu), or in conda via `conda install -c conda-forge pip`.
  
 Now install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or `pip3`:
  

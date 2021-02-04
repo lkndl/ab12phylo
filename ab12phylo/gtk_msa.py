@@ -132,6 +132,8 @@ class msa_page(ab12phylo_app_base):
         if 'aligner' not in iface:
             self.get_help(None, remote)
         self.save_ui_state()
+        self.save()
+
         data.msa_lens.clear()
         iface.align_stack.props.sensitive = False
         iface.thread = threading.Thread(target=self.do_align, args=[remote])

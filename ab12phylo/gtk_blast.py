@@ -31,7 +31,6 @@ class blast_page(ab12phylo_app_base):
         data = self.data
         iface = self.iface
 
-        iface.pill2kill = threading.Event()
         iface.blast_spinner.stop()
         iface.spinbox.set_visible(False)
 
@@ -207,8 +206,11 @@ class blast_page(ab12phylo_app_base):
         iface = self.iface
 
         if 'blast_wrapper' in iface:
+            # The button was pressed when it was in the 'Stop' state
             iface.pill2kill.set()
+            sleep(.1)
             if iface.blaster.is_alive():
+                sleep(.1)
                 iface.blaster.stop()
             return
 
@@ -216,6 +218,7 @@ class blast_page(ab12phylo_app_base):
         iface.spinbox.set_visible(True)
         gene = iface.blast_gene.get_active_text()
         data.gene_for_preview = gene
+        LOG.info('running %s for %s' % (mode, gene))
         if mode == 'local':
             fasta = self.wd / gene / (gene + '.fasta')
             if not fasta.is_file():
@@ -273,10 +276,12 @@ class blast_page(ab12phylo_app_base):
         reader = Namespace(**{'seqdata': seqdata, 'metadata': None})
 
         iface.tup = (im, la, tx, gene)
+        LOG.debug('init blast.blast_build with %s' % str(args))
         iface.blaster = blast.blast_build(args, reader)
         iface.blast_wrapper = threading.Thread(
             # iface.blaster = multiprocessing.Process(
             target=self.do_BLAST)
+        GObject.timeout_add(1000, self.update_BLAST)
         iface.blast_wrapper.start()
         return
         # return to main loop
@@ -293,10 +298,19 @@ class blast_page(ab12phylo_app_base):
         data = self.data
         iface = self.iface
         if 'blaster' in iface:
-            if iface.blaster.update:  # a local database was created
+            blaster = iface.blaster
+            if blaster.update:  # a local database was created
                 iface.blast_db.get_model()[iface.blast_db.get_active()][-1] = True
             if iface.blaster.missing_fasta.is_file():
-                iface.missing_fasta.set_filename(str(iface.blaster.missing_fasta))
+                iface.missing_fasta.set_filename(str(blaster.missing_fasta))
+            if blaster.TSV != self.wd / repo.PATHS.tsv:
+                shutil.move(blaster.TSV, self.wd / repo.PATHS.tsv)
+                # df_old = self._df_with_sp(iface.blaster.TSV)
+                # df_old = df_old.loc[df_old['BLAST_species'] != '', :]
+                # df_new = self._df_with_sp(self.wd / repo.PATHS.tsv)
+                # for _id, series in df_old.iterrows():
+                #     df_new.loc[(df_new.index == series.name) & (df_new['gene'] == series.gene), :] = \
+                #         df_old.loc[(df_old.index == series.name) & (df_old['gene'] == series.gene), :]
 
         im, la, tx, gene = iface.tup
 
@@ -343,9 +357,9 @@ class blast_page(ab12phylo_app_base):
         """Re-fill the species annotation table"""
         data = self.data
         iface = self.iface
-        LOG.debug('re-fill species annotations')
         if not gene:
             gene = iface.blast_gene.get_active_text()
+        LOG.debug('re-fill species annotations for %s' % gene)
         if 'df' not in iface.tempspace or fresh:
             iface.tempspace.df = self._df_with_sp(self.wd / repo.PATHS.tsv)
         df = iface.tempspace.df

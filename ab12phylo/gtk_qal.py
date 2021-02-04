@@ -400,9 +400,11 @@ class qal_page(ab12phylo_app_base):
                     record_meta['quality'] = 'low quality'
                     continue
                 except AttributeError:
-                    if not p.accept_nophred and 'accession' not in record_meta:
+                    is_ref = 'accession' in record_meta
+                    if not p.accept_nophred and not is_ref:
                         continue
-                    record_meta['quality'] = 'no phreds'
+                    if not is_ref:
+                        record_meta['quality'] = 'no phreds'
                 # put back only the good records
                 genedata[_id] = record
 

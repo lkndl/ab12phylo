@@ -71,7 +71,7 @@ class blast_build(multiprocessing.Process):
     -none: do nothing
     -xml: read in result files and nothing else
     -local: do not run remote BLAST
-    -remote: do not run local BLAST (depreciated)
+    -remote: do not run local BLAST
     If a local search is run:
     Looks for pre-installed BLAST+ 2.9.0 or newer, updates or downloads a database if not
     specified via path, else checks integrity. Runs online Bio.BLAST.NCBIWWW.qblast unless
@@ -121,7 +121,7 @@ class blast_build(multiprocessing.Process):
         if self.no_BLAST is True:
             self.log.info('--SKIPPING BLAST--')  # leave it alone!
             return
-        while not self._stop_event.wait(1):
+        while not self._stop_event.wait(.1):
             if self.read_XML:
                 self.log.info('reading BLAST xml')
                 try:
@@ -170,7 +170,7 @@ class blast_build(multiprocessing.Process):
         Run a BLAST+ search and finally write updated non-seq data to a .csv file.
         :return: missing sequences as list of sample IDs
         """
-        while not self._stop_event.wait(1):
+        while not self._stop_event.wait(.1):
             # check BLAST+
             try:
                 binary = shutil.which('blastn')
@@ -266,7 +266,7 @@ class blast_build(multiprocessing.Process):
         Updates non-seq data .csv again.
         :return:
         """
-        while not self._stop_event.wait(1):
+        while not self._stop_event.wait(.1):
             self.log.warning('online BLAST: %d seq%s missing from %s'
                              % (len(missing_seqs), 's' if len(missing_seqs) > 1 else '', self.db))
 
@@ -407,18 +407,26 @@ class blast_build(multiprocessing.Process):
             self.df['pid'] = nan
             self.df['extra_species'] = ''
 
+        errors = False
         # parse .xml and write best hits info to metadata
         with open(self.bad_seqs, 'a') as fh:
             for xml in xmls:
                 for entry in SearchIO.parse(xml, 'blast-xml'):
                     if not self._parse(entry):
-                        if entry.id in self.df.index:
-                            file, box = self.df.loc[entry.id, self.gene][['file', 'box']]
-                            fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
-                                     % (file, entry.id, box, self.gene))
-                            self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
-                        else:
-                            self.log.error('no entry %s in metadata TSV' % entry.id)
+                        try:
+                            if entry.id in self.df.index:
+                                file, box = self.df.loc[entry.id, self.gene][['file', 'box']]
+                                fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
+                                         % (file, entry.id, box, self.gene))
+                                self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
+                            else:
+                                self.log.error('no entry %s in metadata TSV' % entry.id)
+                        except KeyError as ke:
+                            errors = True
+                            self.log.error(ke)
+        if errors:
+            self.log.warning('printing DataFrame for check')
+            self.log.warning(self.df)
 
         # write to TSV
         self.df.to_csv(self.TSV, sep='\t', na_rep='', header=True, index=True)

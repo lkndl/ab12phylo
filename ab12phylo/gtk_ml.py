@@ -186,8 +186,12 @@ class ml_page(ab12phylo_app_base):
         iface = self.iface
         ml = data.ml
 
-        if not data.genes or iface.thread.is_alive():
-            self.show_notification('Busy', secs=1)
+        if not data.genes:
+            self.show_notification('No genes', secs=1)
+            return
+        elif iface.thread.is_alive():
+            # The button was pressed when it was in the 'Stop' state
+            iface.pill2kill.set()
             return
 
         if mode in ['raxml', 'raxml_export']:
@@ -222,6 +226,12 @@ class ml_page(ab12phylo_app_base):
             raise NotImplementedError
         self.save()
         sleep(.1)
+
+        # change the button to its stop state
+        (im, la), tx = iface.raxml_run.get_child().get_children(), 'Run'
+        im.set_from_icon_name('media-playback-stop-symbolic', 4)
+        la.set_text('Stop')
+        iface.tup = (im, la, tx)
 
         iface.thread = threading.Thread(target=self.do_ML, args=[mode])
         GObject.timeout_add(100, self.update_ML, PAGE, ml)
@@ -317,6 +327,7 @@ rm pipe
                         sh.write('\nsleep 1s\n\n')
                     continue
 
+            # running RAxML, but live rather than in shell mode
             iface.text = desc
             LOG.info(iface.text)
             ml.stdout = list()
@@ -325,7 +336,7 @@ rm pipe
 
             # read realtime RAxML output line by line
             proc = Popen(args=shlex.split(arg % add), stdout=PIPE, stderr=PIPE)
-            while True:
+            while True and not iface.pill2kill.is_set():
                 line = proc.stdout.readline()
                 if proc.poll() is not None:
                     sleep(.2)
@@ -339,6 +350,11 @@ rm pipe
                 else:
                     sleep(.2)
                     break
+
+            if iface.pill2kill.is_set():
+                sleep(.2)
+                GObject.idle_add(self.stop_ML, errors, start)
+                return True
 
             # bf = iface.ml_help.get_buffer()
             # bf.props.text = bf.props.text + '\n' + '\n'.join(ml.stdout)
@@ -446,20 +462,30 @@ echo "CPUs available: $cpus, use at most $used"
         iface.thread.join()
         self.update_ML(PAGE, self.data.ml)
         self.win.show_all()
-        LOG.info('ML thread idle')
-        self.set_changed(PAGE, False)
+
+        # change the button to its stop state
+        im, la, tx = iface.tup
+        im.set_from_icon_name('media-playback-start-symbolic', 4)
+        la.set_text(tx)
         if errors:
             self.show_notification('Errors during ML inference', errors)
+        elif iface.pill2kill.is_set():
+            tx = 'stopped ML inference'
+            self.show_notification(msg=tx, secs=2)
         elif time() - start > 120:
             Popen(['notify-send', 'AB12PHYLO', 'ML Tree Inference finished',
                    '-i', str(repo.PATHS.icon_path)])
             # notify = threading.Thread(target=_zenity, args=())
             # notify.start()
         else:
-            self.show_notification('ML finished')
+            tx = 'ML inference finished'
+            self.show_notification(tx)
+        LOG.info(tx)
+        iface.pill2kill.clear()
         self.refresh()
         if iface.run_after:
             [do_func() for do_func in iface.run_after]
+        self.set_changed(PAGE, False)
         return
 
     def _save_somewhere_else(self, path):

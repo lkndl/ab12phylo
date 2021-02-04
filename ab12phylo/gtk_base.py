@@ -44,6 +44,14 @@ class ab12phylo_app_base(Gtk.Application):
         if self.wd == Path('untitled') and not self.project_path:
             LOG.info('shutdown: delete prelim data')
             shutil.rmtree(path=self.wd)
+
+        # kill BLAST thread
+        if 'blaster' in self.iface:
+            self.iface.pill2kill.set()
+            if self.iface.blaster.is_alive():
+                self.iface.blaster.stop()
+                sleep(1)
+
         Gtk.Application.do_shutdown(self)
 
     def do_startup(self):
@@ -107,6 +115,7 @@ class ab12phylo_app_base(Gtk.Application):
 
         # set up an empty thread so Gtk can get used to it
         iface.thread = threading.Thread()
+        iface.pill2kill = threading.Event()
         iface.i = 0
         iface.k = 1
         iface.frac = 0
@@ -135,7 +144,7 @@ class ab12phylo_app_base(Gtk.Application):
             background-color: @success_color; }
         progressbar trough { min-height: 6px; }
         .hint { opacity: .6; } 
-        #prog_label { font-size: x-small }
+        .prog_labels { font-size: x-small }
         button:active { background-color: #17f }
         notebook header { background-color: transparent; }
         '''
@@ -258,7 +267,7 @@ class ab12phylo_app_base(Gtk.Application):
             except ValueError as ve:
                 LOG.error(ve)
             self.project_path = project_path
-            if self.wd == Path('untitled'):
+            if self.wd == Path('untitled') and project_path.stem != 'untitled':
                 shutil.rmtree(self.wd, ignore_errors=True)
             self.wd = self.project_path.parent / self.project_path.stem
             Path.mkdir(self.wd, exist_ok=True)
@@ -306,8 +315,11 @@ class ab12phylo_app_base(Gtk.Application):
             except FileNotFoundError:
                 pass
 
-            # delete old data if it was in the prelim directory
-            if self.wd == Path('untitled'):  # Path.cwd() / 'untitled':
+            if 'blaster' in self.iface and self.iface.blaster.is_alive():
+                self.show_message_dialog('Saving to a new location while BLAST is active. '
+                                         'Do not delete old data before the search has finished!')
+            elif self.wd == Path('untitled'):
+                # delete old data if it was in the prelim directory
                 shutil.rmtree(path=self.wd)
 
             self.wd = new_wd
@@ -556,10 +568,11 @@ class ab12phylo_app_base(Gtk.Application):
         revealer.set_reveal_child(False)
 
     # MARK update
-    def update(self, page, *args):
+    def update(self, page, sensitive=False, *args):
         """
         Keep the progress bar up-to-date, and slowly moving rightwards
         :param page: the index of the current page, which will be frozen
+        :param sensitive: allow not freezing the page
         """
         iface = self.iface
         iface.frac = min(
@@ -568,7 +581,7 @@ class ab12phylo_app_base(Gtk.Application):
             (iface.i + 1) / iface.k,  # but do not pass next iteration level
             1)  # and never pass 1
         if iface.thread.is_alive():
-            iface.notebook.get_children()[page].set_sensitive(False)
+            iface.notebook.get_children()[page].set_sensitive(sensitive)
             iface.prog_bar.set_fraction(iface.frac)
             for wi in [iface.prog_bar, iface.prog_label]:
                 wi.set_visible(True)
@@ -595,7 +608,20 @@ class ab12phylo_app_base(Gtk.Application):
                     except ValueError:
                         pass
             iface.i = len(seen_set) + ml.prev
-        return self.update(page)
+        return self.update(page, sensitive=True)
+
+    def update_BLAST(self, *args):
+        """
+        Edit the GtkLabel next to the BLAST spinner as a backup progress
+        indicator for cases where the spinner is not showing up.
+        """
+        if 'blast_wrapper' in self.iface and self.iface.blast_wrapper.is_alive():
+            spl = self.iface.spin_label
+            spl.set_text(' BLAST' + ''.join(['.'] * ((len(spl.get_text()) - 5) % 4)))
+            return True
+        else:
+            self.iface.spin_label.set_text(' BLAST')
+            return False
 
     # MARK TreeViews
     def keep_visible(self, sel, adj, ns):
@@ -1043,6 +1069,7 @@ class ab12phylo_app_base(Gtk.Application):
         """
         Write the metadata dictionary to the metadata.tsv
         """
+        LOG.debug('writing metadata dict to %s' % str(self.wd / repo.PATHS.tsv))
         Path.mkdir(self.wd, exist_ok=True)
         md = self.data.metadata
         # convert metadata dict do pandas DataFrame
