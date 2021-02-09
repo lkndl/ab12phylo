@@ -2140,6 +2140,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="vexpand">False</property>
                                 <property name="max-width-chars">24</property>
                                 <property name="text" translatable="yes">[-_\s]pl([\d])[-_\s][\d]{1,2}[-_\s](.+)[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
+                                <property name="placeholder-text" translatable="yes">[-_\s]pl([\d])[-_\s][\d]{1,2}[-_\s](.+)[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -2174,6 +2175,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="tooltip-text" translatable="yes">press Enter to apply</property>
                                 <property name="vexpand">False</property>
                                 <property name="text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s](.+)[-_\s][A-Z][\d]{1,2}[-_\s]</property>
+                                <property name="placeholder-text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s](.+)[-_\s][A-Z][\d]{1,2}[-_\s]</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -2245,6 +2247,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="tooltip-text" translatable="yes">Field is disabled if no wellsplates are used. Press Enter to apply.</property>
                                 <property name="vexpand">False</property>
                                 <property name="text" translatable="yes">[-_\s]pl([\d])</property>
+                                <property name="placeholder-text" translatable="yes">[-_\s]pl([\d])</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -2260,6 +2263,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="tooltip-text" translatable="yes">press Enter to apply</property>
                                 <property name="vexpand">False</property>
                                 <property name="text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s].+[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
+                                <property name="placeholder-text" translatable="yes">[-_\s]pl[\d][-_\s][\d]{1,2}[-_\s].+[-_\s]([A-Z][\d]{1,2})[-_\s]</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -2275,6 +2279,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="tooltip-text" translatable="yes">press Enter to apply.</property>
                                 <property name="vexpand">False</property>
                                 <property name="text" translatable="yes">(rev)</property>
+                                <property name="placeholder-text" translatable="yes">(rev)</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -2382,7 +2387,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="margin-bottom">6</property>
-                            <property name="label" translatable="yes">&lt;b&gt;Parse Sequence Filenames&lt;/b&gt;</property>
+                            <property name="label" translatable="yes">&lt;b&gt;Parse Trace Filenames / Sequence IDs&lt;/b&gt;</property>
                             <property name="use-markup">True</property>
                           </object>
                         </child>
@@ -2429,6 +2434,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="tooltip-text" translatable="yes">has to match the plate ID extracted from the sequence filenames</property>
                                 <property name="vexpand">False</property>
                                 <property name="text" translatable="yes">(\d)+[^\d_]*.csv</property>
+                                <property name="placeholder-text" translatable="yes">(\d)+[^\d_]*.csv</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -4542,6 +4548,7 @@ Alternatively, a color legend would nicely fit here.</property>
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="row-spacing">10</property>
                         <property name="column-spacing">10</property>
                         <child>
                           <object class="GtkStackSidebar">
@@ -4563,7 +4570,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="can-focus">False</property>
                             <property name="vexpand">True</property>
                             <child>
-                              <!-- n-columns=1 n-rows=8 -->
+                              <!-- n-columns=1 n-rows=6 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -4584,7 +4591,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
+                                    <property name="top-attach">1</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -4631,7 +4638,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">6</property>
+                                    <property name="top-attach">4</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -4645,7 +4652,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">4</property>
+                                    <property name="top-attach">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -4660,7 +4667,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
+                                    <property name="top-attach">0</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -4672,36 +4679,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">7</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="label" translatable="yes">gene:</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkComboBoxText" id="blast_gene">
-                                    <property name="name">blast_gene</property>
-                                    <property name="width-request">10</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="hexpand">False</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="active">0</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
+                                    <property name="top-attach">5</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -4725,7 +4703,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">5</property>
+                                    <property name="top-attach">3</property>
                                   </packing>
                                 </child>
                               </object>
@@ -4776,11 +4754,10 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-markup" translatable="yes">Use one of the &lt;i&gt;_project_/_gene_/_gene_.fasta&lt;/i&gt; files for a web BLAST and reduce the &lt;i&gt;Max target sequences&lt;/i&gt; parameter to accelerate the search.</property>
                                     <property name="halign">start</property>
                                     <property name="hexpand">False</property>
                                     <property name="vexpand">False</property>
-                                    <property name="label" translatable="yes">result XML:</property>
+                                    <property name="label" translatable="yes">XML result:</property>
                                     <property name="use-underline">True</property>
                                   </object>
                                   <packing>
@@ -4932,7 +4909,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">missing_fasta</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="hexpand">False</property>
+                                    <property name="hexpand">True</property>
                                     <property name="vexpand">False</property>
                                     <property name="create-folders">False</property>
                                     <property name="filter">fastafilter</property>
@@ -5014,8 +4991,7 @@ Alternatively, a color legend would nicely fit here.</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                            <property name="height">2</property>
+                            <property name="top-attach">1</property>
                           </packing>
                         </child>
                         <child>
@@ -5093,13 +5069,56 @@ Alternatively, a color legend would nicely fit here.</property>
                           <object class="GtkStackSwitcher">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="margin-bottom">10</property>
                             <property name="hexpand">False</property>
                             <property name="vexpand">False</property>
                             <property name="stack">blast_help_stack</property>
                           </object>
                           <packing>
                             <property name="left-attach">3</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <!-- n-columns=2 n-rows=1 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="hexpand">False</property>
+                            <property name="row-spacing">10</property>
+                            <property name="column-spacing">10</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">False</property>
+                                <property name="vexpand">False</property>
+                                <property name="label" translatable="yes">gene:</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxText" id="blast_gene">
+                                <property name="name">blast_gene</property>
+                                <property name="width-request">10</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">end</property>
+                                <property name="hexpand">True</property>
+                                <property name="vexpand">False</property>
+                                <property name="active">0</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
                             <property name="top-attach">0</property>
                           </packing>
                         </child>
@@ -6881,8 +6900,8 @@ Alternatively, a color legend would nicely fit here.</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton" id="tree_reset">
-                            <property name="name">tree_reset</property>
+                          <object class="GtkButton" id="reset">
+                            <property name="name">reset</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
                             <property name="no-show-all">True</property>

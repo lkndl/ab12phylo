@@ -103,6 +103,7 @@ class qal_page(ab12phylo_app_base):
                 idx = genes.index(data.gene_for_preview)
             else:
                 idx = 0
+                data.gene_for_preview = 'all'
             iface.gene_roll.set_active(idx)
 
     def select_gene_and_redo(self, *args):
@@ -198,7 +199,7 @@ class qal_page(ab12phylo_app_base):
             self.start_read(run_after=[self.start_trim])
             return
 
-        data.gene_ids = {g: set(gd.keys()) for g, gd in data.seqdata.items()}
+        data.gene_ids = {g: set(gd.keys()) for g, gd in data.seqdata.items() if g in data.genes}
         data.qal.accept_rev = iface.accept_rev.get_active()
         self.parse(iface.min_phred, None)  # annoying SpinButton
 
@@ -229,7 +230,8 @@ class qal_page(ab12phylo_app_base):
         iface.text = 'creating matrix'
         LOG.debug(iface.text)
         iface.i = 0
-        iface.k = sum([len(data.seqdata[gene]) for gene in genes_for_preview]) + 4  # number of all records + extra
+        iface.k = sum([len(data.seqdata[gene]) for gene in genes_for_preview
+                       if gene != 'no match']) + 4  # number of all records + extra
         shared_ids = set.intersection(*data.gene_ids.values())
 
         if not shared_ids:

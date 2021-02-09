@@ -67,21 +67,21 @@ class msa_build:
             arg = new_arg
 
         elif self.algo == 'mafft':
-            arg = '%s --thread %d --auto  %s > %s' \
+            arg = '%s --thread %d --auto  "%s" > "%s"' \
                   % (self.binary, os.cpu_count(), fasta, raw_msa)
 
         elif self.algo == 'clustalo':
-            arg = '%s --in %s --out %s --outfmt fasta --threads %d --force --verbose --auto' \
+            arg = '%s --in "%s" --out "%s" --outfmt fasta --threads %d --force --verbose --auto' \
                   % (self.binary, fasta, raw_msa, os.cpu_count())
             if sys.platform in ['win32', 'cygwin']:
                 arg += ' & exit /b 0'
 
         elif self.algo == 'muscle':
-            arg = '%s -in %s -out %s' \
+            arg = '%s -in "%s" -out "%s"' \
                   % (self.binary, fasta, raw_msa)
 
         elif self.algo == 't_coffee':
-            arg = '%s -in %s -out %s -output fasta_aln -type dna ' \
+            arg = '%s -in "%s" -out "%s" -output fasta_aln -type dna ' \
                   % (self.binary, fasta, raw_msa)
         else:
             assert False

@@ -223,7 +223,7 @@ class blast_build(multiprocessing.Process):
 
             # run BLAST+
             self.log.debug('BLASTing locally ...')
-            arg = '%s -db %s -query %s -num_threads 3 -max_target_seqs 10 -outfmt 5 -out %s' \
+            arg = '"%s" -db "%s" -query "%s" -num_threads 3 -max_target_seqs 10 -outfmt 5 -out "%s"' \
                   % (path.join(self.blast_dir, 'blastn'),
                      path.join(self.dbpath, self.db),
                      self.FASTA, self.XML)
@@ -381,7 +381,7 @@ class blast_build(multiprocessing.Process):
 
             return True
         except Exception as ex:
-            self.log.exception(ex)  # TODO delete
+            self.log.exception(ex)
             return False
 
     def _parse_remote_result(self, in_xmls):

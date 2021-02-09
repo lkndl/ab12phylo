@@ -99,15 +99,19 @@ class gbl_page(ab12phylo_app_base):
             pass
         # place the existing png
         x_ratio = data.msa_shape[2] / data.msa_shape[0]
-        self.load_image(iface.zoomer, PAGE, iface.gbl_left_vp, self.wd / repo.PATHS.left,
-                        w=data.gbl_shape[0] * self.get_hadj(),
-                        h=data.gbl_shape[1])
-        self.load_image(iface.zoomer, PAGE, iface.gbl_right_vp, self.wd / repo.PATHS.right,
-                        w=data.gbl_shape[0] * self.get_hadj() * x_ratio,
-                        h=data.gbl_shape[1])
-        self.load_colorbar(iface.palplot2)
-        self.re_preset(iface.gbl_preset)
-        self.win.show_all()
+        try:
+            self.load_image(iface.zoomer, PAGE, iface.gbl_left_vp, self.wd / repo.PATHS.left,
+                            w=data.gbl_shape[0] * self.get_hadj(),
+                            h=data.gbl_shape[1])
+            self.load_image(iface.zoomer, PAGE, iface.gbl_right_vp, self.wd / repo.PATHS.right,
+                            w=data.gbl_shape[0] * self.get_hadj() * x_ratio,
+                            h=data.gbl_shape[1])
+            self.load_colorbar(iface.palplot2)
+            self.re_preset(iface.gbl_preset)
+            self.win.show_all()
+        except ValueError:
+            data.msa_shape[3] = 0
+            self.refresh()
 
     def reload_ui_state(self):
         data = self.data
@@ -252,7 +256,7 @@ class gbl_page(ab12phylo_app_base):
 
             # create base call MARK -t=d sets the mode to nucleotides ... adapt?
             arg = '%s %s -t=d -b1=%d -b2=%d -b3=%d -b4=%d -b5=%s -e=.txt -s=y -p=s; exit 0' \
-                  % tuple([binary, '%s'] + iface.tempspace.params)
+                  % tuple([binary, '"%s"'] + iface.tempspace.params)
             LOG.debug(arg)
 
         # fetch IDs

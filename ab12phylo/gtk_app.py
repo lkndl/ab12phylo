@@ -33,7 +33,7 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         super().__init__()
         self.supers = [io_page, rgx_page, qal_page, msa_page,
                        gbl_page, blast_page, ml_page, tree_page]
-        self.re_runs = {1: self.start_read, 2: self.start_trim,
+        self.re_runs = {2: self.start_trim,  # 1: self.start_read,
                         4: self.start_gbl, 7: self.start_phy}
 
     def load(self, path, *args):
@@ -73,9 +73,10 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         self.supers[page].refresh(self)
         # hide or show these two actions depending on applicability
         iface.refresh.props.visible = bool(page in self.re_runs)
-        iface.tree_reset.props.visible = page == 7
+        iface.reset.props.visible = page in {1, 7}
         iface.gene_roll.props.visible = page == 2
         iface.next.props.visible = page != 7
+        iface.back.props.visible = page != 0
         iface.open_test.props.visible = page == 0
         iface.helper.set_markup(repo.help.get(page, ''))
 
@@ -87,6 +88,17 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         page = self.iface.notebook.get_current_page()
         if page in self.re_runs:
             self.re_runs[page]()
+
+    def reset(self, *args):
+        """
+        Depending on the currently visible page (either rgx or tree), reset the
+        regex table or the tree. Handles the Reset button.
+        """
+        page = self.iface.notebook.get_current_page()
+        if page == 1:
+            self.reset_columns(do_parse=True)
+        elif page == 7:
+            self.reset_tree()
 
     def proceed(self, widget=None, page=None):
         """
@@ -108,9 +120,10 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
 
         if self.get_changed(page):
             if page == 0:
-                self.supers[0].refresh(self)
+                self.supers[page].refresh(self)
                 self.reset_columns(do_parse=True)
             elif page == 1:
+                self.supers[page].refresh(self)
                 if 1 < sum(data.rx_fired) < 5:
                     self.show_notification('Make sure all columns have been parsed.')
                     return

@@ -39,9 +39,9 @@ class rgx_page(ab12phylo_app_base):
         iface.triple_rt.join_group(iface.single_rt)
         iface.single_rt.set_active(True)
 
-        iface.regex_apply.connect('clicked', self.parse_all)
+        iface.regex_apply.connect('clicked', self.parse_all, True)
         iface.wp_apply.connect('clicked', self.parse_single_group, iface.wp_rx, 2)
-        iface.single_rx.connect('activate', self.parse_all)
+        iface.single_rx.connect('activate', self.parse_all, True)
 
         for thing, col in zip(['well', 'gene', 'plate', 'wp'], [2, 4, 3, 2]):
             entry = iface.__getattribute__('%s_rx' % thing)
@@ -103,7 +103,7 @@ class rgx_page(ab12phylo_app_base):
         data.rx_fired[6] = True
 
         if do_parse:  # fire the initial parse
-            self.parse_all(None)
+            self.parse_all(None, force=True)
             self.refresh(page=1)
 
     def parse_single_group(self, widget, entry, col, fourth=None, refresh_after=True):
@@ -184,10 +184,12 @@ class rgx_page(ab12phylo_app_base):
         if errors and sum(data.rx_fired) >= 5 and refresh_after:
             self.refresh()
 
-    def parse_all(self, widget):
+    def parse_all(self, wi, force=False):
         data = self.data
         iface = self.iface
-        # data, iface = gui.data, gui.iface
+        if not force:  # it's easier to pass an additional param than blocking handlers
+            return
+
         if iface.single_rt.get_active():
             LOG.debug('triple')
             try:
@@ -463,6 +465,12 @@ class rgx_page(ab12phylo_app_base):
             data.csvs[box] = df.to_dict()
             iface.i += 1
 
+        # read in FASTAs containing more than one record first
+        fasta_paths = {file_path.split('~~')[0] for file_path
+                       in data.trace_store.get_column(0) if '~~' in file_path}
+        fasta_records = {file_path: {r.id: r for r in SeqIO.parse(
+            file_path, 'fasta')} for file_path in fasta_paths}
+
         # read in trace files
         LOG.debug('reading traces')
         for row in data.trace_store:
@@ -470,12 +478,15 @@ class rgx_page(ab12phylo_app_base):
             iface.text = 'reading %s' % file
 
             # read in one file
-            if file_path.endswith('.ab1'):
+            if file_path.endswith('.ab1') and '~~' not in file_path:
                 try:
                     records = [SeqIO.read(file_path, 'abi')]  # ABI traces also only contain a single record!
                 except UnicodeDecodeError:
                     errors.add('ABI trace error %s' % file)
-            elif file_path.endswith('.fasta') or file_path.endswith('.fa') or file_path.endswith('.seq'):
+            elif '~~' in file_path:
+                file_part, record_name = file_path.split('~~')
+                records = [fasta_records[file_part][record_name]]
+            else:
                 try:
                     records = SeqIO.parse(file_path, 'fasta')
                 except UnicodeDecodeError:
@@ -555,7 +566,7 @@ class rgx_page(ab12phylo_app_base):
 
         iface.text = 'search missing samples'
         LOG.debug(iface.text)
-        data.gene_ids = {g: set(gd.keys()) for g, gd in data.seqdata.items()}
+        data.gene_ids = {g: set(gd.keys()) for g, gd in data.seqdata.items() if g in data.genes}
         all_ids = set.union(*data.gene_ids.values())
         missing = {g: ', '.join(sorted(all_ids - ids))
                    for g, ids in data.gene_ids.items() if all_ids - ids}

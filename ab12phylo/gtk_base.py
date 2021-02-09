@@ -191,6 +191,7 @@ class ab12phylo_app_base(Gtk.Application):
         self.bind_accelerator(self.accelerators, iface.back, '<Alt>Left')
         iface.refresh.connect('clicked', self.re_run)
         self.bind_accelerator(self.accelerators, iface.refresh, 'Return')
+        iface.reset.connect('clicked', self.reset)
         # any page change
         iface.notebook.connect_after('switch-page', self.refresh)
         # dismissing help
@@ -483,6 +484,9 @@ class ab12phylo_app_base(Gtk.Application):
         pass
 
     def re_run(self, *args):
+        pass
+
+    def reset(self, *args):
         pass
 
     def proceed(self, *args):

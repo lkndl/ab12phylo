@@ -148,11 +148,10 @@ help = {0: '<b>Welcome to AB12PHYLO!</b> \nPlease define your dataset of ABI tra
            'www.ncbi.nlm.nih.gov/nuccore/AF347033.1?report=fasta">AF347033.1</a>. '
            'If wellsplates are used in conjunction with sequence data for multiple '
            'genes, please make sure the plate layouts are identical.',
-        1: 'Parse sample IDs / well coordinates, gene, orientation and '
-           'wellsplate ID from the respective file name using <a href='
-           '"https://regex101.com/r/Yulwlf/8" title="look at some pre-'
-           'publication/development stage examples">Regular Expressions'
-           '</a> with capturing groups. Fields may be manually corrected.',
+        1: 'Parse sample IDs / well coordinates, gene, orientation and wellsplate ID '
+           'from the respective file name or sequence ID using <a href="https://regex101'
+           '.com/r/Yulwlf/8" title="pre-publication/development stage examples">Regular '
+           'Expressions</a> with capturing groups. Fields may be manually corrected.',
         2: 'ABI trace files can be trimmed to remove low-quality regions here, based '
            'on phred quality scores. The maximum score is 60, indicating the probability '
            'of an incorrect base call is 1:10^6. Equivalently, 30 indicates 1:1000.',
@@ -167,7 +166,8 @@ help = {0: '<b>Welcome to AB12PHYLO!</b> \nPlease define your dataset of ABI tra
         5: 'Optionally include species annotation from a local BLAST+ in a '
            '<a href="https://ftp.ncbi.nlm.nih.gov/blast/db/">pre-compiled</a>'
            ' or custom database, or by importing XML results of a manual web '
-           '<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi">BLAST</a>. '
+           '<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi">BLAST</a> '
+           'for one of the <i>_project_/_gene_/_gene_.fasta</i> files. '
            'Searching an online database such as <a href="'
            'https://www.ncbi.nlm.nih.gov/nucleotide/">NCBI nt</a> via the public '
            'BLAST API is also possible, but should not be the main search strategy. '

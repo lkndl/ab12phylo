@@ -19,6 +19,7 @@ import toytree
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from PIL import Image
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)
 from matplotlib.cm import get_cmap
@@ -81,7 +82,7 @@ class tree_page(ab12phylo_app_base):
         iface.query.connect('focus_out_event', self.select_popgen)
         iface.exclude.connect('focus_out_event', self.constrain_selection)
 
-        iface.save_plot.connect('clicked', lambda *args: self.on_save_tree())
+        iface.save_plot.connect('clicked', self.start_save)
 
         iface.view_msa_ids.set_model(data.tree_anno_model)
         col = Gtk.TreeViewColumn(title='id', text=0, foreground=2, background=3,
@@ -119,14 +120,13 @@ class tree_page(ab12phylo_app_base):
 
         iface.subtree.connect('clicked', self.expand_popgen)
         iface.calculate.connect('clicked', self.start_popgen)
-        iface.tree_reset.connect('clicked', self._reset)
 
         phy.tx = 'circular' if phy.circ else 'rectangular'
         phy.tx += '_TBE' if phy.tbe else '_FBP'
         phy.array = None
         iface.tree = None
 
-    def _reset(self, wi):
+    def reset_tree(self, *args):
         """
         Re-set the tree modifications by deleting
         the dictionary and the modified tree
@@ -369,7 +369,51 @@ class tree_page(ab12phylo_app_base):
         sp_genes.set_active(idx)
         return sel_gene
 
-    def on_save_tree(self):
+    def start_save(self, *args):
+        """Handle the "Export the current plot now" save functionality via a thread."""
+        iface = self.iface
+        phy = self.data.phy
+        if 'canvas' not in iface:
+            self.start_phy()
+            return
+
+        # parse plot settings only when needed
+        [phy.__setattr__(w_name, iface.__getattribute__(
+            w_name).get_active()) for w_name in
+         ['rect', 'circ', 'unro', 'tbe', 'fbp', 'supp', 'spec',
+          'axis', 'align', 'pmsa', 'pdf', 'svg', 'png', 'nwk', 'html']]
+        phy.flip = iface.flipspin.props.adjustment.props.value
+        phy.dist = iface.distspin.props.adjustment.props.value
+        phy.sel_gene = iface.sp_genes.get_active_text()
+
+        # re-direct to thread
+        iface.thread = threading.Thread(target=self._do_save)
+        iface.k = 2 + 2 * phy.pdf + 2 * phy.svg + phy.pmsa + phy.html
+        iface.i = 0
+        iface.text = 'read tree'
+        sleep(.1)
+        GObject.timeout_add(100, self.update, PAGE)
+        iface.thread.start()
+        return
+        # return to main loop
+
+    def _do_save(self, *args):
+        iface = self.iface
+        self.save_tree()
+        self.save_msa()
+        self.iface.text = 'idle'
+        sleep(.1)
+        GObject.idle_add(self._stop_save)
+        return True
+
+    def _stop_save(self, *args):
+        self.iface.thread.join()
+        LOG.debug('phylo saving idle')
+        self.win.show_all()
+        self.data.change_indicator[PAGE] = False
+        return False
+
+    def save_tree(self, *args):
         """Save the current tree in different formats"""
         data = self.data
         iface = self.iface
@@ -381,18 +425,21 @@ class tree_page(ab12phylo_app_base):
         tx = self.wd / phy.tx
         iface.text = 'rendering png'
         png.render(iface.canvas, str(tx.with_suffix('.png')), scale=1.6)
+        iface.i += 1
         if phy.pdf:
             iface.text = 'rendering pdf'
             pdf.render(iface.canvas, str(tx.with_suffix('.pdf')))
-        if phy.svg or phy.pmsa:
+            iface.i += 1
+        if phy.svg:
             iface.text = 'rendering svg'
             svg.render(iface.canvas, str(tx.with_suffix('.svg')))
+            iface.i += 1
         if phy.html:
             iface.text = 'rendering html'
             html.render(iface.canvas, str(tx.with_suffix('.html')))
-        return
+            iface.i += 1
 
-    def on_save_msa(self, popgen=None):
+    def save_msa(self, popgen=None):
         """Save the current msa in different formats"""
         data = self.data
         iface = self.iface
@@ -403,28 +450,46 @@ class tree_page(ab12phylo_app_base):
         dpi = iface.scale * repo.DPI
         iface.text = 'rendering png'
         iface.fig.savefig(msa.with_suffix('.png'), transparent=True, dpi=dpi)
+        iface.i += 1
 
         if popgen:
             return
-        if phy.svg or phy.pmsa:
-            iface.text = 'rendering svg'
+        if phy.svg:
+            iface.text = 'rendering svg msa -- SLOW'
             iface.fig.savefig(msa.with_suffix('.svg'), transparent=True)
+            iface.i += 1
         if phy.pdf:
-            iface.text = 'rendering pdf'
+            iface.text = 'rendering pdf msa -- SLOW'
             iface.fig.savefig(msa.with_suffix('.pdf'), transparent=True, dpi=dpi)
+            iface.i += 1
 
         if phy.pmsa:
-            iface.text = 'collating tree and msa'
-            tree = sg.fromfile((self.wd / phy.tx).with_suffix('.svg'))
-            m = sg.fromfile(msa.with_suffix('.svg'))
-            mw, mh = [float(i[:-2]) * 96 / 72 for i in m.get_size()]  # now in px
-            pt = tree.getroot()
-            tw, th = [float(i[:-2]) for i in tree.get_size()]  # already in px
-            pm = m.getroot()
-            pm.moveto(tw, 0, th / mh / 6, th / mh * 96 / 72)
-            fig = sg.SVGFigure()  # '%.0fpx' % (tw + th / mh / 8), '%.0fpx' % th)
-            fig.append([pt, pm])
-            fig.save(self.wd / (phy.tx + '_msa.svg'))
+            if phy.svg:
+                iface.text = 'collating svg tree and msa -- SLOW'
+                LOG.info(iface.text)
+                tree = sg.fromfile((self.wd / phy.tx).with_suffix('.svg'))
+                m = sg.fromfile(msa.with_suffix('.svg'))
+                mw, mh = [float(i[:-2]) * 96 / 72 for i in m.get_size()]  # now in px
+                pt = tree.getroot()
+                tw, th = [float(i[:-2]) for i in tree.get_size()]  # already in px
+                pm = m.getroot()
+                pm.moveto(tw, 0, th / mh / 6, th / mh * 96 / 72)
+                fig = sg.SVGFigure()  # '%.0fpx' % (tw + th / mh / 8), '%.0fpx' % th)
+                fig.append([pt, pm])
+                fig.save(self.wd / (phy.tx + '_msa.svg'))
+            else:
+                iface.text = 'rendering png with msa'
+                LOG.debug(iface.text)
+                old_wi = iface.canvas.width
+                wi = phy.array.shape[1] * 3
+                im = Image.open(msa.with_suffix('.png'))
+                im = im.convert('RGB')
+                im = im.resize((wi, int(iface.canvas.height)), resample=Image.NEAREST)
+                iface.canvas.width += wi
+                im_axes = iface.canvas.image(im, bounds=(old_wi, old_wi + wi - 20,
+                                                         0, iface.canvas.height))
+                png.render(iface.canvas, str(self.wd / (phy.tx + '_msa.png')))
+            iface.i += 1
 
     def start_phy(self, modify=None):
         """Get settings and block GUI"""
@@ -459,7 +524,8 @@ class tree_page(ab12phylo_app_base):
 
         # re-direct to thread
         iface.thread = threading.Thread(target=self._do_phy1)
-        iface.k = (phy.rect + phy.circ + phy.unro) * 2 + 9
+        iface.k = (phy.rect + phy.circ + phy.unro) * 2 + 9 \
+                  + 2 + phy.html + phy.pmsa + 2 * phy.svg + 2 * phy.pdf  # saving
         iface.i = 0
         iface.text = 'read tree'
         sleep(.1)
@@ -533,11 +599,10 @@ class tree_page(ab12phylo_app_base):
 
         iface.text = 'read metadata'
         # read in tabular data
-        if 'df' not in iface.tempspace:
-            iface.tempspace.df = pd.read_csv(self.wd / repo.PATHS.tsv,
-                                             sep='\t', dtype={'id': str})
-            iface.tempspace.df.set_index('id', inplace=True)
-        df = iface.tempspace.df.copy(deep=True)
+        df = pd.read_csv(self.wd / repo.PATHS.tsv, sep='\t', dtype={'id': str})
+        df.set_index('id', inplace=True)
+        iface.tempspace.df = df
+        df = df.copy(deep=True)
 
         r, b, e = 'reference_species', 'BLAST_species', 'extra_species'
         if r in df:
@@ -558,8 +623,8 @@ class tree_page(ab12phylo_app_base):
             phy.ndf = df.to_dict(orient='index')
         else:
             # picked species labels from best pid across several genes
-            # split into per-gene dataframes
-            dfs = [i[1] for i in df.groupby(df['gene'])]
+            # split into per-gene dataframes, filtering out filtered out genes
+            dfs = [i[1] for i in df.groupby(df['gene']) if i[0] in data.genes]
             # find row with highest pid from all genes
             phy.ndf = dict()
             for t in phy.tips:
@@ -662,7 +727,13 @@ class tree_page(ab12phylo_app_base):
                     seq = str(records[tip])
 
                 # get metadata
-                entry = phy.ndf[tip]
+                try:
+                    entry = phy.ndf[tip]
+                except KeyError as ke:
+                    LOG.exception(ke)
+                    GObject.idle_add(self.reset_tree)
+                    sleep(.1)
+                    return True
 
                 des = entry.get('species', '')
                 pid = ('%.2f' % entry['pid']).rstrip('0').rstrip('.')
@@ -855,18 +926,17 @@ class tree_page(ab12phylo_app_base):
                 # therefore this inverted x domain.
             iface.i += 1
 
-            self.on_save_tree()
-            iface.i += 1
+            self.save_tree()
 
         except ET.ParseError as ex:
             e = 'XML ParseError. Invalid character in a sample ID? Please check metadata.tsv'
             LOG.error(e)
-            GObject.idle_add(self._reset, None)
+            GObject.idle_add(self.reset_tree)
             sleep(.1)
             return True
         except (ValueError, IndexError) as ex:
             LOG.exception(ex)
-            GObject.idle_add(self._reset, None)
+            GObject.idle_add(self.reset_tree)
             sleep(.1)
             return True
 
@@ -996,7 +1066,7 @@ class tree_page(ab12phylo_app_base):
         iface.i += 1
         iface.fig = f
         iface.scale = scale
-        self.on_save_msa(popgen_markup)
+        self.save_msa(popgen_markup)
 
         phy.shape = array.shape[1], phy.height
 

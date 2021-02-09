@@ -251,22 +251,22 @@ class ml_page(ab12phylo_app_base):
         iface.i = 0
 
         # prepare the calls
-        chck = '%s --msa "%s" --check --model %s' \
+        chck = '"%s" --msa "%s" --check --model "%s"' \
                + ml.evo_modify + ' --prefix "%s"'
 
-        inML = '%s --msa "%s" --model %s' + ml.evo_modify + \
+        inML = '"%s" --msa "%s" --model "%s"' + ml.evo_modify + \
                ' --prefix "%s"' + ' --seed %d' % ml.raxml_seed + \
                ' --threads auto{%s} --workers auto{%s}' + \
                ' --redo --tree %s ' % ','.join(
             [a for a in ['rand{%d}' % ml.rand if ml.rand > 0 else None,
                          'pars{%d}' % ml.pars if ml.pars > 0 else None] if a])
 
-        boot = '%s --bootstrap --msa "%s" --model %s --tree "%s"' + \
+        boot = '"%s" --bootstrap --msa "%s" --model "%s" --tree "%s"' + \
                ' --prefix "%s"' + ' --bs-trees %d' % ml.bootstraps + \
                ' --seed %d' % ml.raxml_seed + \
                ' --threads auto{%s} --workers auto{%s} --redo'
 
-        supp = '%s --support --tree "%s" --bs-trees %s --bs-metric fbp,tbe ' + \
+        supp = '"%s" --support --tree "%s" --bs-trees "%s" --bs-metric fbp,tbe ' + \
                '--prefix "%s" --threads ' + \
                'auto{%s} --workers auto{%s} --redo'
 

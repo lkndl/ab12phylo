@@ -275,7 +275,7 @@ class blast_page(ab12phylo_app_base):
         args = Namespace(**args)
         reader = Namespace(**{'seqdata': seqdata, 'metadata': None})
 
-        iface.tup = (im, la, tx, gene)
+        iface.blast_tup = (im, la, tx, gene)
         LOG.debug('init blast.blast_build with %s' % str(args))
         iface.blaster = blast.blast_build(args, reader)
         iface.blast_wrapper = threading.Thread(
@@ -312,8 +312,7 @@ class blast_page(ab12phylo_app_base):
                 #     df_new.loc[(df_new.index == series.name) & (df_new['gene'] == series.gene), :] = \
                 #         df_old.loc[(df_old.index == series.name) & (df_old['gene'] == series.gene), :]
 
-        im, la, tx, gene = iface.tup
-
+        im, la, tx, gene = iface.blast_tup
         self._refill(gene, fresh=True)
 
         iface.blast_spinner.stop()
@@ -407,7 +406,7 @@ def human_bytes(num):
 
 class bump_log_level:
 
-    def __init__(self, log, off=True):
+    def __init__(self, log, off=False):
         self.level = max(log.level, logging.INFO)
         self.off = off
 

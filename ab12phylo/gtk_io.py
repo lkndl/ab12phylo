@@ -1,10 +1,10 @@
 # 2021 Leo Kaindl
 
 import logging
-from argparse import Namespace
 from pathlib import Path
 
 import gi
+from Bio import SeqIO
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -32,7 +32,7 @@ class io_page(ab12phylo_app_base):
         # create a TreeView model
         iface.file_type_model = picklable_liststore(str, bool)
         [iface.file_type_model.append([file_type, False]) for
-         file_type in ['.ab1', '.seq', '.fasta', '.fa']]
+         file_type in ['.ab1', '.seq', '.fasta', '.fa', '.txt']]
 
         # check ABI traces by default
         iface.file_type_model[0][1] = True
@@ -211,7 +211,15 @@ class io_page(ab12phylo_app_base):
             else:
                 if 'csv' in args:
                     model.append([path, ppath.name, '', color])
-                else:  # trace file
+                elif ppath.suffix.lower() != '.ab1' and not is_ref:
+                    # no ABI trace, no ref and several records in the file -> list separately
+                    rids = [r.id for r in SeqIO.parse(ppath, 'fasta')]
+                    if len(rids) > 1:
+                        [model.append([path + '~~' + rid, rid, '', '', '',
+                                       False, False, color]) for rid in rids]
+                    else:
+                        model.append([path, ppath.name, '', '', '', is_ref, False, color])
+                else:  # ABI trace file
                     model.append([path, ppath.name, '', '', '', is_ref, False, color])
                 news.append(path)
         if len(news) > 0:
