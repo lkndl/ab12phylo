@@ -386,10 +386,11 @@ rm pipe
                 with open(sh, 'w') as sf:
                     bash = '''
 #!/bin/bash\n
-echo "You can set a CPU limit here! This will proceed in a bit, interrupt with Ctrl+C"\n
-print_usage() {
-  printf "Usage: Limit the number of threads/logical cores used via -f <number>"\n}\n
-print_usage\n
+# get the number of CPUs available
+cpus=$(nproc)\n
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+printf "${BLUE}$cpus${NC} CPUs available. Limit the number of threads/logical cores via ${BLUE}-f <number>${NC}. This will proceed in a bit, interrupt with Ctrl+C\n"\n
 sleep 10s\n
 cpu_limit=400\n
 while getopts 'f:' flag; do
@@ -397,8 +398,6 @@ while getopts 'f:' flag; do
     f) cpu_limit="${OPTARG}" ;;
     *) print_usage
        exit 1 ;;\n  esac\ndone\n
-# get the number of CPUs available
-cpus=$(nproc)\n
 # find the minimum of the CPUs allowed and available
 if [ $cpu_limit -lt $cpus ]; then
     used=$cpu_limit\nfi
