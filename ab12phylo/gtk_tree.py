@@ -488,7 +488,7 @@ class tree_page(ab12phylo_app_base):
                 iface.canvas.width += wi
                 im_axes = iface.canvas.image(im, bounds=(old_wi, old_wi + wi - 20,
                                                          0, iface.canvas.height))
-                png.render(iface.canvas, str(self.wd / (phy.tx + '_msa.png')))
+                png.render(iface.canvas, str(self.wd / (phy.tx + '_msa.png')), scale=1.6)
             iface.i += 1
 
     def start_phy(self, modify=None):

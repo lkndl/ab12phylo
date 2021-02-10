@@ -416,9 +416,9 @@ class blast_build(multiprocessing.Process):
                         try:
                             if entry.id in self.df.index:
                                 file, box = self.df.loc[entry.id, self.gene][['file', 'box']]
-                                fh.write('%s\t%s\t%s\t%s\tno hit in NCBI BLAST nucleotide database\n'
-                                         % (file, entry.id, box, self.gene))
-                                self.log.error('%s no hit in NCBI nucleotide db' % entry.id)
+                                fh.write('%s\t%s\t%s\t%s\tno hit in NCBI %s database\n'
+                                         % (file, entry.id, box, self.gene, self.remote_db))
+                                self.log.error('%s no hit in NCBI %s db' % (entry.id, self.remote_db))
                             else:
                                 self.log.error('no entry %s in metadata TSV' % entry.id)
                         except KeyError as ke:
