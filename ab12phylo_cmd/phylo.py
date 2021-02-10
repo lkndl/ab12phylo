@@ -15,6 +15,7 @@ import multiprocessing
 import os
 import pickle
 import random
+import re
 import shutil
 import socket
 import stat
@@ -36,8 +37,8 @@ from jinja2 import Template
 from lxml import etree
 from toyplot import html, pdf, png, svg, color, data, locator
 
-from ab12phylo_cmd.__init__ import __version__, __author__
 from ab12phylo_cmd import cli
+from ab12phylo_cmd.__init__ import __version__, __author__
 
 # adapted kxlin colors
 kxlin = [(.56, 1, .14, 1), (.16, .44, .8, 1), (.06, 1, .75, 1), (.92, 1, .7, 1),
@@ -123,9 +124,9 @@ def tree_view(_dir):
     try:
         py3 = sys.executable  # shutil.which('python3')
         log.debug('python3 executable at %s' % py3)
-        log.info('starting CGI server on port: %d for 10min' % port)
+        log.info('starting CGI server on port: %d for 60min' % port)
         subprocess.run('%s -m http.server --cgi %d' % (py3, port), shell=True,
-                       stdout=subprocess.PIPE, cwd=_dir, timeout=600)
+                       stdout=subprocess.PIPE, cwd=_dir, timeout=3600)
     except subprocess.TimeoutExpired:
         txt = 'CGI server shut down after timeout. If necessary, re-start in %s via ' \
               '"%s -m http.server --cgi %d" or re-run ab12phylo-view' % (_dir, sys.executable, port)
@@ -143,7 +144,7 @@ def mview_msa(args):
     Using MView, create an .html visualization for the annotated MSA.
     """
     # hacky re-configuration
-    mv_path = path.join(path.abspath(path.dirname(__file__)), 'tools', 'mview-1.67')
+    mv_path = re.escape(path.join(path.abspath(path.dirname(__file__)), 'tools', 'mview-1.67'))
     perl_binary = shutil.which('perl')
     if not perl_binary:
         raise ValueError
@@ -158,8 +159,9 @@ def mview_msa(args):
 
     used_msa = args.new_msa if path.isfile(args.new_msa) else args.msa
 
-    arg = '%s %s -in fasta -moltype dna -width 80 -conservation on -coloring consensus -threshold 80 ' \
-          '-label2 -label4 -label5 -consensus on -con_threshold 80 -html head -css on  -colormap leo %s > %s' % \
+    arg = '%s %s -in fasta -moltype dna -width 80 -conservation on -coloring consensus ' \
+          '-threshold 80 -label2 -label4 -label5 -consensus on -con_threshold 80 ' \
+          '-html head -css on  -colormap leo "%s" > "%s"' % \
           (perl_binary, path.join(mv_path, 'bin', 'mview'), used_msa, args.mview_msa)
 
     p = subprocess.run(arg, shell=True, stdout=subprocess.PIPE)
@@ -727,7 +729,7 @@ class tree_build:
 
         # copy cgi-bin directory to output directory
         _dst = path.join(self.args.dir, 'cgi-bin')
-        # MARK to keep compatibility with python3.6, don't use shutil.copytree(dirs_exist_ok)
+        # to keep compatibility with python3.6, don't use shutil.copytree(dirs_exist_ok)
         try:
             # delete old directory
             shutil.rmtree(path=_dst)

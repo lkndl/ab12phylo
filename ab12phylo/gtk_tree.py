@@ -1108,6 +1108,7 @@ class tree_page(ab12phylo_app_base):
         LOG.info('phylo thread idle')
         self.iface.view_msa_ids.set_model(self.data.tree_anno_model)
         self.win.show_all()
+        self.save()
         self.data.change_indicator[PAGE] = False
         return False
 

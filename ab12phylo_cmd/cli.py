@@ -254,7 +254,7 @@ class parser(argparse.ArgumentParser):
                     outer = os.getcwd()
                 for inner in ['', 'results']:
                     if path.isfile(path.join(outer, inner, 'tree_TBE.nwk')):
-                        # MARK filename is hardcoded manually from below.
+                        # filename is hardcoded manually from below.
                         self.args.dir = path.join(outer, inner)
                         found = True
                         break

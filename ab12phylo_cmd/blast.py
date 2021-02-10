@@ -210,8 +210,8 @@ class blast_build(multiprocessing.Process):
             # check database
             self.log.debug('checking %sBLAST db %s in %s'
                            % ('user-supplied ' if not self.update else '', self.db, self.dbpath))
-            arg = '%s -db %s -info' % (path.join(self.blast_dir, 'blastdbcmd'),
-                                       path.join(self.dbpath, self.db))
+            arg = '%s -db "%s" -info' % (path.join(self.blast_dir, 'blastdbcmd'),
+                                         path.join(self.dbpath, self.db))
             try:
                 res = subprocess.check_output(arg, shell=True).decode('utf-8')
                 if 'error' in res:
@@ -223,7 +223,7 @@ class blast_build(multiprocessing.Process):
 
             # run BLAST+
             self.log.debug('BLASTing locally ...')
-            arg = '"%s" -db "%s" -query "%s" -num_threads 3 -max_target_seqs 10 -outfmt 5 -out "%s"' \
+            arg = '%s -db "%s" -query "%s" -num_threads 3 -max_target_seqs 10 -outfmt 5 -out "%s"' \
                   % (path.join(self.blast_dir, 'blastn'),
                      path.join(self.dbpath, self.db),
                      self.FASTA, self.XML)

@@ -306,6 +306,9 @@ class ml_page(ab12phylo_app_base):
                         sh.write(arg % add)
                     else:
                         # special case bootstrapping:
+                        fifo = Path('pipe')
+                        if fifo.exists():
+                            fifo.unlink()
                         bash = '''
 mkfifo pipe || exit 1
 (%s) > pipe &
@@ -432,15 +435,17 @@ echo "CPUs available: $cpus, use at most $used"
         if ml.raxml_shell and mode == 'raxml':
             # with open(shell, 'a') as sh:
             #     sh.write('# restart AB12PHYLO afterwards\n'
-            #              'ab12phylo --open %s --proceed\n'
+            #              'ab12phylo --open "%s" --proceed\n'
             #              % str(gui.wd / gui.project_path))
             shell.chmod(shell.stat().st_mode | stat.S_IEXEC)
+            shell = re.escape(str(shell))
             self.hold()
             self.win.hide()
             sleep(.1)
             Popen(['notify-send', 'AB12PHYLO', 'ML Tree Inference running in background.',
                    '-i', str(repo.PATHS.icon_path)])
             os.system(shell)
+            sleep(.1)
             self.win.show_all()
             self.release()
             # old alternative that killed python:

@@ -5,13 +5,13 @@ This module builds a multiple sequence alignment for each gene and concats
 them into one :code:`FASTA` file as input for the :class:`raxml` module.
 """
 
-import os
-import sys
-import shutil
 import logging
+import os
 import random
+import re
+import shutil
 import subprocess
-
+import sys
 from os import path
 from time import time, sleep
 
@@ -30,7 +30,7 @@ class msa_build:
         self.msa = args.msa
         self.sep = args.sep
         self.missing_samples = args.missing_samples
-        self.tools_path = path.join(path.abspath(path.dirname(__file__)), 'tools')
+        self.tools_path = re.escape(path.join(path.abspath(path.dirname(__file__)), 'tools'))
 
         # look for pre-installed version of selected algorithm
         self.binary = shutil.which(args.msa_algo)
@@ -105,9 +105,9 @@ class msa_build:
                 self.algo = 'tcoffee'
 
             # create base call
-            arg = 'python3 %s --email %s --outfile %s/msa --sequence %s ' \
+            arg = 'python3 "%s" --email %s --outfile "%s" --sequence "%s" ' \
                   % (path.join(self.tools_path, 'MSA_clients', self.algo + '.py'),
-                     self.email, path.join(self.dir, gene), fasta)
+                     self.email, path.join(self.dir, gene, 'msa'), fasta)
 
             # adapt for specific algorithm
             if self.algo == 'mafft':
@@ -151,7 +151,7 @@ class msa_build:
             local = True
             if binary is None:
                 # pick deployed Gblocks
-                binary = path.join(self.tools_path, 'Gblocks_0.91b', 'Gblocks')
+                binary = re.escape(path.join(self.tools_path, 'Gblocks_0.91b', 'Gblocks'))
                 local = False
 
             # set Gblocks options
@@ -187,7 +187,7 @@ class msa_build:
                 self.log.info('running strict Gblocks')
 
             # create base call
-            arg = '%s %s -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=.txt -d=n -s=y -p=n' \
+            arg = '%s "%s" -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=.txt -d=n -s=y -p=n' \
                   % (binary, raw_msa, flank, cons, b4, gaps)  # don't swap order!
             # force return code
             if sys.platform in ['win32', 'cygwin']:

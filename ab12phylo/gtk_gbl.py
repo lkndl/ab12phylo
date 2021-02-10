@@ -9,6 +9,7 @@ from time import sleep
 
 import gi
 import numpy as np
+import re
 from Bio import SeqIO
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)
@@ -251,10 +252,10 @@ class gbl_page(ab12phylo_app_base):
             binary = shutil.which('Gblocks')
             local = bool(binary)
             # else pick deployed Gblocks
-            binary = binary if binary else repo.TOOLS / 'Gblocks_0.91b' / 'Gblocks'
+            binary = binary if binary else re.escape(repo.TOOLS / 'Gblocks_0.91b' / 'Gblocks')
             LOG.info('%s Gblocks' % ('local' if local else 'packaged'))
 
-            # create base call MARK -t=d sets the mode to nucleotides ... adapt?
+            # create base call -t=d sets the mode to nucleotides ... adapt?
             arg = '%s %s -t=d -b1=%d -b2=%d -b3=%d -b4=%d -b5=%s -e=.txt -s=y -p=s; exit 0' \
                   % tuple([binary, '"%s"'] + iface.tempspace.params)
             LOG.debug(arg)

@@ -41,8 +41,8 @@ class raxml_build:
         local = True
         if self._binary is None:
             local = False
-            self._binary = path.join(path.abspath(path.dirname(__file__)),
-                                     'tools', 'raxml-ng-static', 'raxml-ng')
+            self._binary = re.escape(path.join(path.abspath(path.dirname(__file__)),
+                                               'tools', 'raxml-ng-static', 'raxml-ng'))
         self.log.debug('use %s raxml-ng' % ('pre-installed' if local else 'out-of-the-box'))
 
     def run(self):
@@ -133,8 +133,10 @@ class raxml_build:
                     self.log.warning('results from %s missing' % prefix)
         self.log.debug('all bootstrap trees in %s' % all_bs_trees)
 
-        run_cmd = '%s --support --tree %s --bs-trees %s --prefix %s --threads %d --bs-metric fbp,tbe --redo' \
-                  % (self._binary, self._best_tree, all_bs_trees, path.join(self._dir, '_sup'), self.cpus)
+        run_cmd = '%s --support --tree "%s" --bs-trees "%s" --prefix "%s" ' \
+                  '--threads %d --bs-metric fbp,tbe --redo' \
+                  % (self._binary, self._best_tree, all_bs_trees,
+                     path.join(self._dir, '_sup'), self.cpus)
 
         _run_sp(run_cmd)
 
@@ -156,7 +158,7 @@ class raxml_build:
         paths = [path.join(self._dir, prefix) for prefix in ['_chk', '_red']]
 
         # check msa
-        arg = '%s --msa %s --check --model %s --prefix %s' \
+        arg = '%s --msa "%s" --check --model %s --prefix "%s"' \
               % (self._binary, self.msa, self.args.evomodel, paths[0])
 
         res = _run_sp(arg)
@@ -206,7 +208,7 @@ class raxml_build:
         msa = paths[0] + '.raxml.reduced.phy' if len(keepers) > 0 else self.msa
 
         # now parse, and use reduced alignment if duplicates found. resulting .rba will be smaller
-        arg = '%s --msa %s --parse --model %s --prefix %s' \
+        arg = '%s --msa "%s" --parse --model %s --prefix "%s"' \
               % (self._binary, msa, self.args.evomodel, paths[1])
 
         res = _run_sp(arg)
@@ -258,11 +260,12 @@ class raxml_thread(threading.Thread):
         self.prefix = args[0]
         self.log = args[1]
         if mode == 'infer_topology':
-            self.run_cmd = '%s --msa %s --tree rand{%d},pars{%d} --model %s --blmin %s ' \
-                           '--seed %d --prefix %s --threads %d --redo' % args[2:]
+            self.run_cmd = '%s --msa "%s" --tree rand{%d},pars{%d} --model %s --blmin %s ' \
+                           '--seed %d --prefix "%s" --threads %d --redo' % args[2:]
         elif mode == 'bootstrap':
-            self.run_cmd = '%s --bootstrap --msa %s --tree %s --bs-trees autoMRE{%d} --model %s --blmin %s  ' \
-                           '--seed %d --prefix %s --threads %d --redo' % args[2:]
+            self.run_cmd = '%s --bootstrap --msa "%s" --tree "%s" --bs-trees autoMRE{%d} ' \
+                           '--model "%s" --blmin %s  ' \
+                           '--seed %d --prefix "%s" --threads %d --redo' % args[2:]
         else:
             self.log.error('wrong raxml_thread mode')
             os._exit(1)  # this is no ordinary exit; it kills zombies, too!
