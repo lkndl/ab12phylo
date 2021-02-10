@@ -349,10 +349,12 @@ class rgx_page(ab12phylo_app_base):
                             break
 
         # check the dataset for red lines
-        if iface.RED not in data.trace_store.get_column(-1) \
-                and iface.AQUA not in data.trace_store.get_column(-1) \
+        trace_colors = data.trace_store.get_column(-1)
+        if iface.RED not in trace_colors and iface.AQUA not in trace_colors \
                 and iface.RED not in data.plate_store.get_column(-1):
             self.set_errors(PAGE, False)
+            data.rx_fired[2:5] = [True] * 3
+            data.rx_fired[6] = True
         else:
             assert self.get_errors(PAGE) or sum(data.rx_fired) < 5
 

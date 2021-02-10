@@ -314,17 +314,25 @@ class ab12phylo_app_base(Gtk.Application):
             try:
                 shutil.copytree(src=self.wd, dst=new_wd)  # not dirs_exist_ok=True
             except FileNotFoundError:
-                pass
+                Path.mkdir(new_wd, exist_ok=True)
 
             if 'blaster' in self.iface and self.iface.blaster.is_alive():
                 self.show_message_dialog('Saving to a new location while BLAST is active. '
                                          'Do not delete old data before the search has finished!')
             elif self.wd == Path('untitled'):
                 # delete old data if it was in the prelim directory
-                shutil.rmtree(path=self.wd)
+                try:
+                    shutil.rmtree(path=self.wd)
+                except FileNotFoundError:
+                    pass
 
             self.wd = new_wd
-            self._init_log(filename=str(self.wd / 'ab12phylo.log'), mode='a')
+            log_file = str(self.wd / 'ab12phylo.log')
+            try:
+                self._init_log(filename=log_file, mode='a')
+            except FileNotFoundError:
+                LOG.warning(log_file, 'not found')
+                self._init_log(filename=log_file, mode='w')
 
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
         self.show_notification('saved project', secs=2)

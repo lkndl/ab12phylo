@@ -107,7 +107,7 @@ class project_dataset:
                 old.clear()
                 try:
                     old.update(new_dataset.__getattribute__(attr))
-                except AttributeError:
+                except (TypeError, AttributeError):
                     pass  # try to go without dict values
             else:
                 try:
