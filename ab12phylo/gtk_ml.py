@@ -105,6 +105,7 @@ class ml_page(ab12phylo_app_base):
                 try:
                     Path.mkdir(self.wd / 'RAxML', exist_ok=True)
                     shutil.copy(tx, self.wd / 'RAxML' / 'user_model')
+                    shutil.copy(tx, self.wd / 'RAxML' / 'ml.raxml.bestModel')
                 except FileNotFoundError:
                     self.show_notification('File does not exist', secs=1)
                     dialog.destroy()
@@ -251,11 +252,11 @@ class ml_page(ab12phylo_app_base):
         iface.i = 0
 
         # prepare the calls
-        chck = '"%s" --msa "%s" --check --model "%s"' \
-               + ml.evo_modify + ' --prefix "%s"'
+        chck = '"%s" --msa "%s" --check --model "%s' \
+               + ml.evo_modify + '" --prefix "%s"'
 
-        inML = '"%s" --msa "%s" --model "%s"' + ml.evo_modify + \
-               ' --prefix "%s"' + ' --seed %d' % ml.raxml_seed + \
+        inML = '"%s" --msa "%s" --model "%s' + ml.evo_modify + \
+               '" --prefix "%s"' + ' --seed %d' % ml.raxml_seed + \
                ' --threads auto{%s} --workers auto{%s}' + \
                ' --redo --tree %s ' % ','.join(
             [a for a in ['rand{%d}' % ml.rand if ml.rand > 0 else None,
