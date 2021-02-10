@@ -162,6 +162,8 @@ class blast_page(ab12phylo_app_base):
             remote_dbs.append([db[0], i])
             if db[0] == 'nt':
                 remote_db.set_active(i)
+        if len(remote_dbs) == 0:
+            remote_dbs.append(['no remotes found', 0])
 
     def prep4(self):
         iface = self.iface

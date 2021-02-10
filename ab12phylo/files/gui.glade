@@ -4578,23 +4578,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="row-spacing">10</property>
                                 <property name="column-spacing">10</property>
                                 <child>
-                                  <object class="GtkFileChooserButton" id="blast_exe">
-                                    <property name="name">blast_exe</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-markup" translatable="yes">Path to the directory containing &lt;i&gt;blastn&lt;/i&gt;, &lt;i&gt;blastdbcmd&lt;/i&gt;, &lt;i&gt;update_blastdb.pl&lt;/i&gt; and &lt;i&gt;makeblastdb&lt;/i&gt; on your system.</property>
-                                    <property name="hexpand">True</property>
-                                    <property name="vexpand">False</property>
-                                    <property name="action">select-folder</property>
-                                    <property name="title" translatable="yes"/>
-                                    <property name="width-chars">3</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkButton" id="blast_local">
                                     <property name="name">blast_local</property>
                                     <property name="visible">True</property>
@@ -4697,13 +4680,30 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
-                                        <property name="width-chars">8</property>
+                                        <property name="width-chars">5</property>
                                       </object>
                                     </child>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
                                     <property name="top-attach">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFileChooserButton" id="blast_exe">
+                                    <property name="name">blast_exe</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-markup" translatable="yes">Path to the directory containing &lt;i&gt;blastn&lt;/i&gt;, &lt;i&gt;blastdbcmd&lt;/i&gt;, &lt;i&gt;update_blastdb.pl&lt;/i&gt; and &lt;i&gt;makeblastdb&lt;/i&gt; on your system.</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="vexpand">False</property>
+                                    <property name="create-folders">False</property>
+                                    <property name="title" translatable="yes"/>
+                                    <property name="width-chars">5</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
                                   </packing>
                                 </child>
                               </object>
@@ -4731,7 +4731,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="create-folders">False</property>
                                     <property name="filter">xmlfilter</property>
                                     <property name="title" translatable="yes"/>
-                                    <property name="width-chars">3</property>
+                                    <property name="width-chars">5</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
@@ -4914,7 +4914,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="create-folders">False</property>
                                     <property name="filter">fastafilter</property>
                                     <property name="title" translatable="yes"/>
-                                    <property name="width-chars">3</property>
+                                    <property name="width-chars">5</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
@@ -4954,7 +4954,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can-focus">False</property>
-                                        <property name="width-chars">8</property>
+                                        <property name="width-chars">5</property>
                                       </object>
                                     </child>
                                   </object>

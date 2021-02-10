@@ -77,6 +77,7 @@ class ml_page(ab12phylo_app_base):
                 else:
                     self.show_notification('imported trees:',
                                            [path.name for path in paths], 2)
+                    self.set_errors(PAGE, False)
 
         dialog.destroy()
         self.set_changed(PAGE, False)

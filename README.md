@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg) 
-![github version](https://img.shields.io/static/v1?label=version&message=0.4b011&color=blue&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.4b012&color=blue&style=flat)
 ![Python version](https://img.shields.io/static/v1?label=python&message=3.6&color=orange&style=flat&logo=python)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -222,7 +222,7 @@ If you're having trouble, look at the log file! It will be in your results direc
 
 
 ## Dependencies
-[Biopython](https://biopython.org/wiki/Download), [NumPy](https://numpy.org/), [pandas](https://pandas.pydata.org/docs/getting_started/install.html), [Toytree](https://toytree.readthedocs.io/en/latest/), [Toyplot](https://toyplot.readthedocs.io/en/stable/), [PyYAML](https://pyyaml.org/wiki/PyYAML), [lxml](https://lxml.de/), [xmltramp2](https://pypi.org/project/xmltramp2/) and [Jinja2](https://jinja.palletsprojects.com/en/2.11.x/intro/#installation)
+[Biopython](https://biopython.org/wiki/Download), [NumPy](https://numpy.org/), [pandas](https://pandas.pydata.org/docs/getting_started/install.html), [Toytree](https://toytree.readthedocs.io/en/latest/), [Toyplot](https://toyplot.readthedocs.io/en/stable/), [matplotlib](https://matplotlib.org/), [PyYAML](https://pyyaml.org/wiki/PyYAML), [lxml](https://lxml.de/), [xmltramp2](https://pypi.org/project/xmltramp2/), [svgutils](https://github.com/btel/svg_utils), [Pillow](https://pillow.readthedocs.io/en/stable/installation.html), [Requests](https://3.python-requests.org/) and [Jinja2](https://jinja.palletsprojects.com/en/2.11.x/intro/#installation)
 
 
 ## External Tools
