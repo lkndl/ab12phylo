@@ -181,6 +181,10 @@ class ml_page(ab12phylo_app_base):
 
         self.set_errors(PAGE, not any((self.wd / a).is_file()
                                       for a in [repo.PATHS.tbe, repo.PATHS.fbp]))
+        # change the button to its default state
+        (im, la), tx = iface.raxml_run.get_child().get_children(), 'Run'
+        im.set_from_icon_name('media-playback-start-symbolic', 4)
+        la.set_text('Run')
 
     def start_ML(self, widget, mode, run_after=None):
         """Set-up the ML inference thread"""
@@ -387,6 +391,7 @@ rm pipe
                 with open(sh, 'w') as sf:
                     bash = '''
 #!/bin/bash\n
+# Execute this script via 'bash raxml_run.sh'\n
 # get the number of CPUs available
 cpus=$(nproc)\n
 BLUE='\033[0;34m'

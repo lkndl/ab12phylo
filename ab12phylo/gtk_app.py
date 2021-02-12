@@ -96,6 +96,7 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         """
         page = self.iface.notebook.get_current_page()
         if page == 1:
+            self.set_changed(1)
             self.reset_columns(do_parse=True)
         elif page == 7:
             self.reset_tree()

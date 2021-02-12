@@ -30,7 +30,7 @@ class msa_build:
         self.msa = args.msa
         self.sep = args.sep
         self.missing_samples = args.missing_samples
-        self.tools_path = re.escape(path.join(path.abspath(path.dirname(__file__)), 'tools'))
+        self.tools_path = path.join(path.abspath(path.dirname(__file__)), 'tools')
 
         # look for pre-installed version of selected algorithm
         self.binary = shutil.which(args.msa_algo)

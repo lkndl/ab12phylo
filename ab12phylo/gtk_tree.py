@@ -849,7 +849,7 @@ class tree_page(ab12phylo_app_base):
         # pre-calculate plot attributes
         # internal node size -> support
         min_size = .2
-        ns = [min_size + s / 10 for s in iface.tree.get_node_values('support', 1, 1)]
+        ns = [min_size + s / 7.5 for s in iface.tree.get_node_values('support', 1, 1)]
 
         # internal node color -> support
         red_blue = [color.rgb(*c) for c in [repo.red, repo.blue]]
@@ -896,12 +896,13 @@ class tree_page(ab12phylo_app_base):
             iface.tup = iface.tree.draw(
                 axes=iface.axes, scalebar=phy.axis,
                 tip_labels=tl, tip_labels_align=phy.align,
+                tip_labels_style={'font-size': '15px'},
 
                 node_style={'stroke': None},
                 node_sizes=ns if phy.supp else None,
                 node_colors=nc,
                 node_labels='support' if phy.supp else None,
-                node_labels_style={'font-size': '6px', 'fill': '#FFFFFF',
+                node_labels_style={'font-size': '7px', 'fill': '#FFFFFF',
                                    'baseline-shift': '-1px',
                                    'font-weight': 'bold'},
 
@@ -919,7 +920,7 @@ class tree_page(ab12phylo_app_base):
                 iface.tup[1].x.show = phy.axis
                 # iface.tup[1].x.spine.position = 'high' # and swap out the 0,h-50 bounds
                 th = iface.tree.treenode.height
-                iface.tup[1].x.domain.max = th / 5 + phy.align * th / 3
+                iface.tup[1].x.domain.max = max(th / 6, phy.spec * th / 2, phy.align * th / 1.6)
                 # 1/5 is not enough for aligned labels
                 iface.tup[1].x.domain.min = -th
                 # 0 is the right-most tip (not tip label) of the tree

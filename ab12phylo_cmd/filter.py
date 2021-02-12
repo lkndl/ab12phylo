@@ -27,6 +27,7 @@ def trim_ends(seqrecord, min_phred, end_ratio, trim_preview=False):
         # and allow for some leading non-confident bases
         start -= (end_ratio[1] - end_ratio[0])
         _ok = end_ratio[1] - Ns
+    start = max(0, start)
 
     # trim right
     _ok = 0

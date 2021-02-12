@@ -33,9 +33,9 @@ class qal_page(ab12phylo_app_base):
         iface = self.iface
 
         iface.accept_rev.set_active(data.qal.accept_rev)
-        iface.rev_handler = iface.accept_rev.connect('activate', self.parse, None)
+        iface.rev_handler = iface.accept_rev.connect('clicked', self.parse, None)
         iface.accept_nophred.set_active(True)
-        iface.accept_nophred.connect('activate', self.parse, None)
+        iface.accept_nophred.connect('clicked', self.parse, None)
 
         iface.min_phred.set_adjustment(Gtk.Adjustment(value=30, upper=61, lower=0,
                                                       step_increment=1, page_increment=1))

@@ -99,7 +99,7 @@ class rgx_page(ab12phylo_app_base):
             # set regex for plate_id column as already fired
             data.rx_fired[-2] = True
 
-        iface.reverse_rx_chk.set_active(False)
+        self._switch_search_reverse_reads(self.iface.reverse_rx_chk)
         data.rx_fired[6] = True
 
         if do_parse:  # fire the initial parse
