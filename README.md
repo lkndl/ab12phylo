@@ -213,10 +213,6 @@ If you provide wellsplates mappings, AB12PHYLO will parse plate number, gene nam
 Provide a RegEx to `--regex_rev` and AB12PHYLO will look out for reverse reads, and add only their reverse complement to the data set.
 
 
-#### MSA clients and T-Coffee
-As of June 2020, there is no T-Coffee package for python3.8 on Bioconda. The MSA algorithm can however still be used by using the EMBL-EBI [online tool](https://www.ebi.ac.uk/Tools/msa/) and the API client included in AB12PHYLO. If it doesn't work, try [refreshing](https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/T-coffee+Help+and+Documentation) the client.
-
-
 #### Log File
 If you're having trouble, look at the log file! It will be in your results directory and named like `ab12phylo[|-p1|-p2][-view|-viz]?.log`. Alternatively, you can set the `--verbose` flag and get the same information in real-time to your commandline. Your choice!
 
