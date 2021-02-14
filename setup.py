@@ -1,17 +1,20 @@
 import sys
+from types import SimpleNamespace
+
 from setuptools import setup
+from setuptools.config import read_configuration
 
 if sys.version_info[0] < 3:
     sys.stdout.write('package requires python3')
     sys.exit(1)
 
-from ab12phylo_cmd.__init__ import __version__, __author__, __email__, __license__
+pkg_meta = SimpleNamespace(**read_configuration('setup.cfg')['metadata'])
 
-setup(name='ab12phylo',
-      version=__version__,
-      author=__author__,
-      author_email=__email__,
-      license=__license__,
+setup(name='ab12phylo-lkndl',
+      version=pkg_meta.version,
+      author=pkg_meta.author,
+      author_email=pkg_meta.author_email,
+      license=pkg_meta.license,
       description='An integrated pipeline for maximum likelihood '
                   'phylogenetic tree inference from ABI sequencing data',
       long_description=open('README.md', 'r').read(),
@@ -31,7 +34,7 @@ setup(name='ab12phylo',
                         'matplotlib', 'svgutils', 'pillow', 'requests'],
       classifiers=['Development Status :: 4 - Beta',
                    'Programming Language :: Python :: 3',
-                   'License :: OSI Approved :: MIT License',
-                   'Operating System :: Unix'],
+                   'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+                   'Operating System :: OS Independent'],
       keywords=['bioinformatics', 'phylogenetics', 'population genetics'],
       python_requires='>=3.6')
