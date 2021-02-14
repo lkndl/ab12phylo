@@ -102,7 +102,10 @@ def mark_bad_stretches(seqrecord, min_phred, _len):
 
 
 def new_version(seqrecord, keys):
-    """Updates duplicate isolate coordinates with increasing version number"""
+    """
+    Updates duplicate isolate coordinates with increasing version number.
+    DEPRECATED, is endless loop.
+    """
     while seqrecord.id in keys:
         pos = seqrecord.id.find('.')
         if pos == -1:

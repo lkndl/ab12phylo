@@ -17,9 +17,12 @@ from ab12phylo.gtk_rgx import rgx_page
 from ab12phylo.gtk_tree import tree_page
 
 gi.require_version('Gtk', '3.0')
-
 LOG = logging.getLogger(__name__)
 
+
+# debug via G_DEBUG="fatal_warnings" gdb --args python /home/quirin/PYTHON/AB12PHYLO/ab12phylo/gtk_app.py
+# python3 -m build
+# twine upload dist/*
 
 # set the icon theme
 # Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
@@ -183,6 +186,7 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
             elif page == 4:
                 self.iface.view_gbl.grab_focus()
                 self.drop_seqs()
+        return True
 
 
 def main():

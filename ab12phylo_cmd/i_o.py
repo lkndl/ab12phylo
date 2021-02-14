@@ -229,7 +229,7 @@ class reader:
                         elif record.id in self.seqdata[gene]:
                             old_id = record.id
                             # add suffix to duplicate IDs
-                            record = filter.new_version(record, self.seqdata[gene].keys())
+                            record.id = filter.new_id(record.id, self.seqdata[gene].keys())
                             bad_seqs.write('%s\t%s\t%s\t%s\tnew id, %s already present\n'
                                            % (file, record.id, box, gene, old_id))
                             self.log.debug('version id %s: %s' % (record.id, file))

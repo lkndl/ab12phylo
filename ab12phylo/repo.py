@@ -148,10 +148,11 @@ help = {0: '<b>Welcome to AB12PHYLO!</b> \nPlease define your dataset of ABI tra
            'www.ncbi.nlm.nih.gov/nuccore/AF347033.1?report=fasta">AF347033.1</a>. '
            'If wellsplates are used in conjunction with sequence data for multiple '
            'genes, please make sure the plate layouts are identical.',
-        1: 'Parse sample IDs / well coordinates, gene, orientation and wellsplate ID '
-           'from the respective file name or sequence ID using <a href="https://regex101'
-           '.com/r/Yulwlf/8" title="pre-publication/development stage examples">Regular '
-           'Expressions</a> with capturing groups. Fields may be manually corrected.',
+        1: 'Parse sample ID / well coordinates, gene, orientation and wellsplate ID '
+           'from the file name using <a href="https://regex101.com/r/Yulwlf/8" title='
+           '"development stage examples">Regular Expressions</a> with capturing groups. '
+           'For <i>.fasta</i> files with multiple records, the sequence ID is used. '
+           'Fields can be edited manually.',
         2: 'ABI trace files can be trimmed to remove low-quality regions here, based '
            'on phred quality scores. The maximum score is 60, indicating the probability '
            'of an incorrect base call is 1:10^6. Equivalently, 30 indicates 1:1000.',

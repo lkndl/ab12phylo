@@ -1341,6 +1341,32 @@
       </packing>
     </child>
   </object>
+  <object class="GtkHeaderBar" id="tbar">
+    <property name="name">tbar</property>
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">AB12PHYLO</property>
+    <property name="has-subtitle">False</property>
+    <property name="spacing">0</property>
+    <property name="show-close-button">True</property>
+    <property name="decoration-layout">menu:minimize,maximize,close</property>
+    <child>
+      <object class="GtkMenuButton">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="receives-default">True</property>
+        <property name="direction">none</property>
+        <property name="popover">pop_menu</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="pack-type">end</property>
+      </packing>
+    </child>
+  </object>
   <object class="GtkAdjustment" id="qal_scroll_adj">
     <property name="upper">100</property>
     <property name="step-increment">1</property>
@@ -2644,6 +2670,7 @@ Alternatively, a color legend would nicely fit here.</property>
                         <child>
                           <object class="GtkScrolledWindow" id="parallel_qal">
                             <property name="name">parallel_qal</property>
+                            <property name="height-request">1</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="hexpand">True</property>
@@ -7193,7 +7220,6 @@ Please define your dataset of ABI trace files or sequence data in &lt;i&gt;.fast
                 <child>
                   <placeholder/>
                 </child>
-                <accelerator key="F1" signal="close"/>
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -7271,7 +7297,6 @@ Please define your dataset of ABI trace files or sequence data in &lt;i&gt;.fast
                             <property name="icon-name">window-close-symbolic</property>
                           </object>
                         </child>
-                        <accelerator key="a" signal="clicked" modifiers="GDK_LOCK_MASK"/>
                         <style>
                           <class name="image-button"/>
                         </style>
@@ -7347,32 +7372,5 @@ Please define your dataset of ABI trace files or sequence data in &lt;i&gt;.fast
     <property name="no-show-all">True</property>
     <property name="hexpand">False</property>
     <property name="stack">ml_stack</property>
-  </object>
-  <object class="GtkHeaderBar" id="tbar">
-    <property name="name">tbar</property>
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="title" translatable="yes">AB12PHYLO</property>
-    <property name="has-subtitle">False</property>
-    <property name="spacing">0</property>
-    <property name="show-close-button">True</property>
-    <property name="decoration-layout">menu:minimize,maximize,close</property>
-    <child>
-      <object class="GtkMenuButton">
-        <property name="visible">True</property>
-        <property name="can-focus">True</property>
-        <property name="focus-on-click">False</property>
-        <property name="receives-default">True</property>
-        <property name="align-widget">win</property>
-        <property name="direction">none</property>
-        <property name="popover">pop_menu</property>
-        <child>
-          <placeholder/>
-        </child>
-      </object>
-      <packing>
-        <property name="pack-type">end</property>
-      </packing>
-    </child>
   </object>
 </interface>

@@ -668,7 +668,8 @@ class tree_build:
         self.log.info('rendered embeddable HTMLs in %.2f sec' % (time() - start))
 
         start = time()
-        materials['missing'] = open(self.args.missing_samples, 'r').read()
+        materials['missing'] = open(self.args.missing_samples, 'r').read() \
+            if os.path.exists(self.args.missing_samples) else 'no missing samples'
         materials['msa'] = open(self.args.new_msa, 'r').read()
         materials['newick'] = open(self.args.annotated_tree, 'r').read()
         # fully insert MView HTML

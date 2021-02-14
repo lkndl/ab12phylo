@@ -42,9 +42,9 @@ class msa_page(ab12phylo_app_base):
 
         # connect buttons
         iface.msa_build.connect('clicked', self.start_align)
-        self.bind_accelerator(self.accelerators, iface.msa_build, '<Enter>')
+        self.bind_accelerator(self.accelerators, iface.msa_build, 'Return')
         iface.remote_build.connect('clicked', self.start_align, True)
-        self.bind_accelerator(self.accelerators, iface.remote_build, '<Enter>')
+        self.bind_accelerator(self.accelerators, iface.remote_build, 'Return')
 
         data.msa.stack_child_name = iface.align_stack.get_visible_child_name()
 

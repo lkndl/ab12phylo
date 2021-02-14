@@ -1,28 +1,32 @@
 # 2021 Leo Kaindl
 
 import ast
+import hashlib
 import logging
 import mmap
 import pickle
 import shutil
-import sys
-import hashlib
 import threading
-import warnings, zipfile
+import warnings
+import zipfile
 from argparse import Namespace
 from pathlib import Path
 from time import sleep
 
 import gi
-import matplotlib.pyplot as plt
+import matplotlib
 import pandas as pd
+import sys
 from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import ListedColormap
 
-from ab12phylo_cmd import msa
 from ab12phylo import repo
-from ab12phylo_cmd.__init__ import __version__, __author__, __email__
+from ab12phylo.__init__ import __version__, __author__, __email__
 from ab12phylo.gtk_proj import project_dataset
+from ab12phylo_cmd import msa
+
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Gio, GLib, GObject, GdkPixbuf
@@ -67,11 +71,13 @@ class ab12phylo_app_base(Gtk.Application):
             self.set_accels_for_action(detailed_action_name='app.%s' % act,
                                        accels=['<Control>%s' % acc])
         self.set_accels_for_action(detailed_action_name='app.help',
-                                   accels=['<Control>F1', '<Control>h'])
+                                   accels=['F1', '<Control>h'])
         # self.add_accelerator(accelerator='<Control>h', action_name='app.help', parameter=None)
 
     def do_command_line(self, cmd):
         options = cmd.get_options_dict().end().unpack()
+        if 'version' in options:
+            sys.exit('ab12phylo: %s' % __version__)
         if 'open' in options:
             self.load(options['open'])
         if 'proceed' in options:
@@ -87,8 +93,9 @@ class ab12phylo_app_base(Gtk.Application):
                              'to open a project from the commandline. '
                              'A .proj file next to a directory of data.')
         self.add_main_option('proceed', ord('p'), GLib.OptionFlags.IN_MAIN,
-                             GLib.OptionArg.NONE, 'try to proceed',
-                             'to go to the next analysis stage.')
+                             GLib.OptionArg.NONE, 'try to proceed')
+        self.add_main_option('version', ord('v'), GLib.OptionFlags.IN_MAIN,
+                             GLib.OptionArg.NONE, 'print version')
         # fetch all named objects from the .glade XML
         iface = dict()
         for widget in Gtk.Builder().new_from_file(str(ab12phylo_app_base.TEMPLATE)).get_objects():
@@ -129,7 +136,7 @@ class ab12phylo_app_base(Gtk.Application):
         mod = b'lighter', b'darker'
         mod2 = 200  # per default, make TreeView text color darker
         theme = Gtk.Settings.get_default().get_property('gtk-theme-name')
-        if 'dark' in theme:
+        if 'dark' in theme.lower():
             mod = mod[::-1]
             mod2 = 255
 
@@ -148,7 +155,7 @@ class ab12phylo_app_base(Gtk.Application):
         button:active { background-color: #17f }
         notebook header { background-color: transparent; }
         '''
-        if 'atcha' in theme:
+        if 'matcha' in theme.lower():
             css += b'''
             .codeview text { background-color: %s(@bg_color); color: %s(@fg_color); }
             window { background-color: mix(@bg_color, rgba(127,127,127,0), 0.05) }
@@ -187,10 +194,12 @@ class ab12phylo_app_base(Gtk.Application):
         # connect buttons
         iface.next.connect('clicked', self.proceed)
         self.bind_accelerator(self.accelerators, iface.next, '<Alt>Right')
+        iface.next.grab_focus()
         iface.back.connect('clicked', self.step_back)
         self.bind_accelerator(self.accelerators, iface.back, '<Alt>Left')
         iface.refresh.connect('clicked', self.re_run)
         self.bind_accelerator(self.accelerators, iface.refresh, 'Return')
+        self.bind_accelerator(self.accelerators, iface.refresh, 'F5')
         iface.reset.connect('clicked', self.reset)
         # any page change
         iface.notebook.connect_after('switch-page', self.refresh)
@@ -412,9 +421,10 @@ class ab12phylo_app_base(Gtk.Application):
             self.iface.notebook.set_current_page(7)
         dialog.destroy()
 
-    def help(self, show=False, *args):
+    def help(self, *args, **kwargs):
         bar = self.iface.infobar
-        bar.set_revealed(not bar.get_revealed() or show)
+        bar.set_revealed(not bar.get_revealed() or 'show' in kwargs)
+        return True
 
     def test(self, *args):
         if self.wd != Path('untitled'):
@@ -453,12 +463,13 @@ class ab12phylo_app_base(Gtk.Application):
 
     def about(self, *args):
         Gtk.AboutDialog(transient_for=self.win, modal=True, title='About AB12PHYLO',
-                        authors=['%s<%s>' % (__author__, __email__), 'Dr Remco Stam', 'Corinn Small'],
+                        authors=['%s<%s>' % (__author__, __email__),
+                                 'Remco Stam<stam@wzw.tum.de>', 'Corinn Small'],
                         comments='An integrated pipeline for Maximum Likelihood (ML) '
                                  'phylogenetic tree inference from ABI sequencing data',
                         program_name='AB12PHYLO', version=__version__,
                         website='https://github.com/lkndl/ab12phylo',
-                        website_label='Github Repo', license_type=Gtk.License.MIT_X11,
+                        website_label='Github Repo', license_type=Gtk.License.GPL_3_0,
                         logo=GdkPixbuf.Pixbuf.new_from_file(str(ab12phylo_app_base.ICON))).present()
 
     def _init_log(self, **kwargs):
@@ -1042,10 +1053,9 @@ class ab12phylo_app_base(Gtk.Application):
         key = Gdk.keyval_name(event.keyval)
         if key == 'Up':
             widget.set_text(str(1 + int(widget.get_text())))
-            return True
         elif key == 'Down':
             widget.set_text(str(max(0, -1 + int(widget.get_text()))))
-            return True
+        return True
 
     def edit_numerical_entry(self, widget):
         # filter for numbers only

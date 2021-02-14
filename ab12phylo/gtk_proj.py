@@ -41,7 +41,7 @@ class project_dataset:
                                              bool)  # low quality
         self.search_rev = False
         self.rgx = Namespace()
-        self.qal = Namespace(gene_roll='all', accept_rev=False, accept_nophred=True,
+        self.qal = Namespace(gene_roll='all', accept_rev=True, accept_nophred=True,
                              min_phred=30, trim_out=8, trim_of=10, bad_stretch=5)
         self.msa = Namespace(cmd=dict(), remote_cmd=dict(), last_cmd='')
         self.gbl = Namespace(ignore_ids=set())
