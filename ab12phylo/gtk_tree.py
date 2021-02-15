@@ -1082,7 +1082,8 @@ class tree_page(ab12phylo_app_base):
             iface.text = 'place vector'
             LOG.debug(iface.text)
             canvas = FigureCanvas(f)  # a Gtk.DrawingArea
-            canvas.set_size_request(phy.shape[0] * self.get_hadj() * 2, phy.shape[1])
+            canvas.set_size_request(max(phy.shape[0] * self.get_hadj() * 2, -1),
+                                    phy.shape[1])  # height
             try:
                 ch = iface.msa_eventbox.get_child()
                 if ch:
@@ -1129,8 +1130,7 @@ class tree_page(ab12phylo_app_base):
         if p > w / 2:
             scl.set_size_request(-1, -1)
             scl.set_hexpand(True)
-            scr.set_size_request(pane.get_allocated_width()
-                                 - p - tv.get_allocated_width(), -1)
+            scr.set_size_request(max(w - p - tv.get_allocated_width(), -1), -1)
             scr.set_hexpand(False)
         elif p < w / 2:
             scl.set_size_request(p, -1)

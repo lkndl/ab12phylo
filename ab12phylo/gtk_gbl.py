@@ -252,7 +252,7 @@ class gbl_page(ab12phylo_app_base):
             binary = shutil.which('Gblocks')
             local = bool(binary)
             # else pick deployed Gblocks
-            binary = binary if binary else re.escape(repo.TOOLS / 'Gblocks_0.91b' / 'Gblocks')
+            binary = binary if binary else re.escape(str(repo.TOOLS / 'Gblocks_0.91b' / 'Gblocks'))
             LOG.info('%s Gblocks' % ('local' if local else 'packaged'))
 
             # create base call -t=d sets the mode to nucleotides ... adapt?
@@ -397,7 +397,8 @@ class gbl_page(ab12phylo_app_base):
                     iface.text = 'place vector'
                     LOG.debug(iface.text)
                     canvas = FigureCanvas(f)
-                    canvas.set_size_request(len(blocks) * self.get_hadj(), data.gbl_shape[1])  # width, height
+                    canvas.set_size_request(max(len(blocks) * self.get_hadj(), -1),
+                                            data.gbl_shape[1])  # width, height
                     try:
                         ch = gtk_bin.get_child()
                         if ch:

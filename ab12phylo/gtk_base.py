@@ -1053,9 +1053,11 @@ class ab12phylo_app_base(Gtk.Application):
         key = Gdk.keyval_name(event.keyval)
         if key == 'Up':
             widget.set_text(str(1 + int(widget.get_text())))
+            return True
         elif key == 'Down':
             widget.set_text(str(max(0, -1 + int(widget.get_text()))))
-        return True
+            return True
+        return False
 
     def edit_numerical_entry(self, widget):
         # filter for numbers only
