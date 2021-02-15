@@ -20,10 +20,6 @@ gi.require_version('Gtk', '3.0')
 LOG = logging.getLogger(__name__)
 
 
-# debug via G_DEBUG="fatal_warnings" gdb --args python /home/quirin/PYTHON/AB12PHYLO/ab12phylo/gtk_app.py
-# python3 -m build
-# twine upload dist/*
-
 # set the icon theme
 # Gtk.Settings.get_default().set_property('gtk-icon-theme-name', 'Papirus-Dark-Maia')
 # Gtk.Settings.get_default().set_property('gtk-theme-name', 'Matcha-dark-sea')

@@ -1,0 +1,54 @@
+{ % set name = "ab12phylo" % }
+{ % set version = "0.4.15b0" % }
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  url: "https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz"
+  sha256: deb0812efe12c7c93bf9d0d7a06fae69a5bc973692c748ba17689ea62854ccdd
+
+build:
+  number: 0
+  script: "{{ PYTHON }} -m pip install . -vv"
+  entry_points:
+    - ab12phylo = ab12phylo.gtk_app:main
+    - ab12phylo-cmd = ab12phylo_cmd.main:_main
+    - ab12phylo-visualize = ab12phylo_cmd.phylo:_visualize
+    - ab12phylo-view = ab12phylo_cmd.phylo:_view
+    - ab12phylo-add-xml = ab12phylo_cmd.blast:_add_xml
+
+requirements:
+  host:
+    - pip
+    - python
+  build:
+    - python
+  run:
+    - python
+    - biopython
+    - pyyaml
+    - jinja2
+    - xmltramp2
+    - toyplot
+    - toytree <=1.2.0
+    - numpy
+    - pandas
+    - matplotlib
+    - svgutils
+    - pillow
+    - requests
+
+test:
+  imports:
+    - ab12phylo
+    - ab12phylo_cmd
+
+about:
+  license: GPL-3.0
+  summary: "Integrated pipeline for ML phylogenetic inference from ABI trace data"
+
+extra:
+  recipe-maintainers:
+    - lkndl

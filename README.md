@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ab12phylo?color=green)
-![github version](https://img.shields.io/static/v1?label=version&message=0.4.15-beta&color=brightgreen&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.4.16-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
@@ -15,25 +15,41 @@ AB12PHYLO was developed to identify plant pathogen populations possibly under ba
 
 ## Installation
  
-The recommended way to install AB12PHYLO is via
+The recommended way to install AB12PHYLO is via [conda](https://docs.conda.io/), as all [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel. To create a and activate a python3 [conda](https://docs.conda.io/) environment, run 
 ```shell script
-pip install ab12phylo
+conda create -n <env> python=3
+conda activate <env>
 ```
+where `<env>` is the environment name of your choice. Then install AB12PHYLO via
 
-All [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel, which can simplify installation. To create a new or activate an existing python3 [conda](https://docs.conda.io/) environment:
 ```shell script
-conda create -n <your_python3_conda_env> python=3
-conda activate <your_python3_conda_env>
+conda install -c lkndl ab12phylo
 ```
-Then install the external tools in one go:
+and a combination of the external tools you would like to use via
 
 ```shell script
 conda install -c bioconda "blast>=2.9.0" raxml-ng "gblocks=0.91b" mafft clustalo muscle
 ```
 
-You will then have to `conda activate <your_python3_conda_env>` anytime you want to use AB12PHYLO. Alternatively, just install your MSA tool of choice and BLAST+ (if you'd like to include species annotations) yourself.
+You will then have to `conda activate <env>` anytime you want to use AB12PHYLO. If starting the app via `ab12phylo` fails with something like `ValueError: Namespace Gtk not available` or `ModuleNotFoundError: No module named 'gi'`, you are missing PyGObject, the python bindings for GTK3:
+```shell script
+conda install -c conda-forge pygobject gtk3  
+```
 
-If you are on Linux and using conda, please check `which python` and `which pip` is active inside your environment (where you will see `(<your_python3_conda_env>)` to the left of your shell prompt, shortened here to `<env>`).
+Alternatively, install your MSA tool of choice and possibly BLAST+ by yourself, and then install AB12PHYLO to your system python3 via
+```shell script
+pip install ab12phylo
+```
+
+or build it from source:
+```shell script
+git clone https://github.com/lkndl/ab12phylo
+cd ab12phylo
+pip install --upgrade pip
+pip install .
+```
+
+If you are on Linux and would like to install via `pip` inside your conda `<env>`, please check `which python` and `which pip` is active inside your environment (where you will see `(<env>)` to the left of your shell prompt, not shown above).
 
  ```console
 (<env>) foo@bar:~$ which python
@@ -45,24 +61,9 @@ If you are on Linux and using conda, please check `which python` and `which pip`
 (<env>) foo@bar:~$ which pip3
 /home/foo/anaconda3/envs/<env>/bin/pip3
 ```
-In the case shown here, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment. Sometimes there is no `pip` at all, which can be fixed on Linux using your package manager (or `sudo apt-get install python3-pip` on Ubuntu), or in conda via `conda install -c conda-forge pip`.
+In the case outlined here, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment. Sometimes there is no `pip` at all, which can be fixed on Linux using your package manager (or `sudo apt-get install python3-pip` on Ubuntu), or in conda via `conda install -c conda-forge pip`.
  
-Now install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or `pip3` as shown at the top. 
-
-Alternatively, build AB12PHYLO from source:
- 
-```shell script
-git clone https://github.com/lkndl/ab12phylo
-cd ab12phylo
-pip install --upgrade pip
-pip install .
-```
-
-If starting AB12PHYLO via `ab12phylo` fails with something like `ValueError: Namespace Gtk not available` or `ModuleNotFoundError: No module named 'gi'`, you're missing PyGObject, the bindings for GTK3. You can find instructions for a system installation [here](https://pygobject.readthedocs.io/en/latest/getting_started.html), or install it to your conda `<env>` via:
-
-```shell script
-conda install -c conda-forge pygobject gtk3  
-```
+Now install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or `pip3` as shown at the top. You will also have to make sure [PyGObject](https://pygobject.readthedocs.io/en/latest/getting_started.html) is installed on your system.
 
 
 ## Getting Started
