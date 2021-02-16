@@ -373,7 +373,9 @@ class blast_page(ab12phylo_app_base):
                 pid = '%.2f' % r.pid if r.pid < 100 else '100'
             else:
                 pid = r.pid
-            color = iface.AQUA if not pd.isna(r.quality) and not r.quality == 'no phreds' else None
+            color = None
+            if 'quality' in r and not pd.isna(r.quality) and r.quality != 'no phreds':
+                color = iface.AQUA
             # and again:
             row = [str(i) for i in [sample, pid, r.BLAST_species, r.extra_species]] + [color]
             data.sp_model.append(row)
