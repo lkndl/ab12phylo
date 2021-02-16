@@ -207,17 +207,18 @@ class gbl_page(ab12phylo_app_base):
             self.set_changed(PAGE, True)
             # get arguments from adjustments values
             g = iface.tempspace  # the param Namespace
-            cons, flank, good, bad = [adj.get_value() for adj in
-                                      [g.conserved, g.flank, g.good_block, g.bad_block]]
+            # do NOT swap order, do NOT swap order! Gblocks wants them in the wrong order!
+            flank, cons, good, bad = [adj.get_value() for adj in
+                                      [g.flank, g.conserved, g.good_block, g.bad_block]]
             gaps = iface.gaps.get_active_text()[0]
             # failsafe
             if flank < cons:
                 flank = cons
-            params = [cons, flank, bad, good, gaps]
+            params = [flank, cons, bad, good, gaps]
             # check if they have changed
             if iface.tempspace.params == params and not force \
                     and iface.tempspace.bak_ignore == data.gbl.ignore_ids:
-                self.show_notification('MSA already trimmed with these parameters')
+                self.show_notification('MSA already trimmed with these parameters', secs=2)
                 return
             iface.tempspace.params = params
         data.gbl_model.clear()
@@ -257,7 +258,8 @@ class gbl_page(ab12phylo_app_base):
             LOG.info('%s Gblocks' % ('local' if local else 'packaged'))
 
             # create base call -t=d sets the mode to nucleotides ... adapt?
-            arg = '%s %s -t=d -b1=%d -b2=%d -b3=%d -b4=%d -b5=%s -e=.txt -s=y -p=s; exit 0' \
+            # leave -b2 and -b1 in this wrong order!
+            arg = '%s %s -t=d -b2=%d -b1=%d -b3=%d -b4=%d -b5=%s -e=.txt -s=y -p=s; exit 0' \
                   % tuple([binary, '"%s"'] + iface.tempspace.params)
             LOG.debug(arg)
 
@@ -284,7 +286,7 @@ class gbl_page(ab12phylo_app_base):
                 with open(self.wd / gene / ('%s_raw_msa_dropped.fasta' % gene), 'a') as fasta:
                     SeqIO.write(new_take_out.values(), fasta, 'fasta')
                 # overwrite MSA without all dropped samples
-                with open(msa, 'w') as fasta:
+                with open(raw_msa, 'w') as fasta:
                     SeqIO.write(records.values(), fasta, 'fasta')
             if sorted(records.keys()) != shared_ids:
                 errors.append('MSA for %s does not match the dataset, please re-build.' % gene)
@@ -451,8 +453,14 @@ class gbl_page(ab12phylo_app_base):
         iface.msa_shape.set_text('%d : %d' % tuple(data.msa_shape[:2]))
         iface.msa_shape_trimmed.set_text(
             '%d : %d' % (data.msa_shape[2], data.msa_shape[3]))
-        if iface.tempspace.flank.props.upper != data.msa_shape[1]:
-            self.re_preset(iface.gbl_preset)
+
+        # possibly re-configure flank and conserved
+        g = iface.tempspace
+        n_seqs = data.msa_shape[1]
+        min_c = n_seqs // 2 + 1
+        if g.flank.props.upper != n_seqs:
+            g.conserved.configure(max(min_c, g.conserved.props.value), min_c, n_seqs, 1, 0, 0)
+            g.flank.configure(max(min_c, g.flank.props.value), min_c, n_seqs, 1, 0, 0)
         if errors:
             self.show_notification('Errors during MSA trimming', errors)
             return
@@ -465,6 +473,8 @@ class gbl_page(ab12phylo_app_base):
         ignore_ids, data, iface = self.data.gbl.ignore_ids, self.data, self.iface
         for gene in data.genes:
             dropped_file = self.wd / gene / ('%s_raw_msa_dropped.fasta' % gene)
+            if not dropped_file.is_file():
+                continue
             put_in = {r.id: r for r in SeqIO.parse(dropped_file, 'fasta')}
 
             unknown = {_id for _id in put_in.keys() if _id not in ignore_ids}
