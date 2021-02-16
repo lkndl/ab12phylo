@@ -5053,6 +5053,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">db_info</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Fields are editable, and colouring indicates samples that were excluded earlier and won't be in the tree.</property>
                                     <child internal-child="selection">
                                       <object class="GtkTreeSelection"/>
                                     </child>

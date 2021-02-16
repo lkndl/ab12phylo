@@ -677,15 +677,20 @@ class ab12phylo_app_base(Gtk.Application):
             # scroll up
             adj.value = tp / (len(mo) + 1) * adj.upper
 
-    def delete_and_ignore_rows(self, widget, event, page, sel, ns):
+    def delete_and_ignore_rows(self, widget, event, page, sel):
         """
         Keep track of the rows that will not be written to the next fasta and delete them from the treeview.
         """
         if Gdk.keyval_name(event.keyval) == 'Delete':
             LOG.debug('delete_and_ignore_rows')
             model, tree_path_iterator = sel.get_selected_rows()
-            if 'ignore_ids' not in ns:
-                ns.ignore_ids = set() if page == 4 else dict()
+            if page == 2:
+                if not self.data.seqdata:
+                    self.start_read(run_after=[self.start_trim])
+                    return False
+                ns = self.data.qal
+            elif page == 4:
+                ns = self.data.gbl
             for row in reversed(sorted(tree_path_iterator)):
                 if page == 2:
                     _id, gene = model[row][:2]

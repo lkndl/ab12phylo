@@ -74,7 +74,7 @@ class qal_page(ab12phylo_app_base):
             'check-resize', self.get_height_resize, iface.qal_spacer, [iface.qal_win])
         # in-preview deletion
         iface.view_qal.connect(
-            'key_press_event', self.delete_and_ignore_rows, PAGE, sel, data.qal)
+            'key_press_event', self.delete_and_ignore_rows, PAGE, sel)
         iface.qal_eventbox.connect_after(
             'button_press_event', self.select_seqs, PAGE, iface.zoomer,
             iface.view_qal, iface.tempspace)  # in-preview selection
@@ -226,7 +226,7 @@ class qal_page(ab12phylo_app_base):
         data.gene_for_preview = p.gene_roll
         genes_for_preview = data.genes if p.gene_roll == 'all' else {p.gene_roll}
         ignore_ids = data.qal.ignore_ids if 'ignore_ids' in data.qal \
-            else {g: dict() for g in data.genes}  # regulated at delete_and_ignore_rows
+            else {g: set() for g in data.genes}  # regulated at delete_and_ignore_rows
         iface.text = 'creating matrix'
         LOG.debug(iface.text)
         iface.i = 0
@@ -378,7 +378,7 @@ class qal_page(ab12phylo_app_base):
 
         p = data.qal
         ignore_ids = p.ignore_ids if 'ignore_ids' in p \
-            else {g: dict() for g in data.genes}  # regulated at delete_and_ignore_rows
+            else {g: set() for g in data.genes}  # regulated at delete_and_ignore_rows
         LOG.debug('trim and filter all sequences')
         for gene, genedata in data.seqdata.items():
             Path.mkdir(self.wd / gene, exist_ok=True)

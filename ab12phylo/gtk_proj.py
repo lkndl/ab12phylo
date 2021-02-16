@@ -68,7 +68,8 @@ class project_dataset:
         self.sp_model = picklable_liststore(str,  # id
                                             str,  # pid
                                             str,  # species
-                                            str)  # extra_species
+                                            str,  # extra_species
+                                            str)  # low quality indicator color
         self.remote_dbs = picklable_liststore(str,  # name
                                               int)  # for synchronization with ComboBox, i think ...
         self.blast_path = None  # for non-$PATH BLAST+ executable

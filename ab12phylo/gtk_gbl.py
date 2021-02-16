@@ -42,12 +42,11 @@ class gbl_page(ab12phylo_app_base):
         iface.gbl_preset.set_id_column(0)
         iface.gaps.set_id_column(0)
 
+        iface.tempspace.bak_ignore = set()
         iface.tempspace.params = list()
         for w_name in ['conserved', 'flank', 'good_block', 'bad_block']:
             wi = iface.__getattribute__(w_name)
             iface.tempspace.__setattr__(w_name, wi.get_adjustment())
-            wi.connect('activate',
-                       lambda *args: self.start_gbl())  # when hitting Enter, re-plot. overshadowed by Refresh
         for wi in [iface.conserved, iface.flank]:
             wi.connect_after('changed', self.edit)  # when editing field, check adjustments
 
@@ -61,7 +60,7 @@ class gbl_page(ab12phylo_app_base):
         sel.connect('changed', self.keep_visible,
                     iface.parallel_gbl.props.vadjustment.props, iface.tempspace)
         iface.view_gbl.connect('key_press_event', self.delete_and_ignore_rows,
-                               PAGE, sel, iface.tempspace)  # in-preview deletion
+                               PAGE, sel)  # in-preview deletion
         iface.gbl_eventbox.connect('button_press_event', self.select_seqs, PAGE, iface.zoomer,
                                    iface.view_gbl, iface.tempspace)  # in-preview selection
         iface.gbl_eventbox.connect('scroll-event', self.xy_scale, PAGE)  # zooming
@@ -187,7 +186,7 @@ class gbl_page(ab12phylo_app_base):
         flank.configure(max(adj.get_value(), flank.get_value()),  # value
                         adj.get_value(), flank.get_upper(), 1, 0, 0)  # the others
 
-    def start_gbl(self, run_after=None):
+    def start_gbl(self, run_after=None, force=False):
         """Set-up the Gblocks thread. This cannot be reached if Gblocks shall be skipped"""
         data = self.data
         iface = self.iface
@@ -203,7 +202,7 @@ class gbl_page(ab12phylo_app_base):
             [do_func() for do_func in run_after]
             return
 
-        data.gbl_model.clear()
+        iface.refresh.grab_focus()  # trick to make the adjustments realize they've changed
         if iface.gbl_preset.get_active_text() != 'skip':
             self.set_changed(PAGE, True)
             # get arguments from adjustments values
@@ -215,11 +214,13 @@ class gbl_page(ab12phylo_app_base):
             if flank < cons:
                 flank = cons
             params = [cons, flank, bad, good, gaps]
-            # # check if they have changed
-            # if iface.tempspace.params == params:
-            #     self.show_notification('MSA already trimmed, please proceed')
-            #     return
+            # check if they have changed
+            if iface.tempspace.params == params and not force \
+                    and iface.tempspace.bak_ignore == data.gbl.ignore_ids:
+                self.show_notification('MSA already trimmed with these parameters')
+                return
             iface.tempspace.params = params
+        data.gbl_model.clear()
 
         # save_ui_state from iface.tempspace into data.gbl
         data.gbl.preset = iface.gbl_preset.get_active_text()
@@ -273,13 +274,24 @@ class gbl_page(ab12phylo_app_base):
             LOG.debug(iface.text)
             raw_msa = self.wd / gene / ('%s_raw_msa.fasta' % gene)
             msa = self.wd / gene / ('%s_msa.fasta' % gene)
-            records = {r.id: r.seq.upper() for r in SeqIO.parse(raw_msa, 'fasta')}
+            records = {r.id: r for r in SeqIO.parse(raw_msa, 'fasta')}
+            take_out = {_id for _id in records.keys() if _id in data.gbl.ignore_ids}
+            take_out = {_id: records.pop(_id) for _id in take_out}
+            if take_out:
+                # write newly dropped sequences to backup file
+                new_take_out = {_id: r for _id, r in take_out.items()
+                                if _id not in iface.tempspace.bak_ignore}
+                with open(self.wd / gene / ('%s_raw_msa_dropped.fasta' % gene), 'a') as fasta:
+                    SeqIO.write(new_take_out.values(), fasta, 'fasta')
+                # overwrite MSA without all dropped samples
+                with open(msa, 'w') as fasta:
+                    SeqIO.write(records.values(), fasta, 'fasta')
             if sorted(records.keys()) != shared_ids:
                 errors.append('MSA for %s does not match the dataset, please re-build.' % gene)
                 sleep(.1)
                 GObject.idle_add(self.stop_gbl, errors)
                 return True
-            ar = np.array([repo.seqtoint(records[_id]) for _id in shared_ids])
+            ar = np.array([repo.seqtoint(records[_id].seq.upper()) for _id in shared_ids])
             msa_lens.append(ar.shape[1])
             array = np.hstack((array, ar,))  # shared.SEP would need to be stacked here
             data.msa_shape[:2] = array.shape[::-1]
@@ -293,7 +305,8 @@ class gbl_page(ab12phylo_app_base):
             LOG.debug(iface.text)
             with open(self.wd / gene / 'gblocks.log', 'w') as log_handle:
                 try:
-                    subprocess.run(arg % raw_msa, shell=True, check=True, stdout=log_handle, stderr=log_handle)
+                    subprocess.run(arg % raw_msa, shell=True, check=True,
+                                   stdout=log_handle, stderr=log_handle)
                 except (OSError, subprocess.CalledProcessError) as e:
                     errors.append(str(e))
                     log_handle.write(str(e))
@@ -324,6 +337,7 @@ class gbl_page(ab12phylo_app_base):
             iface.i += 1
 
         iface.text = 'concatenating MSAs'
+        iface.tempspace.bak_ignore = {i for i in data.gbl.ignore_ids}
         if 'aligner' not in iface:
             iface.aligner, cmd = self.get_msa_build_cmd(
                 repo.toalgo(iface.msa_algo.get_active_text()), self.wd, data.genes)
@@ -445,6 +459,31 @@ class gbl_page(ab12phylo_app_base):
         if iface.run_after:
             [do_func() for do_func in iface.run_after]
         return
+
+    def undrop_seqs(self):
+        """Write dropped sequences back to the untrimmed MSAs."""
+        ignore_ids, data, iface = self.data.gbl.ignore_ids, self.data, self.iface
+        for gene in data.genes:
+            dropped_file = self.wd / gene / ('%s_raw_msa_dropped.fasta' % gene)
+            put_in = {r.id: r for r in SeqIO.parse(dropped_file, 'fasta')}
+
+            unknown = {_id for _id in put_in.keys() if _id not in ignore_ids}
+            assert not unknown, 'Found wrong dropped sequences: %s' % ','.join(unknown)
+
+            with open(self.wd / gene / ('%s_raw_msa.fasta' % gene), 'a') as fasta:
+                SeqIO.write(put_in.values(), fasta, 'fasta')
+            dropped_file.unlink()
+
+        # save in metadata
+        for _id in ignore_ids:
+            for gene, genemeta in data.metadata.items():
+                if _id in genemeta:
+                    genemeta[_id]['quality'] = ''
+        self.write_metadata()
+
+        ignore_ids.clear()
+        self.iface.tempspace.bak_ignore.clear()
+        self.start_gbl(force=True)
 
     def drop_seqs(self):
         """

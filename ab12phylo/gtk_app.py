@@ -72,7 +72,7 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         self.supers[page].refresh(self)
         # hide or show these two actions depending on applicability
         iface.refresh.props.visible = bool(page in self.re_runs)
-        iface.reset.props.visible = page in {1, 7}
+        iface.reset.props.visible = page in {1, 2, 4, 7}
         iface.gene_roll.props.visible = page == 2
         iface.next.props.visible = page != 7
         iface.back.props.visible = page != 0
@@ -97,6 +97,11 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         if page == 1:
             self.set_changed(1)
             self.reset_columns(do_parse=True)
+        elif page == 2:
+            self.data.qal.ignore_ids = {g: set() for g in self.data.genes}
+            self.start_trim()
+        elif page == 4:
+            self.undrop_seqs()
         elif page == 7:
             self.reset_tree()
 

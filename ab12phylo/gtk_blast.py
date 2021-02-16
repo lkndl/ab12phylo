@@ -56,7 +56,7 @@ class blast_page(ab12phylo_app_base):
         for i, title in enumerate(['sample', 'pid', 'species', 'runner-up']):
             crt = Gtk.CellRendererText(editable=True)
             crt.connect('edited', self._save_sp_edit, spi, i)
-            col = Gtk.TreeViewColumn(title=title, cell_renderer=crt, text=i)
+            col = Gtk.TreeViewColumn(title=title, cell_renderer=crt, text=i, foreground=4)
             col.set_sort_column_id(i)
             col.set_resizable(True)
             spi.append_column(col)
@@ -373,8 +373,9 @@ class blast_page(ab12phylo_app_base):
                 pid = '%.2f' % r.pid if r.pid < 100 else '100'
             else:
                 pid = r.pid
+            color = iface.AQUA if not pd.isna(r.quality) and not r.quality == 'no phreds' else None
             # and again:
-            row = [str(i) for i in [sample, pid, r.BLAST_species, r.extra_species]]
+            row = [str(i) for i in [sample, pid, r.BLAST_species, r.extra_species]] + [color]
             data.sp_model.append(row)
 
     def _save_sp_edit(self, cell, path, new_text, tv, col):
