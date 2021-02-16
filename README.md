@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ab12phylo?color=green)
-![github version](https://img.shields.io/static/v1?label=version&message=0.4.16-beta&color=brightgreen&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.4.17-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI trace and `FASTA` data. 
@@ -51,7 +51,7 @@ pip install .
 
 If you are on Linux and would like to install via `pip` inside your conda `<env>`, please check `which python` and `which pip` is active inside your environment (where you will see `(<env>)` to the left of your shell prompt, not shown above).
 
- ```console
+```console
 (<env>) foo@bar:~$ which python
 /home/foo/anaconda3/envs/<env>/bin/python
 
@@ -61,6 +61,7 @@ If you are on Linux and would like to install via `pip` inside your conda `<env>
 (<env>) foo@bar:~$ which pip3
 /home/foo/anaconda3/envs/<env>/bin/pip3
 ```
+
 In the case outlined here, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment. Sometimes there is no `pip` at all, which can be fixed on Linux using your package manager (or `sudo apt-get install python3-pip` on Ubuntu), or in conda via `conda install -c conda-forge pip`.
  
 Now install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or `pip3` as shown at the top. You will also have to make sure [PyGObject](https://pygobject.readthedocs.io/en/latest/getting_started.html) is installed on your system.
