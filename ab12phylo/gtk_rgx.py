@@ -573,7 +573,7 @@ class rgx_page(ab12phylo_app_base):
         missing = {g: ', '.join(sorted(all_ids - ids))
                    for g, ids in data.gene_ids.items() if all_ids - ids}
         if missing:
-            with open(repo.PATHS.missing, 'w') as fh:
+            with open(self.wd / repo.PATHS.missing, 'w') as fh:
                 fh.write('gene\tmissing samples\n')
                 for k, v in missing.items():
                     fh.write('%s\t%s\n' % (k, v))

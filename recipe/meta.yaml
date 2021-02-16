@@ -47,7 +47,7 @@ test:
 
 about:
   license: GPL-3.0
-  summary: "Integrated pipeline for ML phylogenetic inference from ABI trace data"
+  summary: "Integrated pipeline for ML phylogenetic inference from ABI trace and FASTA data"
 
 extra:
   recipe-maintainers:

@@ -4,7 +4,7 @@
 ![github version](https://img.shields.io/static/v1?label=version&message=0.4.16-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
-[AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI sequencing data. 
+[AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI trace and `FASTA` data. 
 At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.com/amkozlov/raxml-ng) (Kozlov et al. 2019) and a BLAST search in a reference database. 
 It enables visual, effortless sample identification based on phylogenetic position and sequence similarity, as well as population subset selection aided by metrics like Tajima's D for estimations of ongoing evolution.
  
