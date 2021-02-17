@@ -259,7 +259,7 @@ class gbl_page(ab12phylo_app_base):
 
             # create base call -t=d sets the mode to nucleotides ... adapt?
             # leave -b2 and -b1 in this wrong order!
-            arg = '%s %s -t=d -b2=%d -b1=%d -b3=%d -b4=%d -b5=%s -e=.txt -s=y -p=s; exit 0' \
+            arg = '%s %s -t=d -b2=%d -b1=%d -b3=%d -b4=%d -b5=%s -e=.txt -s=y -p=n -k=y; exit 0' \
                   % tuple([binary, '"%s"'] + iface.tempspace.params)
             LOG.debug(arg)
 
@@ -268,7 +268,7 @@ class gbl_page(ab12phylo_app_base):
         array = np.empty(shape=(len(shared_ids), 0), dtype=int)
         [data.gbl_model.append([_id]) for _id in shared_ids]
         msa_lens = list()
-        slices = set()
+        blocks = list()
         iface.i += 1
 
         for gene in data.genes:
@@ -295,7 +295,10 @@ class gbl_page(ab12phylo_app_base):
                 return True
             ar = np.array([repo.seqtoint(records[_id].seq.upper()) for _id in shared_ids])
             msa_lens.append(ar.shape[1])
+            # get the array columns that are not only gaps
+            usable_sites = [i for i in range(ar.shape[1]) if set(ar[:, i]) != {repo.toint('-')}]
             array = np.hstack((array, ar,))  # shared.SEP would need to be stacked here
+            del ar
             data.msa_shape[:2] = array.shape[::-1]
 
             if iface.gbl_preset.get_active_text() == 'skip':
@@ -319,23 +322,20 @@ class gbl_page(ab12phylo_app_base):
             LOG.debug(iface.text)
 
             shutil.move(raw_msa.with_suffix('.fasta.txt'), msa)
-            with open(raw_msa.with_suffix('.fasta.txt.txts'), 'r') as fh:
-                for line in fh:
-                    if line.startswith('Flank positions of the') and \
-                            line.strip().endswith('selected block(s)'):
-                        lane = fh.readline()
-                        line_blocks = lane.strip()[9:-1].split(']  [')
-                        break
+            # get the good blocks from the last pseudo-sequence in the text mask file
+            for pseudo_seq in SeqIO.parse(raw_msa.with_suffix('.fasta.txtMask'), 'fasta'):
+                mask = pseudo_seq
+            # map the Gblocks mask to the original MSA sites
+            line_blocks = [usable_sites[i] for i, char in enumerate(mask.seq) if char == '#']
             LOG.debug(line_blocks)
-            if line_blocks == ['']:
+            if not line_blocks:
                 err = '%s: no good blocks' % gene
                 LOG.error(err)
                 errors.append(err)
                 continue
 
             shift = sum(msa_lens[:-1])
-            slices |= {range(r[0] - 1, r[1]) for r in
-                       [[int(b) + shift for b in block.split('  ')] for block in line_blocks]}
+            blocks.extend([i + shift for i in line_blocks])
             iface.i += 1
 
         iface.text = 'concatenating MSAs'
@@ -358,10 +358,6 @@ class gbl_page(ab12phylo_app_base):
         array = np.ma.masked_where(array > repo.toint('else'), array)
 
         # create a transparency mask
-        blocks = set()
-        while slices:
-            blocks |= set(slices.pop())
-        blocks = sorted(list(blocks))
         gbl_mask = np.full(array.shape, repo.ALPHA)
         gbl_mask[:, blocks] = 1
 

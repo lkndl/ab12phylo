@@ -144,7 +144,7 @@ class tree_page(ab12phylo_app_base):
         iface = self.iface
         phy = data.phy
         self.reload_ui_state(page=PAGE)
-        iface.tree_pane.set_position(460)
+        iface.tree_pane.set_position(600)
 
         if 'tx' in phy and (self.wd / phy.tx).with_suffix('.png').is_file() \
                 and (self.wd / repo.PATHS.phylo_msa).is_file() \
