@@ -21,7 +21,7 @@ from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import ListedColormap
 
 from ab12phylo import repo
-from ab12phylo.__init__ import __version__, __author__, __email__
+from ab12phylo.__init__ import __version__
 from ab12phylo.gtk_proj import project_dataset
 from ab12phylo_cmd import msa
 
@@ -454,6 +454,7 @@ class ab12phylo_app_base(Gtk.Application):
             for row in model:
                 row[0] = str((td / row[0]).resolve())
 
+        # # make relative paths when creating a new test.proj
         # for p in self.data.trace_store:
         #     p[0] = p[0].replace('/home/quirin/PYTHON/AB12PHYLO/ab12phylo/', '')
 
@@ -466,7 +467,7 @@ class ab12phylo_app_base(Gtk.Application):
 
     def about(self, *args):
         Gtk.AboutDialog(transient_for=self.win, modal=True, title='About AB12PHYLO',
-                        authors=['%s<%s>' % (__author__, __email__),
+                        authors=['Leo Kaindl<leo.kaindl@tum.de>',
                                  'Remco Stam<stam@wzw.tum.de>', 'Corinn Small'],
                         comments='An integrated pipeline for Maximum Likelihood (ML) '
                                  'phylogenetic tree inference from ABI sequencing data',

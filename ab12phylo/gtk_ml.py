@@ -1,7 +1,6 @@
 # 2021 Leo Kaindl
 
 import logging
-import os
 import random
 import re
 import shlex
@@ -9,7 +8,7 @@ import shutil
 import stat
 import threading
 from pathlib import Path
-from subprocess import run, Popen, PIPE
+from subprocess import call, run, Popen, PIPE
 from time import sleep, time
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -439,23 +438,16 @@ echo "CPUs available: $cpus, use at most $used"
                 return True
 
         if ml.raxml_shell and mode == 'raxml':
-            # with open(shell, 'a') as sh:
-            #     sh.write('# restart AB12PHYLO afterwards\n'
-            #              'ab12phylo --open "%s" --proceed\n'
-            #              % str(gui.wd / gui.project_path))
             shell.chmod(shell.stat().st_mode | stat.S_IEXEC)
-            shell = re.escape(str(shell))
             self.hold()
             self.win.hide()
             sleep(.1)
             Popen(['notify-send', 'AB12PHYLO', 'ML Tree Inference running in background.',
                    '-i', str(repo.PATHS.icon_path)])
-            os.system(shell)
+            call([shell])
             sleep(.1)
             self.win.show_all()
             self.release()
-            # old alternative that killed python:
-            # os.execv(shell, ('placeholder', 'arg'))
 
         iface.text = 'copy tree files'
         iface.i = iface.k - 1

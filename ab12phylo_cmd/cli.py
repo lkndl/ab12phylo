@@ -281,9 +281,11 @@ class parser(argparse.ArgumentParser):
             # now rebuild a command line and parse it again
             commandline = list()
             for key, val in self.args.__dict__.items():
-                if key in ['genes', 'ref', 'regex_3', 'BLAST_xml', 'out_fmt'] and val is not None:
+                if key in ['genes', 'ref', 'regex_3', 'BLAST_xml', 'out_fmt', 'msa_viz'] and val is not None:
                     commandline.append('--%s' % key)
                     [commandline.append(v) for v in val]
+                    if key == 'msa_viz' and not val:
+                        commandline.append('png')
                 elif val not in [None, False, True]:
                     commandline += ['--%s' % key, str(val)]
                 elif val is True:

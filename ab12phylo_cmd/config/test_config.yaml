@@ -7,7 +7,7 @@
 
 
 ## [I/O]
-dir: ab12phylo_test_results
+dir: ab12phylo-cmd_test_results
 #genes: ITS1F, OPA10, EndoPG  # first entry used for BLAST+ -> prefer ITS1F
 abi_dir: $ab12phylo_cmd/test_data
 #abi_set: $ab12phylo_cmd/test_data/file_set
@@ -59,7 +59,7 @@ poly_allelic: True
 
 ## [misc]
 verbose: False
-msa_viz: pdf  # [pdf, png]
+msa_viz: [png, pdf]  # [png, pdf]
 out_fmt: [png]  # [pdf, png, svg]
 print_supports: True
 headless: False

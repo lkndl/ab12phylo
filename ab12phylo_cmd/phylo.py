@@ -290,11 +290,11 @@ class tree_build:
 
         # render rectangular tree with MSA
         reserve_gap = False
-        if type(self.args.msa_viz) == list:
+        if type(self.args.msa_viz) == list and 'png' in self.args.msa_viz:
             try:
                 reserve_gap = True
                 proc = multiprocessing.Process(target=self._with_matrix,
-                                               args=([kxlin_pal]))  # TODO check if still works
+                                               args=([kxlin_pal]))
                 proc.start()
             except KeyboardInterrupt:
                 self.log.warning('cancel msa_viz')

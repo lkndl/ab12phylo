@@ -8,7 +8,6 @@ them into one :code:`FASTA` file as input for the :class:`raxml` module.
 import logging
 import os
 import random
-import re
 import shutil
 import subprocess
 import sys
@@ -151,7 +150,7 @@ class msa_build:
             local = True
             if binary is None:
                 # pick deployed Gblocks
-                binary = re.escape(path.join(self.tools_path, 'Gblocks_0.91b', 'Gblocks'))
+                binary = path.join(self.tools_path, 'Gblocks_0.91b', 'Gblocks').replace(' ', '\ ')
                 local = False
 
             # set Gblocks options
