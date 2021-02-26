@@ -15,7 +15,6 @@ import multiprocessing
 import os
 import pickle
 import random
-import re
 import shutil
 import socket
 import stat
@@ -144,7 +143,8 @@ def mview_msa(args):
     Using MView, create an .html visualization for the annotated MSA.
     """
     # hacky re-configuration
-    mv_path = re.escape(path.join(path.abspath(path.dirname(__file__)), 'tools', 'mview-1.67'))
+    mv_path = path.join(path.abspath(path.dirname(__file__)),
+                        'tools', 'mview-1.67').replace(' ', '\ ')
     perl_binary = shutil.which('perl')
     if not perl_binary:
         raise ValueError
@@ -285,7 +285,8 @@ class tree_build:
             self.log.info(mview_msa(self.args))
         except Exception as ex:
             with open(self.args.mview_msa, 'w') as fh:
-                fh.write('MView (Perl) failed for some reason')
+                fh.write('MView (Perl) failed\n')
+                fh.write(str(ex))
 
         # render rectangular tree with MSA
         reserve_gap = False
@@ -388,7 +389,7 @@ class tree_build:
         # jinja
         render_info = dict()
         render_info['run_start'] = log[:19]
-        render_info['run_args'] = log[50:log.find('\n')]
+        render_info['run_args'] = log[54:log.find('\n')]
 
         # extract genes
         start = log.find('--GENES--') + 10
