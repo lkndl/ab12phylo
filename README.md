@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ab12phylo?color=green)
-![github version](https://img.shields.io/static/v1?label=version&message=0.4.18-beta&color=brightgreen&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.4.19-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI trace and `FASTA` data. 
@@ -15,41 +15,59 @@ AB12PHYLO was developed to identify plant pathogen populations possibly under ba
 
 ## Installation
  
-The recommended way to install AB12PHYLO is via [conda](https://docs.conda.io/), as all [external tools](#external-tools) are in the [Bioconda](https://anaconda.org/bioconda/repo) channel. To create a and activate a python3 [conda](https://docs.conda.io/) environment, run 
-```shell script
-conda create -n <env> python=3
-conda activate <env>
-```
-where `<env>` is the environment name of your choice. Then install AB12PHYLO via
+The recommended way to install AB12PHYLO is via [conda](https://docs.conda.io/), as all [external tools](#external-tools) are available from the [Bioconda](https://anaconda.org/bioconda/repo) channel, but any of the following approaches should work:
 
+#### a) install to an existing python3 conda environment
 ```shell script
+conda activate <env>
 conda install -c lkndl ab12phylo
 ```
-and a combination of the external tools you would like to use via
-
+where `<env>` is your environment. Then install a combination of the external tools you would like to use via
 ```shell script
-conda install -c bioconda "blast>=2.9.0" raxml-ng "gblocks=0.91b" mafft clustalo muscle
+conda install -c bioconda "blast>=2.9.0" raxml-ng "gblocks=0.91b" mafft clustalo muscle t-coffee
 ```
-
-You will then have to `conda activate <env>` anytime you want to use AB12PHYLO. If starting the app via `ab12phylo` fails with something like `ValueError: Namespace Gtk not available` or `ModuleNotFoundError: No module named 'gi'`, you are missing PyGObject, the python bindings for GTK3:
+If starting the graphical `ab12phylo` fails with something like `ValueError: Namespace Gtk not available` or `ModuleNotFoundError: No module named 'gi'`, you are missing PyGObject, the python bindings for GTK3:
 ```shell script
 conda install -c conda-forge pygobject gtk3  
 ```
+If you get an `UnsatisfiableError` in conda because of incompatible packages, please use the next approach:
 
-Alternatively, install your MSA tool of choice and possibly BLAST+ by yourself, and then install AB12PHYLO to your system python3 via
+#### b) install to a newly created python3 conda environment
+You could run `conda create -n <env> python=3` and proceed as in **a)** or download [this file](/recipe/gtk-env.yaml), then open a terminal in your download folder and set up the environment specified inside via
+```shell script
+conda env create -f gtk-env.yaml
+```
+and then install AB12PHYLO:
+```shell script
+conda activate gtk-env
+conda install -c lkndl ab12phylo
+```
+
+#### c) install via pip from PyPI to your system python
+This is possibly the method with the most freedom for users on Ubuntu or any Linux with GTK installed per default, but make sure you are definitely not in a conda environment, i.e. there is no `(<env>)` to the left of your shell prompt like this:
+```console
+(<env>) foo@bar:~$ conda deactivate
+foo@bar:~$ 
+```
+Install an MSA tool of your choice and possibly BLAST+ by yourself, then AB12PHYLO and all its python3 [dependencies](#dependencies) via
 ```shell script
 pip install ab12phylo
 ```
 
-or build it from source:
+If starting `ab12phylo` fails with `No module named 'gi'`, [here](https://pygobject.readthedocs.io/en/latest/getting_started.html) are instructions to install PyGObject. Please be careful, python is probably important for your system!
+
+#### d) build AB12PHYLO from source using git and pip 
+Should work on any system and will always install the latest version:
 ```shell script
 git clone https://github.com/lkndl/ab12phylo
 cd ab12phylo
 pip install --upgrade pip
 pip install .
 ```
+Please see **a)** and **c)** if something goes wrong.
 
-If you are on Linux and would like to install via `pip` inside your conda `<env>`, please check `which python` and `which pip` is active inside your environment (where you will see `(<env>)` to the left of your shell prompt, not shown above).
+#### e) install via pip inside a conda environment
+If you are on Linux and would like to install via `pip` inside your conda `<env>`, please check `which python` and `which pip` is active inside the environment (where you will see `(<env>)` to the left of your shell prompt, not shown above).
 
 ```console
 (<env>) foo@bar:~$ which python
@@ -62,9 +80,9 @@ If you are on Linux and would like to install via `pip` inside your conda `<env>
 /home/foo/anaconda3/envs/<env>/bin/pip3
 ```
 
-In the case outlined here, `pip` points to a version outside of your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check your environment. Sometimes there is no `pip` at all, which can be fixed on Linux using your package manager (or `sudo apt-get install python3-pip` on Ubuntu), or in conda via `conda install -c conda-forge pip`.
- 
-Now install AB12PHYLO and its python [dependencies](#dependencies) via `pip` or `pip3` as shown at the top. You will also have to make sure [PyGObject](https://pygobject.readthedocs.io/en/latest/getting_started.html) is installed on your system.
+In the case outlined here, `pip` points to a version outside your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check the environment. Sometimes there is no `pip` at all, which can be fixed on Linux using your package manager (or `sudo apt-get install python3-pip` on Ubuntu), or in conda via `conda install -c conda-forge pip`.
+
+If you see `No module named 'gi'` make sure to fix that with conda as described in **a)**.
 
 
 ## Getting Started

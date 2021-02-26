@@ -141,7 +141,8 @@ def inc_priv_timestamp():
     return str(time()).replace('.', '')[6:]
 
 
-help = {0: '<b>Welcome to AB12PHYLO!</b> \nPlease define your dataset of ABI trace '
+help = {0: '<b>Welcome to AB12PHYLO!</b>      To show or hide this help, press '
+           '<b>F1</b> or <b>Ctrl+H</b>.\nPlease define your dataset of ABI trace '
            'files or sequence data in <i>.fasta</i> format here. For automatic '
            'mapping of reference data from different genes to the same strain, it is '
            'recommended to use GenBank <i>.fasta</i> records such as <a href="https://'

@@ -41,10 +41,13 @@ def _exclude(ex_motifs, leaves):
 def _to_files(leaves):
     # translate to file paths
     with open('metadata.tsv', 'r') as tsv:
-        sam_to_file = {leaves.index(sample): _file for sample, _file
-                       in [line.split('\t')[0:3:2]  # get first and third column
-                           for line in tsv.readlines()] if sample in leaves}
-    return [_file for sample, _file in sorted(sam_to_file.items())]
+        # prep an empty list for each leaf
+        sam_to_file = {i: list() for i in range(len(leaves))}
+        # iterate over the table and for matching IDs append file paths
+        [sam_to_file[leaves.index(sample)].append(_file) for sample, _file
+         in [line.split('\t')[0:3:2]  # get first and third column
+             for line in tsv.readlines()] if sample in leaves]
+    return ['\n'.join(files) for sample, files in sorted(sam_to_file.items())]
 
 
 def _h(a):

@@ -60,7 +60,7 @@ class io_page(ab12phylo_app_base):
             tv.set_model(mo)
             tv.set_headers_visible(False)
             tv.append_column(Gtk.TreeViewColumn(title='Paths',
-                                                cell_renderer=Gtk.CellRendererText(),
+                                                cell_renderer=Gtk.CellRendererText(editable=True),
                                                 foreground=col, text=0))
             tv.connect('size-allocate', self.scroll_to_end, tv, mo)
             iface.file_nums[mo] = 0

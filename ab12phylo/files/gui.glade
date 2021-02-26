@@ -6745,7 +6745,7 @@ Alternatively, a color legend would nicely fit here.</property>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="spacing">10</property>
+                                <property name="spacing">5</property>
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
@@ -6766,6 +6766,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="receives-default">True</property>
                                     <property name="hexpand">False</property>
                                     <property name="vexpand">False</property>
+                                    <property name="relief">none</property>
                                     <property name="direction">left</property>
                                     <property name="popover">plot_menu</property>
                                     <child>
@@ -7189,7 +7190,7 @@ Alternatively, a color legend would nicely fit here.</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="hexpand">True</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Welcome to AB12PHYLO!&lt;/b&gt;
+                        <property name="label" translatable="yes">&lt;b&gt;Welcome to AB12PHYLO!&lt;/b&gt;      To show or hide this help, press &lt;b&gt;F1&lt;/b&gt; or &lt;b&gt;Ctrl+H&lt;/b&gt;.
 Please define your dataset of ABI trace files or sequence data in &lt;i&gt;.fasta&lt;/i&gt; format here. For automatic mapping of reference data from different genes to the same strain, it is recommended to use GenBank &lt;i&gt;.fasta&lt;/i&gt; records such as &lt;a href="https://www.ncbi.nlm.nih.gov/nuccore/AF347033.1?report=fasta"&gt;AF347033.1&lt;/a&gt;. If wellsplates are used in conjunction with sequence data for multiple genes, please make sure the plate layouts are identical.</property>
                         <property name="use-markup">True</property>
                         <property name="wrap">True</property>

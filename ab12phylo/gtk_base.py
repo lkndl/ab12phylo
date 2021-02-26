@@ -454,6 +454,9 @@ class ab12phylo_app_base(Gtk.Application):
             for row in model:
                 row[0] = str((td / row[0]).resolve())
 
+        # for p in self.data.trace_store:
+        #     p[0] = p[0].replace('/home/quirin/PYTHON/AB12PHYLO/ab12phylo/', '')
+
         # make people not wait:
         self.data.ml.bootstraps = 100
         self.iface.bootstraps.props.text = '100'
