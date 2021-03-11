@@ -51,8 +51,8 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         except AttributeError as e:
             LOG.debug(e)
 
-    def save(self, *args):
-        super().save(self, args)
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
         # tell the MSA pre-set about it
         if 'aligner' in self.iface:
             self.refresh_paths()
@@ -155,14 +155,21 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         data.page = iface.notebook.get_current_page()
         LOG.debug('proceeded to page %d' % data.page)
 
-    def tree_modify(self, action):
-        if not self.iface.tree:
-            self.show_notification('No tree in memory, re-drawing first', secs=2)
-            self.start_phy()
-            return
-        sel_idx = [tp.get_indices()[0] for tp in self.iface.tree_sel.get_selected_rows()[1]]
+    def tree_modify(self, action, sel_idx=None):
+        """
+        Fetch the names of the selected nodes.
+        :param action:
+        :param sel_idx:
+        :return: {action: [matching names]} that will be added to the existing modifications
+        """
+        if not sel_idx:
+            sel_idx = [tp.get_indices()[0] for tp in self.iface.tree_sel.get_selected_rows()[1]]
         if not sel_idx:
             self.show_notification('Cannot %s, no selection' % action.get_name(), secs=2)
+            return
+        if not self.iface.tree:
+            self.show_notification('No tree in memory, re-drawing first', secs=2)
+            self.start_phy(run_after=(self.tree_modify, (action, sel_idx)))
             return
 
         # return a list of tip labels
@@ -174,7 +181,7 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
             if sp.startswith('REF_'):
                 names.append(sp.split(':')[0])
             else:
-                names.append(_id)
+                names.append(_id.replace(', ', '~'))
         LOG.debug('re-plot and %s' % action.get_name())
         self.start_phy({action.get_name(): names})
 

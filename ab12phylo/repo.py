@@ -183,5 +183,6 @@ help = {0: '<b>Welcome to AB12PHYLO!</b>      To show or hide this help, press '
         7: 'Plot the resulting ML tree and calculate basic diversity / neutrality metrics '
            'in the dataset. Click inside the visualizations to select samples, and right-'
            'click for tree operations such as rooting, dropping nodes, collapsing or '
-           'extracting taxa. Species labels can be edited on the BLAST page.'
+           'extracting taxa. Species labels can be edited on the BLAST page, and shared '
+           'background color indicates identical sequences.'
         }

@@ -142,7 +142,7 @@ class ab12phylo_app_base(Gtk.Application):
 
         css_provider = Gtk.CssProvider()
         css = b'''
-        .seqid { font-size: xx-small; padding-left: 3px; }
+        .seqid { font-size: x-small; padding-left: 3px; padding-right: 2px }
         #gbl_pane separator.wide { min-width: 18px }
         #tree_pane separator { min-width: 3px; }
         progressbar trough progress { 
@@ -237,6 +237,7 @@ class ab12phylo_app_base(Gtk.Application):
         self.data.new_project()
         # self.wd = Path.cwd() / 'untitled'
         self.wd = Path('untitled')
+        Path.mkdir(self.wd, exist_ok=True)
         self.project_path = None
         self.win.set_title('AB12PHYLO [untitled]')
         self.iface.notebook.set_current_page(0)
@@ -284,6 +285,8 @@ class ab12phylo_app_base(Gtk.Application):
             self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
             self.iface.notebook.set_current_page(self.data.page)
 
+            self._init_log(filename=str(self.wd / 'ab12phylo.log'), mode='a')
+
             if 'df' in self.iface.tempspace:
                 del self.iface.tempspace.df
             if self.data.colors:
@@ -294,21 +297,23 @@ class ab12phylo_app_base(Gtk.Application):
             LOG.exception(e)
             self.show_notification('Project could not be loaded', secs=10)
 
-    def save(self, *args):
+    def save(self, *args, **kwargs):
         """
         Save project_dataset to file directly, unless it hasn't previously been saved.
         :return:
         """
+        log_now = LOG.info if 'silent' not in kwargs or not kwargs['silent'] else LOG.debug
         if not self.project_path:
             self.save_as(None)
             return
         with open(self.project_path, 'wb') as proj:
-            LOG.info('saving to %s' % self.project_path)
+            log_now('saving to %s' % self.project_path)
             try:
                 self.data.page = self.iface.notebook.get_current_page()
                 pickle.dump(self.data, proj)
-                LOG.info('finished save')
+                log_now('finished save')
             except pickle.PicklingError as pe:
+                LOG.error(pe)
                 LOG.warning('saving failed')
 
         new_wd = self.project_path.parent / self.project_path.stem
@@ -344,7 +349,8 @@ class ab12phylo_app_base(Gtk.Application):
                 self._init_log(filename=log_file, mode='w')
 
         self.win.set_title('AB12PHYLO [%s]' % self.project_path.stem)
-        self.show_notification('saved project', secs=2)
+        if 'silent' not in kwargs or not kwargs['silent']:
+            self.show_notification('saved project', secs=2)
 
     def save_as(self, *args):
         """
@@ -608,11 +614,13 @@ class ab12phylo_app_base(Gtk.Application):
             (iface.i + 1) / iface.k,  # but do not pass next iteration level
             1)  # and never pass 1
         if iface.thread.is_alive():
-            iface.notebook.get_children()[page].set_sensitive(sensitive)
-            iface.prog_bar.set_fraction(iface.frac)
-            for wi in [iface.prog_bar, iface.prog_label]:
-                wi.set_visible(True)
-                wi.set_text(iface.text)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                iface.notebook.get_children()[page].set_sensitive(sensitive)
+                iface.prog_bar.set_fraction(iface.frac)
+                for wi in [iface.prog_bar, iface.prog_label]:
+                    wi.set_visible(True)
+                    wi.set_text(iface.text)
             return True
         else:
             iface.notebook.get_children()[page].set_sensitive(True)

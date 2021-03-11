@@ -2,6 +2,7 @@
 
 import itertools
 import logging
+import pickle
 import threading
 import xml.etree.ElementTree as ET
 from copy import deepcopy
@@ -43,7 +44,10 @@ UI_INFO = """
     <menuitem action='root' />
     <menuitem action='drop' />
     <menuitem action='collapse' />
+    <menuitem action='select' />
     <menuitem action='extract' />
+    <menuitem action='calculate' />
+    <menuitem action='haplo_collapse' />
   </popup>
 </ui>
 """
@@ -60,14 +64,21 @@ class tree_page(ab12phylo_app_base):
         # context menu
         action_group = Gtk.ActionGroup(name='context_menu')
         action_group.add_actions(
-            [('root', None, 'Root', None,
+            [('root', None, 'Root here', None,
               'Root the tree at the selected node(s).', self.tree_modify),
-             ('drop', None, 'Drop', None,
+             ('drop', None, 'Drop taxa', None,
               'Drop the selected nodes from the tree.', self.tree_modify),
-             ('collapse', None, 'Collapse', None,
-              'Collapse all descendants to a placeholder.', self.tree_modify),
-             ('extract', None, 'Extract', None,
-              'Drop all other nodes from the tree.', self.tree_modify)])
+             ('collapse', None, 'Collapse clade', None,
+              'Collapse selected taxa to a leaf.', self.tree_modify),
+             ('select', None, 'Select clade', None,
+              'Select all descendants of the MRCA.', self.expand_popgen),
+             ('extract', None, 'Extract clade', None,
+              'Drop all other nodes from the tree.', self.tree_modify),
+             ('calculate', None, 'Calculate diversity', None,
+              'Calculate diversity metrics for the selected population.', self.start_popgen),
+             ('haplo_collapse', None, 'Collapse haplotypes', None,
+              'Collapse identical haplotyes in the selected population '
+              'to a single leaf.', self.collapse_haplotypes)])
 
         uimanager = Gtk.UIManager()
         uimanager.add_ui_from_string(UI_INFO)
@@ -85,9 +96,11 @@ class tree_page(ab12phylo_app_base):
         iface.save_plot.connect('clicked', self.start_save)
 
         iface.view_msa_ids.set_model(data.tree_anno_model)
-        col = Gtk.TreeViewColumn(title='id', text=0, foreground=2, background=3,
-                                 cell_renderer=Gtk.CellRendererText())
-        col.set_resizable(True)
+        crt = Gtk.CellRendererText(editable=True)
+        crt.connect('edited', self._rename_taxon)
+        col = Gtk.TreeViewColumn(title='id', markup=0, foreground=2, background=3,
+                                 cell_renderer=crt)
+        col.props.max_width = 80
         iface.view_msa_ids.append_column(col)
         iface.view_msa_ids.set_tooltip_column(1)
 
@@ -98,6 +111,7 @@ class tree_page(ab12phylo_app_base):
         iface.dist.set_image(iface.distim)
         iface.anno.set_image(iface.annoim)
         iface.filetypes.set_image(iface.saveim)
+        iface.space.set_image(iface.spaceim)
 
         # connect zooming and selecting
         iface.tree_sel = iface.view_msa_ids.get_selection()
@@ -113,10 +127,15 @@ class tree_page(ab12phylo_app_base):
             iface.view_msa_ids, iface.tempspace)  # in-preview selection
         iface.tree_pane.connect(
             'scroll-event', self.xy_scale, PAGE)  # zooming
-        iface.tree_pane.connect(
+
+        iface.tree_pane.set_position(600)
+        self.iface.ratio = 600 / self.win.get_default_size()[0]
+        self.win.connect_after('window-state-event', self._size_pane)
+
+        iface.pane_handler = iface.tree_pane.connect_after(
             'notify::position', self._size_scrollbars,
             iface.tree_left_scrollbar, iface.tree_right_scrollbar,
-            iface.tree_spacer, iface.view_msa_ids, )
+            iface.tree_spacer, iface.view_msa_ids)
 
         iface.subtree.connect('clicked', self.expand_popgen)
         iface.calculate.connect('clicked', self.start_popgen)
@@ -144,7 +163,6 @@ class tree_page(ab12phylo_app_base):
         iface = self.iface
         phy = data.phy
         self.reload_ui_state(page=PAGE)
-        iface.tree_pane.set_position(600)
 
         if 'tx' in phy and (self.wd / phy.tx).with_suffix('.png').is_file() \
                 and (self.wd / repo.PATHS.phylo_msa).is_file() \
@@ -228,23 +246,27 @@ class tree_page(ab12phylo_app_base):
         else:
             return sel_idx
 
-    def expand_popgen(self, widget):
+    def expand_popgen(self, widget, sel_idx=None):
         """Select a subtree starting from a GtkTreeSelection"""
         data = self.data
         iface = self.iface
         phy = data.phy
-        if not self.iface.tree:
-            self.show_notification('No tree in memory, re-drawing first', secs=5)
-            self.start_phy()
-            return
-        sel_idx = [tp.get_indices()[0] for tp
-                   in iface.tree_sel.get_selected_rows()[1]]
+        if not sel_idx:
+            sel_idx = [tp.get_indices()[0] for tp
+                       in iface.tree_sel.get_selected_rows()[1]]
         if not sel_idx:
             self.show_notification('Cannot expand to subtree, no selection', secs=1)
             return
+        if not self.iface.tree:
+            self.show_notification('No tree in memory, re-drawing first', secs=5)
+            self.start_phy(run_after=(self.expand_popgen, (None, sel_idx)))
+            return
+
+        in_blue = lambda c: c.replace('style="normal"', 'style="fill:%s"'
+                                      % repo.tohex(repo.rocket[0]))
 
         # get a list of all tip labels and whether they are selected
-        id_and_ifsel = [(_id, i in sel_idx) for i, _id in enumerate(
+        id_and_ifsel = [(in_blue(_id), i in sel_idx) for i, _id in enumerate(
             data.tree_anno_model.get_column(0))]
 
         # move up in the tree: find the MRCA
@@ -262,7 +284,7 @@ class tree_page(ab12phylo_app_base):
         iface.pop_size.set_text('population size: %d' % len(sel_idx))
         iface.pop_size.set_visible(True)
 
-    def start_popgen(self, widget):
+    def start_popgen(self, widget=None, haplo_collapse=False):
         data = self.data
         iface = self.iface
         phy = data.phy
@@ -272,6 +294,8 @@ class tree_page(ab12phylo_app_base):
 
         mo, tps = iface.tree_sel.get_selected_rows()
         tps = [tp[0] for tp in tps]
+        if haplo_collapse:
+            tps = haplo_collapse
 
         if len(tps) < 2:
             self.show_notification('invalid selection', secs=1)
@@ -289,11 +313,11 @@ class tree_page(ab12phylo_app_base):
         iface.i = 0
         iface.k = len(data.genes) + 2
         iface.text = 'calculating'
-        iface.thread = threading.Thread(target=self.do_popgen, args=[tps])
+        iface.thread = threading.Thread(target=self.do_popgen, args=[tps, haplo_collapse])
         GObject.timeout_add(100, self.update, PAGE)
         iface.thread.start()
 
-    def do_popgen(self, tps):
+    def do_popgen(self, tps, haplo_collapse):
         data = self.data
         iface = self.iface
         phy = data.phy
@@ -312,13 +336,13 @@ class tree_page(ab12phylo_app_base):
         # shift 4|>7 to 5 and 6|7 to 4
         ar = np.array([[5 if x == 4 or x > 7 else (4 if x in {6, 7} else x)
                         for x in _ar] for _ar in ar])
-        start, overall, drops = 0, set(), set()
+        start, overall, drops, repeats = 0, set(), set(), dict()
         for i, gene in enumerate(data.genes):
             iface.text = 'popgen: %s' % gene
             LOG.debug(iface.text)
             _range = range(start, start + phy.g_lens[gene])
             overall.update(_range)
-            row, drops = _per_gene_diversity(gene, phy, ar, _range)
+            row, drops, repeats = _per_gene_diversity(gene, phy, ar, _range)
             data.pop_model.append(row)
             start += phy.g_lens[gene] + len(repo.SEP)
             iface.i += 1
@@ -326,15 +350,108 @@ class tree_page(ab12phylo_app_base):
         if len(data.genes) > 1:
             iface.text = 'popgen: overall'
             LOG.debug(iface.text)
-            row, drops = _per_gene_diversity('overall', phy, ar, overall)
+            row, drops, repeats = _per_gene_diversity('overall', phy, ar, overall)
             data.pop_model.append(row)
             iface.i += 1
 
         # show the table
         iface.tree_stack.set_visible_child_name('popgen')
 
-        # plot using tps and drops
-        self._do_phy5((tps, drops))
+        self._highlight_duplicates(tps, repeats)
+
+        if haplo_collapse:
+            self.collapse_haplotypes(None, return_loop=True)
+        else:
+            # plot using tps and drops
+            self._do_phy5((tps, drops, repeats))
+
+    def _highlight_duplicates(self, tps, repeats):
+        """
+        Highlight duplicate sequences by shading the ID column in matching color.
+        :param tps: indices [int] of selected tree tips
+        :param repeats: {idx: [occurrences of seq found at idx, given it occurs several times]}
+        :return:
+        """
+        mo = self.data.tree_anno_model
+        # remove old color markup
+        for row in mo:
+            if row[3] != self.iface.AQUA:
+                row[3] = None
+
+        colors = [repo.tohex(c[:3]) for c in get_cmap('Set1', len(repeats)).colors]
+        for color, idcs in zip(colors, repeats.values()):
+            for idx in idcs:
+                mo[tps[idx]][3] = color
+
+    def collapse_haplotypes(self, action, return_loop=False, sel_idx=None):
+        if not return_loop:
+            if not sel_idx:
+                sel_idx = [tp.get_indices()[0] for tp
+                           in self.iface.tree_sel.get_selected_rows()[1]]
+            if not sel_idx:
+                self.show_notification('Cannot %s, no selection' % action.get_name(), secs=2)
+                return
+            if not self.iface.tree:
+                self.show_notification('No tree in memory, re-drawing first', secs=5)
+                self.start_phy(run_after=(self.collapse_haplotypes, (action, False, sel_idx)))
+                return
+            # first re-find the haplotyes
+            self.start_popgen(haplo_collapse=sel_idx)
+        else:
+            # then collapse
+            mod = self.data.phy.modify
+            candidates = dict()
+            for i, (n, sp, c) in enumerate(self.data.tree_anno_model.get_column((0, 1, 3))):
+                if not c or c == self.iface.AQUA:
+                    continue
+                if sp.startswith('REF_'):
+                    n = sp.split(':')[0]
+                if c in candidates:
+                    candidates[c][i] = n  # tips[i]
+                else:
+                    candidates[c] = {i: n}  # tips[i]}
+            if candidates:
+                if 'rename' not in mod:
+                    mod['rename'] = dict()
+                if 'drop' not in mod:
+                    mod['drop'] = list()
+            for haplo_dict in candidates.values():
+                # rename the remaining node
+                mod['rename'][haplo_dict[min(haplo_dict)]] = '~'.join(
+                    sorted([t for t in haplo_dict.values() if not t.startswith('REF_')]) + \
+                    sorted([t for t in haplo_dict.values() if t.startswith('REF_')]))
+                # delete the others
+                mod['drop'].extend([v for k, v in haplo_dict.items() if k != min(haplo_dict)])
+
+            self.iface.run_after = self.start_phy, ()
+
+            sleep(.1)
+            GObject.idle_add(self._stop_phy)
+            return True
+
+    def _rename_taxon(self, cell, path, new_text):
+        mo = self.data.tree_anno_model
+        old_text = mo[path][0]
+        if mo[path][1].startswith('REF_'):
+            old_text = mo[path][1].split(':')[0]
+        if old_text == new_text:
+            return
+        elif new_text in mo.get_column(0) + [i.split(':')[0] for i in mo.get_column(1)]:
+            return
+        LOG.debug('renaming %s to %s' % (old_text, new_text))
+        mo[path][0] = new_text
+        new_text = new_text.replace(', ', '~').replace(',', '~')
+        old_text = old_text.replace(', ', '~').replace(',', '~')
+        mod = self.data.phy.modify
+        if 'rename' not in mod:
+            mod['rename'] = {old_text: new_text}
+        else:
+            # save twice
+            for k, v in mod['rename'].items():
+                if v == old_text:
+                    mod['rename'][k] = new_text
+            mod['rename'][old_text] = new_text
+        LOG.debug(mod['rename'])
 
     def init_popgen_columns(self, tv):
         if tv.get_n_columns() > 0:
@@ -384,6 +501,7 @@ class tree_page(ab12phylo_app_base):
           'axis', 'align', 'pmsa', 'pdf', 'svg', 'png', 'nwk', 'html']]
         phy.flip = iface.flipspin.props.adjustment.props.value
         phy.dist = iface.distspin.props.adjustment.props.value
+        phy.space = iface.spacespin.props.adjustment.props.value
         phy.sel_gene = iface.sp_genes.get_active_text()
 
         # re-direct to thread
@@ -491,7 +609,7 @@ class tree_page(ab12phylo_app_base):
                 png.render(iface.canvas, str(self.wd / (phy.tx + '_msa.png')), scale=1.6)
             iface.i += 1
 
-    def start_phy(self, modify=None):
+    def start_phy(self, modify=None, run_after=None):
         """Get settings and block GUI"""
         data = self.data
         iface = self.iface
@@ -520,6 +638,7 @@ class tree_page(ab12phylo_app_base):
           'axis', 'align', 'pmsa', 'pdf', 'svg', 'png', 'nwk', 'html']]
         phy.flip = iface.flipspin.props.adjustment.props.value
         phy.dist = iface.distspin.props.adjustment.props.value
+        phy.space = iface.spacespin.props.adjustment.props.value
         phy.sel_gene = iface.sp_genes.get_active_text()
 
         # re-direct to thread
@@ -529,6 +648,7 @@ class tree_page(ab12phylo_app_base):
         iface.i = 0
         iface.text = 'read tree'
         sleep(.1)
+        iface.run_after = run_after
         GObject.timeout_add(100, self.update, PAGE)
         iface.thread.start()
         return
@@ -538,6 +658,7 @@ class tree_page(ab12phylo_app_base):
         data = self.data
         iface = self.iface
         phy = data.phy
+        drops = set()
 
         # pick a tree file
         if phy.modify and (self.wd / repo.PATHS.modified_tree).is_file():
@@ -553,18 +674,21 @@ class tree_page(ab12phylo_app_base):
         if 'collapse' in phy.modify:
             names = [i for i in phy.modify['collapse'] if i in tr.get_tip_labels()]
             if names:
-                mrca = tr.get_mrca_idx_from_tip_labels(names=names)
+                # move references to the back
+                names = sorted([t for t in names if not t.startswith('REF_')]) \
+                        + sorted([t for t in names if t.startswith('REF_')])
                 try:
-                    [t.detach() for t in tr.idx_dict[mrca].get_children()]
-                    tr.idx_dict[mrca].add_child(
-                        name='%d_clade' % mrca,
-                        dist=1 - tr.idx_dict[mrca].dist)
+                    mrca_idx = tr.get_mrca_idx_from_tip_labels(names=names)
+                    mrca = tr.idx_dict[mrca_idx]
+                    drops = set(mrca.get_leaf_names()) - set(names)
+                    [t.detach() for t in mrca.get_children()]
+                    mrca.name = '~'.join(names)
+                    phy.modify['collapse'] = [' ']  # only remember that, not what
+                    tr = toytree.tree(tr.newick)
                 except (TreeError, ToytreeError) as te:
                     GObject.idle_add(self._do_phy2, [str(te)])
                     sleep(.1)
                     return True
-                phy.modify['collapse'] = ['%d_clade' % mrca]
-                tr = toytree.tree(tr.newick)
 
         if 'drop' in phy.modify:
             names = [i for i in phy.modify['drop'] if i in tr.get_tip_labels()]
@@ -588,12 +712,20 @@ class tree_page(ab12phylo_app_base):
                 treenode = tr.idx_dict[tr.get_mrca_idx_from_tip_labels(names=names)]
                 tr = toytree.tree(treenode.write())
 
+        if 'rename' in phy.modify:
+            for old, new in phy.modify['rename'].items():
+                try:
+                    tr.idx_dict[tr.get_mrca_idx_from_tip_labels(names=[old])].name = new
+                except (TreeError, ToytreeError) as te:
+                    pass
+
         if phy.modify:
             # save the modified tree
             tr.write(self.wd / repo.PATHS.modified_tree, tree_format=0)
 
         # fetch tips labels, now top-to-bottom
         phy.tips = list(reversed(tr.get_tip_labels()))
+        separated_tips = {item for t in phy.tips for item in t.split('~')}
         iface.i += 1
         iface.tree = tr
 
@@ -614,12 +746,21 @@ class tree_page(ab12phylo_app_base):
         # crop to relevant columns
         df = df[[c for c in ['gene', 'accession', 'species', 'pid'] if c in df]]
 
+        # carry over renamed taxa to metadata entries
+        if 'rename' in phy.modify:
+            df = df.reset_index()
+            for old_id, new_id in phy.modify['rename'].items():
+                dd = df.loc[(df['id'] == old_id)].copy()
+                dd.loc[:, 'id'] = new_id
+                df = df.append(dd)
+            df.set_index('id', inplace=True)
+
         df = df.fillna(value={'pid': 0})
         pid = 'pid' in df
         if phy.sel_gene not in [None, 'best pid'] or len(data.genes) == 1:
             # picked species labels for a single, unique gene
             df = df.loc[df['gene'] == phy.sel_gene]
-            df = df.loc[[t for t in phy.tips if t in df.index]]  # skip dropped nodes
+            df = df.loc[[t for t in separated_tips if t in df.index]]  # skip dropped nodes
             phy.ndf = df.to_dict(orient='index')
         else:
             # picked species labels from best pid across several genes
@@ -627,7 +768,7 @@ class tree_page(ab12phylo_app_base):
             dfs = [i[1] for i in df.groupby(df['gene']) if i[0] in data.genes]
             # find row with highest pid from all genes
             phy.ndf = dict()
-            for t in phy.tips:
+            for t in separated_tips:
                 if any([t not in d.index for d in dfs]):
                     continue  # a dropped node
                 rows = [d.loc[t] for d in dfs]
@@ -637,22 +778,42 @@ class tree_page(ab12phylo_app_base):
                 else:
                     phy.ndf[t] = [dict(r) for r in rows][0]
 
+        # fetch species labels for compound nodes
+        for compound_tip in set(phy.tips) - separated_tips:
+            df = pd.DataFrame.from_records(
+                phy.ndf[t] for t in compound_tip.split('~') if t in phy.ndf)
+            if 'accession' in df:
+                # extract simple species label
+                df.loc[df['accession'].notna(), 'species'] = \
+                    df.loc[df['accession'].notna()].species.replace(' strain.+', '', regex=True)
+            if pid:
+                df = df.loc[df.pid == df.pid.max()]
+                # split compound species, then re-collate
+                species = ' / '.join({item for sp in set(df.species) for item in sp.split(' / ')})
+                phy.ndf[compound_tip] = {'species': species, 'pid': df.pid.max()}
+            else:
+                phy.ndf[compound_tip] = dict()
+
         iface.i += 1
-        GObject.idle_add(self._do_phy2)
+        GObject.idle_add(self._do_phy2, None, drops)
         sleep(.1)
         return True
 
-    def _do_phy2(self, errors=None):
+    def _do_phy2(self, errors=None, drops=None):
         """Bounce to idle to size the id column"""
         data = self.data
         iface = self.iface
         phy = data.phy
         iface.thread.join()
+        in_blue = '<span style="normal">%s</span>'
 
         if errors:
             iface.text = 'idle'
             self.show_notification('Tree modification failed', errors)
             return
+        if drops:
+            self.show_notification('Collapsing a branch removed '
+                                   'taxa that were not selected', drops, secs=6)
 
         iface.text = 'fill id column'
         LOG.debug(iface.text)
@@ -660,7 +821,7 @@ class tree_page(ab12phylo_app_base):
 
         # write samples to model
         for t in phy.tips:
-            if t not in phy.ndf:
+            if t not in phy.ndf and '~' not in t:
                 data.tree_anno_model.append([t, '', None, iface.AQUA])
                 continue  # a dropped node
             nd = phy.ndf[t]
@@ -683,9 +844,22 @@ class tree_page(ab12phylo_app_base):
                 c = iface.BLUE
             else:
                 c = None  # iface.FG
+
+            # edit compound tips
+            if '~' in t:
+                t = t.split('~')
+                # for i, tp in enumerate(t):
+                #     if tp.startswith('REF_'):
+                #         nd = phy.ndf[tp]
+                #         if len(data.genes) > 1 and 'strain' in nd['species']:
+                #             t[i] = in_blue % nd['species'].split(' strain ')[1]
+                #         else:
+                #             t[i] = in_blue % nd['accession']
+                t = ', '.join(t)
             data.tree_anno_model.append([t, sp, c, None])
 
         iface.view_msa_ids.set_margin_bottom(50 * phy.axis)
+        iface.view_msa_ids.columns_autosize()
         iface.view_msa_ids.realize()
         sleep(.1)
 
@@ -704,13 +878,29 @@ class tree_page(ab12phylo_app_base):
 
         # read MSA
         records = {r.id: r.seq for r in SeqIO.parse(self.wd / repo.PATHS.msa, 'fasta')}
+        # carry over renamed taxa to seqdata
+        if 'rename' in phy.modify:
+            for old_id, new_id in phy.modify['rename'].items():
+                if old_id in records:
+                    records[new_id] = records[old_id]
         phy.seqdata = list()
         # write re-named re-ordered MSA
         with open(self.wd / repo.PATHS.msa_anno, 'w') as new_msa:
             for tip in phy.tips:
-                if tip not in records:
+                if tip not in records and '~' not in tip:
                     phy.seqdata.append(None)
                     continue  # a dropped node
+                elif '~' in tip:
+                    try:
+                        ar = np.array([repo.seqtoint(str(records[t]))
+                                       for t in tip.split('~')])
+                    except KeyError as ke:
+                        LOG.exception(ke)
+                        GObject.idle_add(self.reset_tree)
+                        sleep(.1)
+                        return True
+                    seq = repo.inttoseq([np.argmax(np.bincount(ar[:, i])) for i in range(ar.shape[1])])
+                    records[tip] = seq
 
                 if repo.SEP in records[tip]:
                     # get seq and cut out artificial separator
@@ -743,9 +933,13 @@ class tree_page(ab12phylo_app_base):
                 phy.seqdata.append(repo.seqtoint(records[tip]))
 
                 # rename REFs
-                if tip.startswith('REF_'):
+                if tip.startswith('REF_') and '~' not in tip:
                     if len(data.genes) > 1 and 'strain' in entry['species']:
-                        tip = entry['species'][entry['species'].find('strain') + 7:]
+                        # # <Strain> <Species> strain <Strain>; pid <pid>
+                        # tip = entry['species'].split(' strain ')[1]
+                        # <Species> strain <Strain>; pid <pid>
+                        tip = des
+                        des = ''
                     else:
                         tip = entry['accession']
 
@@ -765,6 +959,7 @@ class tree_page(ab12phylo_app_base):
 
         iface.text = 'iterate tree: 1'
         cat_ignore = -1
+        in_blue = '<span style="fill:%s">%s</span>' % (repo.tohex(repo.rocket[0]), '%s')
         # rename reference nodes and add features
         for node in iface.tree.treenode.traverse():
             if not node.support:
@@ -776,19 +971,40 @@ class tree_page(ab12phylo_app_base):
 
                 if node.name.startswith('REF_'):
                     if multi and 'strain' in entry['species']:
-                        strain = entry['species'][entry['species'].find('strain') + 7:]
-                        phy.ndf['strain'] = phy.ndf.pop(node.name)
+                        entry['species'], strain = entry['species'].split(' strain ')
+                        phy.ndf['strain'] = phy.ndf[node.name]
                         node.name = strain
                     else:
-                        acc = entry['accession']
-                        phy.ndf[acc] = phy.ndf.pop(node.name)
-                        node.name = acc
+                        if 'accession' in entry:
+                            acc = entry['accession']
+                            phy.ndf[acc] = phy.ndf[node.name]
+                            node.name = acc
+                        else:  # collapsed node of refs
+                            names = node.name.split('~')
+                            for i, t in enumerate(names):
+                                if t.startswith('REF_'):
+                                    ndf = phy.ndf[t]
+                                    if multi and 'strain' in ndf['species']:
+                                        names[i] = in_blue % ndf['species'].split(' strain ')[1]
+                                    else:
+                                        names[i] = phy.ndf[t]['accession']
+                            node.name = ', '.join(names)
                     node.add_feature('cat', 1)  # blue
                     node.add_feature('species', entry['species'])
                     node.add_feature('pid', 0)  # this is the index of blue in
                     # the rocket palette, which is used to display BLAST pid
 
                 elif 'species' in entry:
+                    if '~' in node.name:
+                        names = node.name.split('~')
+                        for i, t in enumerate(names):
+                            if t.startswith('REF_'):
+                                ndf = phy.ndf[t]
+                                if multi and 'strain' in ndf['species']:
+                                    names[i] = in_blue % ndf['species'].split(' strain ')[1]
+                                else:
+                                    names[i] = in_blue % ndf['accession']
+                        node.name = ', '.join(names)
                     node.add_feature('species', entry['species'])
                     node.add_feature('cat', 0 if entry['species'].strip()
                                                  or not phy.spec else 2)  # black else dark_red
@@ -880,7 +1096,7 @@ class tree_page(ab12phylo_app_base):
             phy.tx = 'rectangular'
             ly = 'r'
             # get dim for canvas
-            w, h = 1200, phy.height  # len(phy.tips) * 14 + 80
+            w, h = 1200 * phy.space, phy.height  # len(phy.tips) * 14 + 80
             iface.canvas = toyplot.Canvas(width=w, height=h)
             iface.axes = iface.canvas.cartesian(bounds=(20, w, 0, h - 50 * phy.axis),
                                                 ymin=-.5, ymax=iface.tree.ntips - .5)
@@ -892,6 +1108,8 @@ class tree_page(ab12phylo_app_base):
         phy.tx += '_TBE' if phy.tbe else '_FBP'
 
         iface.text = 'plotting %s tree' % phy.tx
+        with open(self.wd / 'tree.pickle', 'wb') as out_file:
+            pickle.dump(iface.tree, out_file)
         try:
             iface.tup = iface.tree.draw(
                 axes=iface.axes, scalebar=phy.axis,
@@ -920,7 +1138,7 @@ class tree_page(ab12phylo_app_base):
                 iface.tup[1].x.show = phy.axis
                 # iface.tup[1].x.spine.position = 'high' # and swap out the 0,h-50 bounds
                 th = iface.tree.treenode.height
-                iface.tup[1].x.domain.max = max(th / 6, phy.spec * th / 2, phy.align * th / 1.6)
+                iface.tup[1].x.domain.max = (w - 1200) / w  # max(th / 6, phy.spec * th / 2, phy.align * th / 1.6)
                 # 1/5 is not enough for aligned labels
                 iface.tup[1].x.domain.min = -th
                 # 0 is the right-most tip (not tip label) of the tree
@@ -992,7 +1210,7 @@ class tree_page(ab12phylo_app_base):
         if popgen_markup:
             # make selection non-transparent
             array = np.flipud(array)
-            rows, drop_cols = popgen_markup
+            rows, drop_cols, repeats = popgen_markup
             tree_mask = np.full(array.shape, 1.0)
             # mask the unselected rows
             tree_mask[[i for i in range(array.shape[0])
@@ -1044,7 +1262,7 @@ class tree_page(ab12phylo_app_base):
 
             # plot the marker bar onto the MSA graphic
             bax = f.add_axes([0, b / 3, 1, b / 3])
-            bar = bax.pcolormesh(gm, cmap=gene_colors)  # , aspect='auto')
+            bar = bax.pcolormesh(gm, cmap=gene_colors)
             bax.axis('off')
 
             # plot a legend for the gene marker bar
@@ -1110,8 +1328,13 @@ class tree_page(ab12phylo_app_base):
         LOG.info('phylo thread idle')
         self.iface.view_msa_ids.set_model(self.data.tree_anno_model)
         self.win.show_all()
-        self.save()
+        self.save(silent=True)
         self.data.change_indicator[PAGE] = False
+        # *Now* go back to where you came from
+        if self.iface.run_after:
+            func, args = self.iface.run_after
+            func(*args)
+            self.iface.run_after = list()
         return False
 
     def _on_right_click(self, widget, event, menu):
@@ -1127,6 +1350,7 @@ class tree_page(ab12phylo_app_base):
         """
         p = pane.get_position()
         w = pane.get_allocated_width()
+        self.iface.ratio = p / w
         if p > w / 2:
             scl.set_size_request(-1, -1)
             scl.set_hexpand(True)
@@ -1138,6 +1362,21 @@ class tree_page(ab12phylo_app_base):
             scr.set_size_request(-1, -1)
             scr.set_hexpand(True)
         sp.set_size_request(tv.get_allocated_width(), -1)
+
+    def _size_pane(self, win, state):
+        iface = self.iface
+        with iface.tree_pane.handler_block(iface.pane_handler):
+            try:
+                sleep(.1)
+                if win.props.is_maximized:
+                    s = win.get_screen()
+                    m = s.get_monitor_at_window(s.get_active_window())
+                    monitor = s.get_monitor_geometry(m)
+                    self.iface.tree_pane.set_position(self.iface.ratio * monitor.width)
+                else:
+                    self.iface.tree_pane.set_position(self.iface.ratio * win.get_size()[0])
+            except Exception as ex:
+                LOG.error(ex)
 
     def reload_ui_state(self, *args):
         data = self.data
@@ -1160,7 +1399,7 @@ class tree_page(ab12phylo_app_base):
 
         iface.flipspin.props.adjustment.props.value = phy.flip
         iface.distspin.props.adjustment.props.value = phy.dist
-
+        iface.spacespin.props.adjustment.props.value = phy.space
         if data.genes:
             self.init_sp_genes(iface.sp_genes, data.genes, phy.sel_gene)
 
@@ -1270,7 +1509,9 @@ def _per_gene_diversity(gene, phy, array, _range):
                  -1, gaps, unknown], drop)
 
     theta_w = seg_sites / a1 / n_sites  # per site from Yang2014
-    n_genotypes = len(np.unique(crop, axis=0))
+    unq, idx, count = np.unique(crop, axis=0, return_counts=True, return_index=True)
+    repeats = {ri: np.argwhere(np.all(crop == rg, axis=1)).ravel().tolist()
+               for rg, ri in zip(unq[count > 1], idx[count > 1])}
 
     # Tajima's D Formula:
     # d = k - seg_sites/a1 = k - theta_W
@@ -1285,4 +1526,4 @@ def _per_gene_diversity(gene, phy, array, _range):
         tajima = float('inf')
 
     return ([gene, n_sites, seg_sites, k, pi, theta_w, tajima,
-             n_genotypes, gaps, unknown], drop)
+             len(unq), gaps, unknown], drop, repeats)

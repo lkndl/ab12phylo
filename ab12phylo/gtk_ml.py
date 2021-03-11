@@ -395,8 +395,8 @@ rm pipe
 cpus=$(nproc)\n
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
-printf "${BLUE}$cpus${NC} CPUs available. Limit the number of threads/logical cores via ${BLUE}-f <number>${NC}. This will proceed in a bit, interrupt with Ctrl+C\n"\n
-sleep 10s\n
+print_usage() {
+  printf "Limit the number of threads/logical cores via ${BLUE}-f <number>${NC}. "\n}\n
 cpu_limit=400\n
 while getopts 'f:' flag; do
   case "${flag}" in
@@ -408,7 +408,9 @@ if [ $cpu_limit -lt $cpus ]; then
     used=$cpu_limit\nfi
 if [ $cpus -lt $cpu_limit ];then
     used=$cpus\nfi\n
-echo "CPUs available: $cpus, use at most $used"
+printf "${BLUE}$cpus${NC} CPUs available, use at most ${BLUE}$used${NC}.\nThis will proceed in a bit, interrupt with Ctrl+C\n"
+print_usage
+sleep 10s
                     '''.strip()
                     sf.write(bash)
                     sf.write('\n\n# Check MSA\n')
@@ -425,16 +427,8 @@ echo "CPUs available: $cpus, use at most $used"
                                      'bs.raxml.bootstraps', 'sp', '$used', '$used'))
                     sf.write('\n\n')
 
-                with ZipFile(self.wd / 'RAxML_export.zip', 'w', ZIP_DEFLATED) as zf:
-                    if ml.evo_model.endswith('user_model'):
-                        zf.write(ml.evo_model, 'user_model')
-                    zf.write(ml.raxml, 'raxml-ng')
-                    zf.write(msa, 'msa.fasta')
-                    zf.write(sh)
-                Path(sh).unlink()
-
                 sleep(.05)
-                GObject.idle_add(self._save_somewhere_else, self.wd / 'RAxML_export.zip')
+                GObject.idle_add(self.export_zip, sh, msa)
                 return True
 
         if ml.raxml_shell and mode == 'raxml':
@@ -491,19 +485,39 @@ echo "CPUs available: $cpus, use at most $used"
         self.set_changed(PAGE, False)
         return
 
-    def _save_somewhere_else(self, path):
+    def export_zip(self, sh, msa):
+        """Finish the zip export thread"""
+        data = self.data
+        iface = self.iface
+        ml = data.ml
+        iface.thread.join()
+        self.win.show_all()
+
+        path = self.wd / 'RAxML_export.zip'
         dialog = Gtk.FileChooserDialog(title='export zip',
                                        parent=None, select_multiple=False,
                                        action=Gtk.FileChooserAction.SAVE)
         dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                            Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
         dialog.set_do_overwrite_confirmation(True)
-        dialog.set_filename(str(path))
+        dialog.set_current_folder(str(path.parent))
+        dialog.set_current_name(path.name)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            p = Path(dialog.get_filename()).resolve()
             try:
-                shutil.move(path, p)
+                p = Path(dialog.get_filename()).resolve()
+                with ZipFile(p, 'w', ZIP_DEFLATED) as zf:
+                    if ml.evo_model.endswith('user_model'):
+                        zf.write(ml.evo_model, 'user_model')
+                    zf.write(ml.raxml, 'raxml-ng')
+                    zf.write(msa, 'msa.fasta')
+                    zf.write(sh)
+                Path(sh).unlink()
             except Exception as ex:
                 LOG.error(ex)
         dialog.destroy()
+
+        # change the button to its stop state
+        im, la, tx = iface.tup
+        im.set_from_icon_name('media-playback-start-symbolic', 4)
+        la.set_text(tx)

@@ -330,6 +330,8 @@ class blast_page(ab12phylo_app_base):
             iface.blast_help_stack.set_visible_child_name('sp_info')
             if iface.notebook.get_current_page() != PAGE:
                 self.show_notification(msg=tx, secs=5)
+            else:
+                self.save(silent=True)
         LOG.info(tx)
         iface.pill2kill.clear()
         del iface.blast_wrapper, iface.blaster
@@ -383,6 +385,8 @@ class blast_page(ab12phylo_app_base):
     def _save_sp_edit(self, cell, path, new_text, tv, col):
         data = self.data
         iface = self.iface
+        if col == 0:
+            return  # do not allow sample IDs to be changed
         if 'df' not in iface.tempspace:
             iface.tempspace.df = self._df_with_sp(self.wd / repo.PATHS.tsv)
         df = iface.tempspace.df

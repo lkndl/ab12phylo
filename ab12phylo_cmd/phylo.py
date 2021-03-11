@@ -616,7 +616,7 @@ class tree_build:
 
                 if node.name.startswith('REF_'):
                     if multi and 'strain' in entry.reference_species:
-                        node.name = entry.reference_species[entry.reference_species.find('strain') + 7:]
+                        entry.at['reference_species'], node.name = entry.reference_species.split(' strain ')
                     else:
                         node.name = entry.accession
                     node.add_feature('type', blue)
