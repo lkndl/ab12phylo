@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ab12phylo?color=green)
-![github version](https://img.shields.io/static/v1?label=version&message=0.4.23-beta&color=brightgreen&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.4.24-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI trace and `FASTA` data. 
@@ -22,18 +22,25 @@ The recommended way to install AB12PHYLO is via [conda](https://docs.conda.io/),
 conda activate <env>
 conda install -c lkndl ab12phylo
 ```
-where `<env>` is your environment. Then install a combination of the external tools you would like to use via
+where `<env>` is your environment. Please do not install to `base`! Then install a combination of the external tools you would like to use via
 ```shell script
 conda install -c bioconda "blast>=2.9.0" raxml-ng "gblocks=0.91b" mafft clustalo muscle t-coffee
 ```
-If starting the graphical `ab12phylo` fails with something like `ValueError: Namespace Gtk not available` or `ModuleNotFoundError: No module named 'gi'`, you are missing PyGObject, the python bindings for GTK3:
+Mind that some of these tools are not available for Windows as of 12 March 2021. 
+
+If starting the graphical `ab12phylo` fails with something like `ValueError: Namespace Gtk not available`, `ModuleNotFoundError: No module named 'gi'` or nothing happens at all (on Windows) you are missing PyGObject, the python bindings for GTK3:
 ```shell script
 conda install -c conda-forge pygobject gtk3  
 ```
+If all the icons in the GUI are missing, install some:
+```shell script
+conda install -c conda-forge adwaita-icon-theme hicolor-icon-theme  
+```
+
 If you get an `UnsatisfiableError` in conda because of incompatible packages, please use the next approach:
 
 #### b) install to a newly created python3 conda environment
-You could run `conda create -n <env> python=3` and proceed as in **a)** or download [this file](/recipe/gtk-env.yaml), then open a terminal in your download folder and set up the environment specified inside via
+You could run `conda create -n <env> python=3.x` with `x==6|7|8` and proceed as in **a)** or download [this file](/recipe/gtk-env.yaml) for Linux or [that file](/recipe/win-env.yaml) for Windows, then open a terminal or Anaconda Powershell in your download folder and set up the environment specified inside via
 ```shell script
 conda env create -f gtk-env.yaml
 ```
