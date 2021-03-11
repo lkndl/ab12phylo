@@ -8,10 +8,13 @@ from pathlib import Path
 from time import sleep
 
 import gi
+import matplotlib.pyplot as plt
 import numpy as np
 from Bio import SeqIO
 from matplotlib.backends.backend_gtk3agg import (
     FigureCanvasGTK3Agg as FigureCanvas)
+from matplotlib.cm import get_cmap
+from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 
@@ -229,19 +232,18 @@ class gbl_page(ab12phylo_app_base):
             p = iface.tempspace.__getattribute__(w_name).props
             data.gbl.__setattr__(w_name, [p.value, p.lower, p.upper])
 
-        iface.thread = threading.Thread(target=self.do_gbl)
+        iface.thread = threading.Thread(target=self._do_gbl)
         iface.run_after = run_after
         GObject.timeout_add(100, self.update, PAGE)
         iface.thread.start()
         sleep(.1)
         # return to main loop
 
-    def do_gbl(self):
+    def _do_gbl(self):
         """Run the Gblocks thread"""
         data = self.data
         iface = self.iface
 
-        errors = list()
         iface.frac = .05
         iface.i = 0
         iface.k = len(data.genes) + 6
@@ -264,11 +266,40 @@ class gbl_page(ab12phylo_app_base):
 
         # fetch IDs
         shared_ids = sorted(set.intersection(*data.gene_ids.values()) - data.gbl.ignore_ids)
-        array = np.empty(shape=(len(shared_ids), 0), dtype=int)
         [data.gbl_model.append([_id]) for _id in shared_ids]
+
+        iface.i += 1
+        GObject.idle_add(self._do_gbl2, shared_ids, arg)
+        sleep(.1)
+        return True
+
+    def _do_gbl2(self, shared_ids, arg):
+        """Bounce to idle to size the id column"""
+        data = self.data
+        iface = self.iface
+        iface.thread.join()
+
+        gbar, barspace = (True, 50) if len(data.genes) > 1 else (False, 10)
+
+        iface.view_gbl.set_margin_bottom(barspace)
+        iface.view_gbl.realize()
+        sleep(.1)
+        data.gbl_shape[1] = self.get_height_resize(iface.view_gbl, None, iface.gbl_spacer,
+                                                   [iface.gbl_left, iface.gbl_right]) + barspace
+
+        # re-direct to thread
+        iface.thread = threading.Thread(target=self._do_gbl3, args=[shared_ids, arg, gbar, barspace])
+        GObject.timeout_add(100, self.update, PAGE)
+        iface.thread.start()
+
+    def _do_gbl3(self, shared_ids, arg, gbar, barspace):
+        data = self.data
+        iface = self.iface
+
+        errors = list()
         msa_lens = list()
         blocks = list()
-        iface.i += 1
+        array = np.empty(shape=(len(shared_ids), 0), dtype=int)
 
         for gene in data.genes:
             iface.text = '%s: read MSA' % gene
@@ -379,13 +410,67 @@ class gbl_page(ab12phylo_app_base):
                            [data.msa_shape[0], data.msa_shape[2]]):
                 f = Figure()  # figsize=(width / shared.DPI, data.msa_shape[1] / shared.DPI), dpi=shared.DPI)  # figaspect(data.msa_shape[1] / width))
                 f.set_facecolor('none')
-                f.set_figheight(data.msa_shape[1] / repo.DPI)
+                f.set_figheight(data.msa_shape[1] / repo.DPI * 5)
                 f.set_figwidth(max(1, width) / repo.DPI)
-                ax = f.add_subplot(111)
-                ax.axis('off')
-                f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+                # f.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+
+                # leave room at the bottom for the gene legend bar
+                b = barspace / data.gbl_shape[1]
+                ax = f.add_axes([0, b, 1, 1 - b])
+
                 mat = ax.matshow(array[:, blocks], alpha=alpha, cmap=ListedColormap(repo.colors),
                                  vmin=-.5, vmax=len(repo.colors) - .5, aspect='auto')
+                if not gbar:
+                    LOG.debug('adding ticks')
+                    [ax.spines[t].set_visible(False) for t in ['left', 'right', 'top', 'bottom']]
+                    ax.yaxis.set_visible(False)
+                    ax.xaxis.set_ticks_position('bottom')
+                    ax.tick_params(colors=iface.FG, pad=.2, length=0, labelsize=1)
+                    ax.xaxis.set_ticks([i for i in range(1, array[:, blocks].shape[1] - 1) if not i % 100])
+                else:
+                    ax.axis('off')
+                    LOG.debug('adding gene marker bar')
+                    # build matrix of gene indicators
+                    gm = [[i] * l for i, l in enumerate(data.msa_lens)]
+                    if x_ratio == 1:
+                        # add the spacer
+                        for i in range(len(data.genes) - 1):
+                            gm[i] += [-1] * len(repo.SEP)
+                    gm = [gi for gl in gm for gi in gl]
+                    # turn into np array
+                    gm = np.vstack([np.array(gm)] * 2)
+                    # make spacer transparent
+                    gm = np.ma.masked_where(gm < 0, gm)
+                    # trim the array early
+                    gm = gm[:, blocks]
+                    gene_colors = get_cmap('GnBu', len(data.genes))
+
+                    # plot the marker bar onto the MSA graphic
+                    bax = f.add_axes([0, b * .4, 1, b / 3])
+                    bar = bax.pcolormesh(gm, cmap=gene_colors)
+                    # bax.axis('off')
+                    [bax.spines[t].set_visible(False) for t in ['left', 'right', 'top', 'bottom']]
+                    bax.yaxis.set_visible(False)
+                    bax.xaxis.set_ticks_position('bottom')
+                    bax.tick_params(colors=iface.FG, pad=.2, length=0, labelsize=1)
+                    bax.xaxis.set_ticks([i for i in range(1, gm.shape[1] - 1) if not i % 100])
+
+                    # plot a legend for the gene marker bar
+                    with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
+                        iface.text = 'gene marker bar'
+                        LOG.debug(iface.text)
+                        Path.mkdir(self.wd / repo.PATHS.phylo_msa.parent, exist_ok=True)
+                        fig = plt.figure(figsize=(4, .2))
+                        cax = fig.add_subplot(111)
+                        cbar = ColorbarBase(
+                            ax=cax, cmap=gene_colors, orientation='horizontal',
+                            ticks=[(.5 / len(data.genes) + j * 1 / len(data.genes))
+                                   for j in range(len(data.genes))])
+                        cbar.ax.set_xticklabels(data.genes)
+                        fig.savefig(self.wd / repo.PATHS.gbar, transparent=True,
+                                    bbox_inches='tight', pad_inches=0, dpi=600)
+                        plt.close(fig)
+                        del fig, cbar
 
                 iface.i += 1
                 iface.text = 'save PNG'
@@ -393,11 +478,6 @@ class gbl_page(ab12phylo_app_base):
                 Path.mkdir(self.wd / png_path.parent, exist_ok=True)
                 f.savefig(self.wd / png_path, transparent=True,
                           dpi=scale * repo.DPI, bbox_inches='tight', pad_inches=0.00001)
-
-                sleep(.04)
-                # experimentally good point to re-size
-                data.gbl_shape[1] = self.get_height_resize(iface.view_gbl, None, iface.gbl_spacer,
-                                                           [iface.gbl_left, iface.gbl_right])
 
                 if iface.rasterize.props.active:
                     iface.text = 'place PNG'
@@ -428,6 +508,12 @@ class gbl_page(ab12phylo_app_base):
             wi.set_max_content_height(data.gbl_shape[1])
 
         self.load_colorbar(iface.palplot2)
+
+        if gbar:
+            self.load_colorbar(iface.gbar1, gbar=True)
+            iface.gbar1.set_visible(True)
+        else:
+            iface.gbar1.set_visible(False)
 
         iface.text = 'idle'
         iface.frac = 1

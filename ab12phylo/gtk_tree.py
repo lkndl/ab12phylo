@@ -128,7 +128,7 @@ class tree_page(ab12phylo_app_base):
         iface.tree_pane.connect(
             'scroll-event', self.xy_scale, PAGE)  # zooming
 
-        iface.tree_pane.set_position(600)
+        iface.tree_pane.set_position(599)
         self.iface.ratio = 600 / self.win.get_default_size()[0]
         self.win.connect_after('window-state-event', self._size_pane)
 
@@ -153,6 +153,8 @@ class tree_page(ab12phylo_app_base):
         if self.iface.thread.is_alive():
             self.iface.thread.join()
         self.data.phy.modify = dict()
+        if 'g_lens' in self.data.phy:
+            del self.data.phy.g_lens
         if (self.wd / repo.PATHS.modified_tree).is_file():
             (self.wd / repo.PATHS.modified_tree).unlink()
         self.start_phy()
@@ -163,6 +165,7 @@ class tree_page(ab12phylo_app_base):
         iface = self.iface
         phy = data.phy
         self.reload_ui_state(page=PAGE)
+        iface.tree_pane.set_position(600)
 
         if 'tx' in phy and (self.wd / phy.tx).with_suffix('.png').is_file() \
                 and (self.wd / repo.PATHS.phylo_msa).is_file() \
@@ -1226,7 +1229,7 @@ class tree_page(ab12phylo_app_base):
 
         f = Figure()
         f.set_facecolor('none')
-        f.set_figheight(array.shape[0] / repo.DPI)
+        f.set_figheight(array.shape[0] / repo.DPI * 5)
         f.set_figwidth(array.shape[1] / repo.DPI)
 
         # this line is now redundant
@@ -1261,9 +1264,14 @@ class tree_page(ab12phylo_app_base):
             gene_colors = get_cmap('GnBu', len(data.genes))
 
             # plot the marker bar onto the MSA graphic
-            bax = f.add_axes([0, b / 3, 1, b / 3])
+            bax = f.add_axes([0, b * .4, 1, b / 3])
             bar = bax.pcolormesh(gm, cmap=gene_colors)
-            bax.axis('off')
+            # bax.axis('off')
+            [bax.spines[t].set_visible(False) for t in ['left', 'right', 'top', 'bottom']]
+            bax.yaxis.set_visible(False)
+            bax.xaxis.set_ticks_position('bottom')
+            bax.tick_params(colors=iface.FG, pad=.2, length=0, labelsize=1)
+            bax.xaxis.set_ticks([i for i in range(1, gm.shape[1] - 1) if not i % 100])
 
             # plot a legend for the gene marker bar
             with plt.rc_context({'axes.edgecolor': iface.FG, 'xtick.color': iface.FG}):
@@ -1317,6 +1325,8 @@ class tree_page(ab12phylo_app_base):
         if phy.axis and len(data.genes) > 1:
             self.load_colorbar(iface.gbar, gbar=True)
             iface.gbar.set_visible(True)
+        else:
+            iface.gbar.set_visible(False)
 
         iface.text = 'idle'
         sleep(.1)
@@ -1431,6 +1441,8 @@ def _per_gene_diversity(gene, phy, array, _range):
 
     # iterate over MSA columns, search for segregating sites
     for j in _range:
+        if j >= array.shape[1]:
+            break
         col = array[:, j]
         if len(set(col)) == 1:
             # only one char at site

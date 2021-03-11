@@ -4529,7 +4529,7 @@ Alternatively, a color legend would nicely fit here.</property>
                               </packing>
                             </child>
                             <child>
-                              <!-- n-columns=2 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=4 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -4567,7 +4567,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
+                                    <property name="top-attach">3</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -4585,7 +4585,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
+                                    <property name="top-attach">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -4597,7 +4597,19 @@ Alternatively, a color legend would nicely fit here.</property>
                                   <packing>
                                     <property name="left-attach">1</property>
                                     <property name="top-attach">0</property>
-                                    <property name="height">3</property>
+                                    <property name="height">4</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkImage" id="gbar1">
+                                    <property name="name">gbar1</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="no-show-all">True</property>
+                                    <property name="icon-name">image-missing</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
                                   </packing>
                                 </child>
                               </object>

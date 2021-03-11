@@ -255,6 +255,8 @@ class ab12phylo_app_base(Gtk.Application):
         if response == Gtk.ResponseType.OK:
             self.load(dialog.get_filename())
             dialog.destroy()
+            if self.data.page == 7:
+                self.refresh()
             return True
         dialog.destroy()
         return False
