@@ -1,5 +1,5 @@
-{ % set name = "ab12phylo" % }
-{ % set version = "0.4.15b0" % }
+{% set name = "ab12phylo" %}
+{% set version = "0.4.21b0" %}
 
 package:
   name: "{{ name|lower }}"
@@ -7,7 +7,7 @@ package:
 
 source:
   url: "https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz"
-  sha256: deb0812efe12c7c93bf9d0d7a06fae69a5bc973692c748ba17689ea62854ccdd
+  sha256: 2d6146da5f21524d0bf212b1ac1992f8f47d0c747f7f54fe1ed5d2ac33f0c691
 
 build:
   number: 0
@@ -39,6 +39,8 @@ requirements:
     - svgutils
     - pillow
     - requests
+    - pygobject
+    - gtk3
 
 test:
   imports:
