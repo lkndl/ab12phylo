@@ -3,6 +3,7 @@
 import logging
 import shutil
 import subprocess
+import sys
 import threading
 from pathlib import Path
 
@@ -57,7 +58,7 @@ class msa_page(ab12phylo_app_base):
         if remote:
             data.msa.algo = repo.toalgo(iface.remote_algo.get_active_text())
             client = repo.TOOLS / 'MSA_clients' / (data.msa.algo + '.py')
-            self.set_helpers('python3 %s ' % client, iface.remote_help,
+            self.set_helpers('%s %s ' % (sys.executable, client), iface.remote_help,
                              data.msa.remote_cmd, data.msa.algo, True, iface.remote_cmd)
         else:
             data.msa.algo = repo.toalgo(iface.msa_algo.get_active_text())

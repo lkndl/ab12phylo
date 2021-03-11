@@ -2,7 +2,7 @@
 
 __author__ = 'Leo Kaindl'
 __email__ = 'leo.kaindl@tum.de'
-__version__ = '0.4.21-beta'
+__version__ = '0.4.22-beta'
 __date__ = '11 March 2021'
 __license__ = 'gpl-3.0'
 __status__ = 'Beta'
