@@ -272,7 +272,7 @@ class ab12phylo_app_base(Gtk.Application):
         # read in dataset
         try:
             with open(project_path, 'rb') as proj:
-                new_data = pickle.load(proj)
+                new_data = pickle.load(proj)  # on win: cannot instantiate 'PosixPath' on your system
             # overwrite content in old dataset in-place rather than re-pointing everything
             self.data.overwrite(new_data)
             try:

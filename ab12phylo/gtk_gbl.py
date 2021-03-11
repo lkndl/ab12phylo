@@ -263,6 +263,8 @@ class gbl_page(ab12phylo_app_base):
             arg = '%s %s -t=d -b2=%d -b1=%d -b3=%d -b4=%d -b5=%s -e=.txt -s=y -p=n -k=y; exit 0' \
                   % tuple([binary, '"%s"'] + iface.tempspace.params)
             LOG.debug(arg)
+        else:
+            arg = ''
 
         # fetch IDs
         shared_ids = sorted(set.intersection(*data.gene_ids.values()) - data.gbl.ignore_ids)
@@ -332,6 +334,7 @@ class gbl_page(ab12phylo_app_base):
             data.msa_shape[:2] = array.shape[::-1]
 
             if iface.gbl_preset.get_active_text() == 'skip':
+                LOG.debug('skipping %s' % gene)
                 shutil.copy(raw_msa, msa)
                 iface.i += 1
                 continue
