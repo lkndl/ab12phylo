@@ -23,6 +23,7 @@ import sys
 import webbrowser
 import xml.etree.ElementTree as ET
 from os import path
+from pathlib import Path
 from time import time
 
 import numpy as np
@@ -149,6 +150,7 @@ def mview_msa(args):
     if not perl_binary:
         raise ValueError
     lines = open(path.join(mv_path, 'bin', 'mview'), 'r').read().split('\n')
+    # monkey patch
     lines[0] = '#!' + perl_binary
     line = lines[25].split('"')
     line[1] = mv_path
@@ -745,10 +747,6 @@ class tree_build:
         os.makedirs(_img, exist_ok=True)
         shutil.copy(src=path.join(_dst, 'favicon.png'), dst=path.join(_img, 'favicon.png'))
         shutil.copy(src=path.join(_dst, 'favicon.ico'), dst=path.join(_img, 'favicon.ico'))
-
-        # make CGI script executable
-        cgi_file = path.join(self.args.dir, 'cgi-bin', 'ab12phylo.py')
-        os.chmod(cgi_file, os.stat(cgi_file).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         self.log.debug('copied files to output directory')
 
         start = time()
@@ -756,5 +754,10 @@ class tree_build:
         materials['log'] = open(self.args.log, 'r').read()
         template = Template(open(path.join(path.dirname(__file__), 'template.jinja'), 'r').read())
         rendered_html = template.render(materials)
+
+        # make CGI script executable a bit later so it's surely there
+        cgi_file = Path(self.args.dir) / 'cgi-bin' / 'ab12phylo.py'
+        cgi_file.chmod(cgi_file.stat().st_mode | stat.S_IEXEC | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
         open(path.join(self.args.dir, 'result.html'), 'w').write(rendered_html)
         return

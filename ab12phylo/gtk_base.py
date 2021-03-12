@@ -47,7 +47,7 @@ class ab12phylo_app_base(Gtk.Application):
         # delete data if it was in the prelim directory and not saved
         if self.wd == Path('untitled') and not self.project_path:
             LOG.info('shutdown: delete prelim data')
-            shutil.rmtree(path=self.wd)
+            shutil.rmtree(path=self.wd, ignore_errors=True)
 
         # kill BLAST thread
         if 'blaster' in self.iface:
@@ -247,7 +247,7 @@ class ab12phylo_app_base(Gtk.Application):
         Project file open dialog. Calls self.load internally.
         :return:
         """
-        dialog = Gtk.FileChooserDialog(title='open project', parent=None,
+        dialog = Gtk.FileChooserDialog(title='open .PROJ project file', parent=None,
                                        action=Gtk.FileChooserAction.OPEN)
         dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                            Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
@@ -312,7 +312,7 @@ class ab12phylo_app_base(Gtk.Application):
             log_now('saving to %s' % self.project_path)
             try:
                 self.data.page = self.iface.notebook.get_current_page()
-                pickle.dump(self.data, proj)
+                pickle.dump(self.data, proj)  # on win: cannot instantiate 'PosixPath' on your system
                 log_now('finished save')
             except pickle.PicklingError as pe:
                 LOG.error(pe)
@@ -381,7 +381,7 @@ class ab12phylo_app_base(Gtk.Application):
         :param args:
         :return:
         """
-        dialog = Gtk.FileChooserDialog(title='import commandline project',
+        dialog = Gtk.FileChooserDialog(title='import commandline project folder',
                                        parent=None, select_multiple=False,
                                        action=Gtk.FileChooserAction.SELECT_FOLDER)
         dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,

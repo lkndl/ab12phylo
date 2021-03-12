@@ -152,9 +152,10 @@ class msa_build:
                 # pick deployed Gblocks
                 binary = path.join(self.tools_path, 'Gblocks_0.91b', 'Gblocks').replace(' ', '\ ')
                 local = False
+                if sys.platform in ['win32', 'cygwin']:
+                    binary += '.exe'
 
             # set Gblocks options
-
             b4 = 5
             if gblocks_mode == 'relaxed':
                 # set the minimal permissible minimum number of identical

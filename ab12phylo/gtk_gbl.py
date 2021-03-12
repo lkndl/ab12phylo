@@ -370,6 +370,7 @@ class gbl_page(ab12phylo_app_base):
             shift = sum(msa_lens[:-1])
             blocks.extend([i + shift for i in line_blocks])
             iface.i += 1
+        data.msa_lens = msa_lens
 
         iface.text = 'concatenating MSAs'
         iface.tempspace.bak_ignore = {i for i in data.gbl.ignore_ids}
@@ -434,7 +435,7 @@ class gbl_page(ab12phylo_app_base):
                     ax.axis('off')
                     LOG.debug('adding gene marker bar')
                     # build matrix of gene indicators
-                    gm = [[i] * l for i, l in enumerate(data.msa_lens)]
+                    gm = [[i] * l for i, l in enumerate(msa_lens)]
                     if x_ratio == 1:
                         # add the spacer
                         for i in range(len(data.genes) - 1):

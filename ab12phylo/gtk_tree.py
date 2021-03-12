@@ -670,6 +670,10 @@ class tree_page(ab12phylo_app_base):
         else:
             tree_file = self.wd / repo.PATHS.fbp if phy.fbp \
                 else self.wd / repo.PATHS.tbe
+            if not tree_file.is_file():
+                GObject.idle_add(self._stop_phy, 'no tree found at %s' % str(tree_file))
+                sleep(.1)
+                return True
 
         # read tree file
         tr = toytree.tree(open(tree_file, 'r').read(), tree_format=0)
@@ -1333,8 +1337,12 @@ class tree_page(ab12phylo_app_base):
         GObject.idle_add(self._stop_phy)
         return True
 
-    def _stop_phy(self):
+    def _stop_phy(self, error=None):
         self.iface.thread.join()
+        if error:
+            LOG.error(error)
+            self.win.show_all()
+            return False
         LOG.info('phylo thread idle')
         self.iface.view_msa_ids.set_model(self.data.tree_anno_model)
         self.win.show_all()

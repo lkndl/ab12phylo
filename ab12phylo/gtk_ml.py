@@ -6,7 +6,9 @@ import re
 import shlex
 import shutil
 import stat
+import sys
 import threading
+from os import cpu_count
 from pathlib import Path
 from subprocess import call, run, Popen, PIPE
 from time import sleep, time
@@ -141,12 +143,11 @@ class ml_page(ab12phylo_app_base):
         res = run(stdout=PIPE, stderr=PIPE, shell=True,
                   args='%s --help' % binary)
         iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
-        LOG.debug('got RAxML --help')
+        LOG.debug('got RAxML-NG --help')
 
         try:
             # get number of available CPUs
-            res = run(args='nproc ', stdout=PIPE, stderr=PIPE, shell=True)
-            cpus = int(res.stdout.decode().strip())
+            cpus = cpu_count()
             iface.cpu_count.set_text(str(cpus))
             cpu_adj = iface.cpu_use.get_adjustment().props
             cpu_adj.upper = cpus
@@ -343,26 +344,35 @@ rm pipe
             ml.prev = prev
 
             # read realtime RAxML output line by line
-            proc = Popen(args=shlex.split(arg % add), stdout=PIPE, stderr=PIPE)
-            while True and not iface.pill2kill.is_set():
-                line = proc.stdout.readline()
-                if proc.poll() is not None:
-                    sleep(.2)
-                    break
-                if line:
-                    lane = line.decode().rstrip()
-                    ml.stdout.append(lane)
-                    LOG.debug(lane)
-                    if lane.startswith('Elapsed time'):
+            try:
+                proc = Popen(args=shlex.split(arg % add), stdout=PIPE, stderr=PIPE)
+                while True and not iface.pill2kill.is_set():
+                    line = proc.stdout.readline()
+                    if proc.poll() is not None:
+                        sleep(.2)
                         break
-                else:
-                    sleep(.2)
-                    break
+                    if line:
+                        lane = line.decode().rstrip()
+                        ml.stdout.append(lane)
+                        LOG.debug(lane)
+                        if lane.startswith('Elapsed time'):
+                            break
+                    else:
+                        sleep(.2)
+                        break
 
-            if iface.pill2kill.is_set():
-                sleep(.2)
-                GObject.idle_add(self.stop_ML, errors, start)
-                return True
+                if iface.pill2kill.is_set():
+                    sleep(.2)
+                    GObject.idle_add(self.stop_ML, errors, start)
+                    return True
+            except OSError:
+                if sys.platform in ['win32', 'darwin', 'cygwin']:
+                    self.show_notification('The selected binary doesn\'t work for this OS.\n'
+                                           'Export a .zip and run ML inference on a Linux\n'
+                                           'machine or try installing RAxML-NG yourself.')
+                else:
+                    assert sys.platform == 'linux', 'What\'s AIX?'
+                    raise RuntimeError('RAxML-NG failed for %s' % (arg % add))
 
             # bf = iface.ml_help.get_buffer()
             # bf.props.text = bf.props.text + '\n' + '\n'.join(ml.stdout)
