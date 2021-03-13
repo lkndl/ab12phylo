@@ -140,10 +140,18 @@ class ml_page(ab12phylo_app_base):
         if not binary:
             binary = str(repo.TOOLS / repo.PATHS.RAxML)
         iface.raxml_exe.set_filename(binary)
-        res = run(stdout=PIPE, stderr=PIPE, shell=True,
-                  args='%s --help' % binary)
-        iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
-        LOG.debug('got RAxML-NG --help')
+        try:
+            res = run(stdout=PIPE, stderr=PIPE, shell=True,
+                      args='%s --help' % binary)
+            iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
+            LOG.debug('got RAxML-NG --help')
+        except OSError:
+            if sys.platform in ['win32', 'darwin', 'cygwin']:
+                self.show_notification('The selected binary doesn\'t work for this OS.\n'
+                                       'Export a .zip and run ML inference on a Linux\n'
+                                       'machine or try installing RAxML-NG yourself.')
+            else:
+                assert sys.platform == 'linux', 'What\'s AIX?'
 
         try:
             # get number of available CPUs
@@ -344,35 +352,26 @@ rm pipe
             ml.prev = prev
 
             # read realtime RAxML output line by line
-            try:
-                proc = Popen(args=shlex.split(arg % add), stdout=PIPE, stderr=PIPE)
-                while True and not iface.pill2kill.is_set():
-                    line = proc.stdout.readline()
-                    if proc.poll() is not None:
-                        sleep(.2)
-                        break
-                    if line:
-                        lane = line.decode().rstrip()
-                        ml.stdout.append(lane)
-                        LOG.debug(lane)
-                        if lane.startswith('Elapsed time'):
-                            break
-                    else:
-                        sleep(.2)
-                        break
-
-                if iface.pill2kill.is_set():
+            proc = Popen(args=shlex.split(arg % add), stdout=PIPE, stderr=PIPE)
+            while True and not iface.pill2kill.is_set():
+                line = proc.stdout.readline()
+                if proc.poll() is not None:
                     sleep(.2)
-                    GObject.idle_add(self.stop_ML, errors, start)
-                    return True
-            except OSError:
-                if sys.platform in ['win32', 'darwin', 'cygwin']:
-                    self.show_notification('The selected binary doesn\'t work for this OS.\n'
-                                           'Export a .zip and run ML inference on a Linux\n'
-                                           'machine or try installing RAxML-NG yourself.')
+                    break
+                if line:
+                    lane = line.decode().rstrip()
+                    ml.stdout.append(lane)
+                    LOG.debug(lane)
+                    if lane.startswith('Elapsed time'):
+                        break
                 else:
-                    assert sys.platform == 'linux', 'What\'s AIX?'
-                    raise RuntimeError('RAxML-NG failed for %s' % (arg % add))
+                    sleep(.2)
+                    break
+
+            if iface.pill2kill.is_set():
+                sleep(.2)
+                GObject.idle_add(self.stop_ML, errors, start)
+                return True
 
             # bf = iface.ml_help.get_buffer()
             # bf.props.text = bf.props.text + '\n' + '\n'.join(ml.stdout)
@@ -397,7 +396,7 @@ rm pipe
                 iface.text = 'building zip'
                 LOG.debug(iface.text)
                 sh = 'raxml_run.sh'
-                with open(sh, 'w') as sf:
+                with open(sh, 'w', newline='') as sf:
                     bash = '''
 #!/bin/bash\n
 # Execute this script via 'bash raxml_run.sh'\n
@@ -420,6 +419,8 @@ if [ $cpus -lt $cpu_limit ];then
     used=$cpus\nfi\n
 printf "${BLUE}$cpus${NC} CPUs available, use at most ${BLUE}$used${NC}.\nThis will proceed in a bit, interrupt with Ctrl+C\n"
 print_usage
+# make binary executable
+chmod +x "raxml-ng"
 sleep 10s
                     '''.strip()
                     sf.write(bash)

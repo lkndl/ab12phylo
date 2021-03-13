@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 from os import path
+from pathlib import Path
 from time import time, sleep
 
 from Bio import SeqIO
@@ -187,17 +188,16 @@ class msa_build:
                 self.log.info('running strict Gblocks')
 
             # create base call
-            arg = '%s "%s" -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=.txt -d=n -s=y -p=n' \
-                  % (binary, raw_msa, flank, cons, b4, gaps)  # don't swap order!
+            arg = '%s "%s" -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=".txt" -d=n -s=y -p=n' \
+                  % (binary, Path(raw_msa).resolve(), flank, cons, b4, gaps)  # don't swap order!
             # force return code
             if sys.platform in ['win32', 'cygwin']:
                 arg += ' & exit /b 0'
             else:
                 arg += '; exit 0'
-                raw_msa += '.txt'
             # MARK the -t=d sets the mode to nucleotides ... adapt?
             self._run(arg, log_file, 'pre-installed Gblocks' if local else 'out-of-the-box Gblocks')
-            shutil.move(raw_msa, path.join(self.dir, gene, gene + '_msa.fasta'))
+            shutil.move(raw_msa + '.txt', path.join(self.dir, gene, gene + '_msa.fasta'))
 
     def concat_msa(self, gui=False):
         """Reads all trimmed MSAs to memory, then iterates over samples, writes concatenated MSA"""

@@ -402,6 +402,8 @@ class tree_page(ab12phylo_app_base):
             self.start_popgen(haplo_collapse=sel_idx)
         else:
             # then collapse
+            props = self.iface.spacespin.get_adjustment().props
+            props.value = max(2.4, props.value)
             mod = self.data.phy.modify
             candidates = dict()
             for i, (n, sp, c) in enumerate(self.data.tree_anno_model.get_column((0, 1, 3))):

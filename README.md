@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ab12phylo?color=green)
-![github version](https://img.shields.io/static/v1?label=version&message=0.4.25-beta&color=brightgreen&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.4.27-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI trace and `FASTA` data. 
@@ -26,7 +26,7 @@ where `<env>` is your environment. Please do not install to `(base)`! Then insta
 ```shell script
 conda install -c bioconda "blast>=2.9.0" raxml-ng "gblocks=0.91b" mafft clustalo muscle t-coffee
 ```
-Mind that these tools are not available on conda for `win-64` as of 12 March 2021. 
+Mind that these tools are not available on conda for `win-64` as of 13 March 2021. 
 
 If starting the graphical `ab12phylo` fails with something like `ValueError: Namespace Gtk not available`, `ModuleNotFoundError: No module named 'gi'` or nothing happens at all (on Windows) you are missing PyGObject, the python bindings for GTK3:
 ```shell script

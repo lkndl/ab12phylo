@@ -3,6 +3,7 @@
 import logging
 import shutil
 import subprocess
+import sys
 import threading
 from pathlib import Path
 from time import sleep
@@ -256,12 +257,18 @@ class gbl_page(ab12phylo_app_base):
             local = bool(binary)
             # else pick deployed Gblocks
             binary = binary if binary else str(repo.TOOLS / 'Gblocks_0.91b' / 'Gblocks').replace(' ', '\ ')
+            if not local and sys.platform in ['win32', 'cygwin']:
+                binary += '.exe'
             LOG.info('%s Gblocks' % ('local' if local else 'packaged'))
 
             # create base call -t=d sets the mode to nucleotides ... adapt?
             # leave -b2 and -b1 in this wrong order!
-            arg = '%s %s -t=d -b2=%d -b1=%d -b3=%d -b4=%d -b5=%s -e=.txt -s=y -p=n -k=y; exit 0' \
+            arg = '%s %s -t=d -b2=%d -b1=%d -b3=%d -b4=%d -b5=%s -e=".txt" -s=y -p=n -k=y; exit 0' \
                   % tuple([binary, '"%s"'] + iface.tempspace.params)
+            if sys.platform in ['win32', 'cygwin']:
+                arg += ' & exit /b 0'
+            else:
+                arg += '; exit 0'
             LOG.debug(arg)
         else:
             arg = ''
@@ -306,7 +313,7 @@ class gbl_page(ab12phylo_app_base):
         for gene in data.genes:
             iface.text = '%s: read MSA' % gene
             LOG.debug(iface.text)
-            raw_msa = self.wd / gene / ('%s_raw_msa.fasta' % gene)
+            raw_msa = (self.wd / gene / ('%s_raw_msa.fasta' % gene)).resolve()
             msa = self.wd / gene / ('%s_msa.fasta' % gene)
             records = {r.id: r for r in SeqIO.parse(raw_msa, 'fasta')}
             take_out = {_id for _id in records.keys() if _id in data.gbl.ignore_ids}
@@ -343,6 +350,7 @@ class gbl_page(ab12phylo_app_base):
             LOG.debug(iface.text)
             with open(self.wd / gene / 'gblocks.log', 'w') as log_handle:
                 try:
+                    LOG.debug(arg % raw_msa)
                     subprocess.run(arg % raw_msa, shell=True, check=True,
                                    stdout=log_handle, stderr=log_handle)
                 except (OSError, subprocess.CalledProcessError) as e:
