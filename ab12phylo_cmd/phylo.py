@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # 2021 Leo Kaindl
 
 """
@@ -122,11 +122,11 @@ def tree_view(_dir):
 
     # start CGI server
     try:
-        py3 = sys.executable  # shutil.which('python3')
+        py3 = sys.executable
         log.debug('python3 executable at %s' % py3)
-        log.info('starting CGI server on port: %d for 60min' % port)
+        log.info('starting CGI server on port: %d for 20min' % port)
         subprocess.run('%s -m http.server --cgi %d' % (py3, port), shell=True,
-                       stdout=subprocess.PIPE, cwd=_dir, timeout=3600)
+                       stdout=subprocess.PIPE, cwd=_dir, timeout=1200)
     except subprocess.TimeoutExpired:
         txt = 'CGI server shut down after timeout. If necessary, re-start in %s via ' \
               '"%s -m http.server --cgi %d" or re-run ab12phylo-view' % (_dir, sys.executable, port)
@@ -448,8 +448,11 @@ class tree_build:
 
                 # rename REFs
                 if tip.startswith('REF_'):
-                    tip = entry.accession
-                    des = entry.reference_species
+                    if len(self.genes) > 1 and 'strain' in entry.reference_species:
+                        des, tip = entry.reference_species.split(' strain ')
+                    else:
+                        tip = entry.accession
+                        des = entry.reference_species
 
                 # get replaced IDs
                 if 'replaces' in entry and not pd.isnull(entry.replaces):

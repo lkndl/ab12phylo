@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # 2021 Leo Kaindl
 
 """
@@ -22,6 +22,8 @@ from lxml.html import builder as E
 from Bio import SeqIO
 from toytree.utils import ToytreeError
 
+blue = (0.1960, 0.5333, 0.7411)
+
 
 def _exclude(ex_motifs, leaves):
     # filter leaves with exclusion motifs
@@ -33,8 +35,8 @@ def _exclude(ex_motifs, leaves):
         regex = re.compile(r'|'.join(queries))
 
         # drop excluded tips
-        for dropped_tip in list(filter(regex.match, leaves)):
-            leaves.remove(dropped_tip)
+        for dropped_tip in list(filter(regex.match, leaves.keys())):
+            leaves.pop(dropped_tip)
     return leaves
 
 
@@ -191,13 +193,16 @@ with open(form['pickle'].value, 'rb') as pickle_fh:
 
 try:
     makedirs('queries', exist_ok=True)
+    tree_nodes = tree.get_feature_dict(key_attr='name')
 
     # compile motifs regex. empty motifs is caught before
     queries = ['.*' + re.escape(word.strip()) + '.*' for word in motifs.split(',')]
     regex = re.compile(r'|'.join(queries))
 
     # find matching tips
-    leaves = list(filter(regex.match, tree.get_tip_labels()))
+    leaf_names = list(filter(regex.match, tree.get_tip_labels()))
+    # check if they are references
+    leaves = {leaf: tree_nodes[leaf].type == blue for leaf in leaf_names}
 
     # filter with exclusion pattern
     leaves = _exclude(ex_motifs, leaves)
@@ -206,17 +211,20 @@ try:
         raise ValueError('no matches')
 
     if call == 'subtree':
-        mrca = tree.get_mrca_idx_from_tip_labels(names=leaves)
-        leaves = tree.get_tip_labels(mrca)
+        mrca = tree.get_mrca_idx_from_tip_labels(names=leaf_names)
+        leaf_names = tree.get_tip_labels(mrca)
+        leaves = {leaf: tree_nodes[leaf].type == blue for leaf in leaf_names}
         leaves = _exclude(ex_motifs, leaves)
-        leaves = [leaf.split(' ')[0] if 'strain' not in leaf else leaf for leaf in leaves]
-        files = _to_files(leaves)
-        txt = '\n'.join(reversed(files)) if as_files else ', '.join(reversed(leaves))
+        leaf_names = [leaf_name.split(' ')[0] if not is_ref else leaf_name
+                      for leaf_name, is_ref in leaves.items()]
+        files = _to_files(leaf_names)
+        txt = '\n'.join(reversed(files)) if as_files else ', '.join(reversed(leaf_names))
         mrca = '%d match%s, subtree MRCA idx: %s' % (len(leaves), 'es' if len(leaves) > 1 else '', mrca)
     elif call == 'match':
-        leaves = [leaf.split(' ')[0] if 'strain' not in leaf else leaf for leaf in leaves]
-        files = _to_files(leaves)
-        txt = '\n'.join(files) if as_files else ', '.join(leaves)
+        leaf_names = [leaf_name.split(' ')[0] if not is_ref else leaf_name
+                      for leaf_name, is_ref in leaves.items()]
+        files = _to_files(leaf_names)
+        txt = '\n'.join(files) if as_files else ', '.join(leaf_names)
         mrca = '%d match%s' % (len(leaves), 'es' if len(leaves) > 1 else '')
     else:
         raise ValueError('illegal call')
@@ -224,7 +232,7 @@ try:
 except (ToytreeError, ValueError) as ex:
     txt = str(ex)
     mrca = ''
-    leaves = []
+    leaves = dict()
 
 # save result in file
 _path = path.join('queries', call + '_' + motifs + '_' + ex_motifs)
@@ -238,9 +246,9 @@ if len(leaves) > 1:
     # check if a reference is among the selected leaves:
     picked_refs = set()
     picked_ids = set()
-    for leaf in leaves:
-        if 'strain' in leaf:
-            picked_refs.add(leaf[leaf.index('strain'):])
+    for leaf, is_ref in leaves.items():
+        if is_ref:
+            picked_refs.add(leaf)
         else:
             picked_ids.add(leaf)
 
@@ -253,42 +261,49 @@ if len(leaves) > 1:
 
         ref_ids = set()
         for k, v in df.items():
-            strain = v[v.index('strain'):]
-            if strain in picked_refs:
-                picked_refs.remove(strain)
+            turn_around = ' '.join(v.split(' strain ')[::-1])
+            if turn_around in picked_refs:
+                picked_refs.remove(turn_around)
                 ref_ids.add(k)
 
         # merge picked_ids and ref_ids
         picked_ids |= ref_ids
 
-    # per-gene metrics and Tajima's D in sliding-window
-    pop_seqs = {record.id.split(' ')[0]: record.seq
-                for record in SeqIO.parse(form['msa_path'].value, 'fasta')
-                if record.id.split(' ')[0] in picked_ids}
+    try:
+        # per-gene metrics and Tajima's D
+        pop_seqs = {record.id.split(' ')[0]: record.seq
+                    for record in SeqIO.parse(form['msa_path'].value, 'fasta')
+                    if record.id.split(' ')[0] in picked_ids}
+        if not pop_seqs:
+            raise ValueError('no matches')
 
-    # get gene lengths from form
-    g_lens = [entry.split(':') for entry in form['g_lens'].value.split('_')]
-    pos = 0
-    rows = ''
+        # get gene lengths from form
+        g_lens = [entry.split(':') for entry in form['g_lens'].value.split('_')]
+        pos = 0
+        rows = ''
 
-    # calculate diversity/neutrality statistics per gene
-    for entry in g_lens:
-        gene, glen = entry[0], int(entry[1])
-        cut_seqs = {seq_id: seq[pos:pos + glen] for seq_id, seq in pop_seqs.items()}
-        rows += _diversity_stats(gene, cut_seqs, thresholds, poly_allowed)
-        pos += glen
+        # calculate diversity/neutrality statistics per gene
+        for entry in g_lens:
+            gene, glen = entry[0], int(entry[1])
+            cut_seqs = {seq_id: seq[pos:pos + glen] for seq_id, seq in pop_seqs.items()}
+            if not cut_seqs:
+                raise ValueError('no matches')
+            rows += _diversity_stats(gene, cut_seqs, thresholds, poly_allowed)
+            pos += glen
 
-    # overall if sensible
-    if len(g_lens) > 1:
-        rows += _diversity_stats('overall', pop_seqs, thresholds, poly_allowed)
+        # overall if sensible
+        if len(g_lens) > 1:
+            rows += _diversity_stats('overall', pop_seqs, thresholds, poly_allowed)
 
-    # write raw html table
-    table = '<hr/><h4>Neutrality + Diversity Statistics</h4><p>Exclusion threshold for gap sites ' \
-            'was <code>%.2f</code>, and <code>%.2f</code> for unknown sites.</p>' \
-            '<table border="1" class="dataframe"><thead><tr style="text-align: justify;"><th></th>' \
-            '<th>valid sites</th><th>S</th><th>k</th><th>π</th><th>Watterson\'s θ</th>' \
-            '<th>Tajima\'s D</th><th>Genotypes</th><th>gaps</th><th>unknown</th></tr></thead>' \
-            '<tbody>%s</tbody></table>' % (thresholds[0], thresholds[1], rows)
+        # write raw html table
+        table = '<hr/><h4>Neutrality + Diversity Statistics</h4><p>Exclusion threshold for gap sites ' \
+                'was <code>%.2f</code>, and <code>%.2f</code> for unknown sites.</p>' \
+                '<table border="1" class="dataframe"><thead><tr style="text-align: justify;"><th></th>' \
+                '<th>valid sites</th><th>S</th><th>k</th><th>π</th><th>Watterson\'s θ</th>' \
+                '<th>Tajima\'s D</th><th>Genotypes</th><th>gaps</th><th>unknown</th></tr></thead>' \
+                '<tbody>%s</tbody></table>' % (thresholds[0], thresholds[1], rows)
+    except ValueError:
+        table = ''
 else:
     table = ''
 
@@ -327,10 +342,7 @@ for g in ET.findall('//svg[@class="toyplot-canvas-Canvas"]/g/g/g[@class="'
     st = g.get('style').replace(markup, '')
     # remove old markup
     g.set('style', st)
-    # account for differently named refs in leaves list
-    tip_id = g.text
-    tip_id = tip_id.split(' ')[0] if 'strain' not in tip_id else tip_id
-    if tip_id in leaves:
+    if g.text in leaves:
         # insert new markup
         g.set('style', st + markup)
 

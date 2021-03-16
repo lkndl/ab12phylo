@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ab12phylo?color=green)
-![github version](https://img.shields.io/static/v1?label=version&message=0.4.27-beta&color=brightgreen&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.4.28-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI trace and `FASTA` data. 
@@ -40,7 +40,7 @@ conda install -c conda-forge adwaita-icon-theme hicolor-icon-theme
 If you get an `UnsatisfiableError` in conda because of incompatible packages, please use the next approach:
 
 #### b) install to a newly created python3 conda environment
-You could run `conda create -n <env> python=3.x` with `x==6|7|8|9` and proceed as in **a)** or download [this file](/recipe/gtk-env.yaml) for Linux or [that file](/recipe/win-env.yaml) for Windows, then open a terminal or Anaconda Powershell in your download folder and set up the environment specified inside via
+You could run `conda create -n <env> python=3.x` with `x==6|7|8|9` and proceed as in [a)](#a-install-to-an-existing-python3-conda-environment) or download [this file](/recipe/gtk-env.yaml) for Linux or [that file](/recipe/win-env.yaml) for Windows, then open a terminal or Anaconda Powershell in your download folder and set up the environment specified inside via
 ```shell script
 conda env create -f gtk-env.yaml
 ```
@@ -71,7 +71,7 @@ cd ab12phylo
 pip install --upgrade pip
 pip install .
 ```
-Please see **a)** and **c)** if something goes wrong.
+Please see [a)](#a-install-to-an-existing-python3-conda-environment) and [c)](#c-install-via-pip-from-pypi-to-your-system-python) if something goes wrong.
 
 #### e) install via pip inside a conda environment
 If you are on Linux and would like to install via `pip` inside your conda `<env>`, please check `which python` and `which pip` is active inside the environment (where you will see `(<env>)` to the left of your shell prompt, not shown above).
@@ -90,8 +90,25 @@ On Windows, use `where` in CMD or `get-command` in a PowerShell instead of `whic
 
 In the case outlined above, `pip` points to a version outside your conda installation, so use `pip3`. If neither points to your conda, re-start your shell and check the environment. Sometimes there is no `pip` at all, which can be fixed on Linux using your package manager (or `sudo apt-get install python3-pip` on Ubuntu), or in conda via `conda install -c conda-forge pip`.
 
-If you see `No module named 'gi'` make sure to fix that with conda as described in **a)**.
+If you see `No module named 'gi'` make sure to fix that with conda as described in [a)](#a-install-to-an-existing-python3-conda-environment).
 
+## Updating
+ 
+You can update AB12PHYLO almost the same way you installed it:
+```shell script
+conda update -c lkndl ab12phylo
+# or
+pip install ab12phylo -U
+```
+But you will more likely want to update to the newest GitHub version. If you have not done [d)](#d-build-ab12phylo-from-source-using-git-and-pip) before, run
+```shell script
+git clone https://github.com/lkndl/ab12phylo
+cd ab12phylo
+```
+or `git pull` in the directory in question if you have. Then re-build the newest version with
+```shell script
+pip install .
+```
 
 ## Getting Started
 

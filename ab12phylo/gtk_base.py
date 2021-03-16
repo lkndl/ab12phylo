@@ -399,30 +399,32 @@ class ab12phylo_app_base(Gtk.Application):
                 except Exception as ex:
                     LOG.exception(ex)
             if errors:
-                self.show_notification('import failed', errors, secs=2)
+                self.show_notification('import failed', errors, secs=10)
                 dialog.destroy()
                 return
 
-            got_annotations = False
-            for log in ['ab12phylo-p1.log', 'ab12phylo.log']:
+            self.data.genes = False
+            self.data.phy.g_lens = False
+            for log in ['ab12phylo-p1.log', 'ab12phylo-p2.log', 'ab12phylo-viz.log', 'ab12phylo.log']:
                 try:
                     with open(folder / log) as fh:
                         s = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
                         pos = s.find(b'--GENES--')
-                        if pos != -1:
+                        if pos != -1 and not self.data.genes:
                             self.data.genes = s[pos + 10:pos + 190].decode().split('\n')[0].split('::')
-                            pos = s.find(b'gene lengths:')
-                            if pos == -1:
-                                break
+
+                        pos = s.find(b'gene lengths:')
+                        if pos != -1 and not self.data.phy.g_lens:
                             self.data.phy.g_lens = {k: v for k, v in ast.literal_eval(
                                 s[pos + 14:pos + 190].decode().split('\n')[0])}
-                            got_annotations = True
+
+                        if self.data.genes and self.data.phy.g_lens:
                             break
                 except FileNotFoundError:
                     continue
-            if not got_annotations:
+            if not self.data.genes or not self.data.phy.g_lens:
                 self.show_notification('import failed, couldn\'t read '
-                                       'annotations from log file', secs=2)
+                                       'annotations from log file', secs=10)
                 dialog.destroy()
                 return
             LOG.debug('imported from %s' % folder)
