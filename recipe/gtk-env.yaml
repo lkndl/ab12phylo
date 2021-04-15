@@ -1,7 +1,7 @@
 name: gtk-env
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
@@ -62,7 +62,7 @@ dependencies:
   - muscle=3.8.1551=hc9558a2_5
   - ncurses=6.2=h58526e2_4
   - openmpi=4.0.5=h9b22176_4
-  - openssl=1.1.1i=h7f98852_0
+  - openssl=1.1.1k=h7f98852_0
   - pango=1.42.4=h69149e4_5
   - pcre=8.44=he1b5a44_0
   - perl=5.26.2=h36c2ea0_1008
@@ -136,7 +136,7 @@ dependencies:
   - pygobject=3.38.0=py36he855594_4
   - python=3.6.12=hffdb5ce_0_cpython
   - python_abi=3.6=1_cp36m
-  - raxml-ng=1.0.1=h7447c1b_0
+  - raxml-ng=1.0.2=h7447c1b_0
   - readline=8.0=he28a2e2_2
   - setuptools=49.6.0=py36h5fab9bb_3
   - sqlite=3.34.0=h74cdb3f_0

@@ -6,7 +6,7 @@ import re
 import shlex
 import shutil
 import stat
-import sys
+import sys, requests, tarfile
 import threading
 from os import cpu_count
 from pathlib import Path
@@ -33,6 +33,12 @@ class ml_page(ab12phylo_app_base):
         data = self.data
         iface = self.iface
 
+        iface.ml_tool.set_entry_text_column(0)
+        iface.ml_tool.set_id_column(0)
+        iface.ml_tool.connect('changed', self._load_ml_help)
+        iface.ml_exe.connect('file-set', self._load_ml_help, True)
+        iface.ml_cmd.connect('focus_in_event', lambda widget, *args: self.start_ML(widget, 'prep'))
+
         iface.evo_model.set_model(data.evo_models)
         iface.evo_model.get_child().connect(
             'focus_out_event', self._change_evo_model, iface.evo_modify, data.ml)
@@ -40,11 +46,11 @@ class ml_page(ab12phylo_app_base):
             'changed', self._load_model_file, iface.evo_modify)
         iface.evo_model.handler_block(iface.evo_block)
 
-        iface.raxml_run.connect('clicked', self.start_ML, 'raxml')
-        iface.raxml_export.connect('clicked', self.start_ML, 'raxml_export')
-        iface.raxml_import.connect('clicked', self.import_tree)
+        iface.ml_run.connect('clicked', self.start_ML, '')
+        iface.ml_export.connect('clicked', self.start_ML, '_export')
+        iface.ml_import.connect('clicked', self.import_tree)  # TODO also
 
-        for wi in [iface.bootstraps, iface.rand, iface.pars, iface.raxml_seed]:
+        for wi in [iface.bootstraps, iface.rand, iface.pars, iface.ml_seed]:
             wi.connect('key-press-event', self.edit_numerical_entry_up_down)
             wi.connect('changed', self.edit_numerical_entry)
 
@@ -120,12 +126,27 @@ class ml_page(ab12phylo_app_base):
                 LOG.debug('selected partitioned model file: %s -> RAxML/user_model' % str(tx))
             dialog.destroy()
 
-    def _load_raxml_help(self):
+    def _load_ml_help(self, widget, try_path=False):
+        """
+        Looks for a pre-installed RAxML-NG / IQ-Tree 2, then check in the tools
+        directory. If it's RAxML-NG but the installation is outdated, or the
+        tool is not present, try to fetch the latest release from GitHub.
+        If --help exits with OSError, despair.
+        """
         iface = self.iface
-        binary = shutil.which('raxml-ng')
-        if binary:
-            # check if the packaged version is newer
+        ml = self.data.ml
+        tool = repo.toalgo(iface.ml_tool.get_active_text())
+        for wi in [iface.iqtree_label, iface.ultrafast, iface.infer_model]:
+            wi.set_sensitive(tool != 'raxml-ng')
+        # look on the $PATH
+        binary = shutil.which(tool)
+        # look in the tools directory
+        if not binary:
+            binary = list(repo.TOOLS.rglob(tool))[0]
+
+        if binary and tool == 'raxml-ng':
             try:
+                # check if the installed version is old-ish / the packaged version is newer
                 proc = run(stdout=PIPE, stderr=PIPE, shell=True, args='%s -v' % binary)
                 version = [int(i) for i in re.search(
                     'RAxML-NG v[\.\s]+?([0-9\.]+)', proc.stdout.decode()).groups()[0].split('.')]
@@ -133,25 +154,32 @@ class ml_page(ab12phylo_app_base):
                 #     '\n')[0].split('v.')[1].split('released')[0].strip()
                 if version[0] == 0 or version[0] == 1 and version[1] == 0 and version[2] <= 1:
                     binary = None
-                    LOG.info('prefer out-of-the-box RAxML-NG')
+                    LOG.warning('RAxML-NG is outdated')
             except Exception as ex:
-                LOG.error('RAxML version check failed')
+                LOG.error('RAxML-NG version check failed')
                 LOG.error(ex)
+
         if not binary:
+            binary = self._fetch_github(tool, sys.platform)
+        if not binary and tool == 'raxml-ng':
             binary = str(repo.TOOLS / repo.PATHS.RAxML)
-        iface.raxml_exe.set_filename(binary)
-        try:
-            res = run(stdout=PIPE, stderr=PIPE, shell=True,
-                      args='%s --help' % binary)
-            iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
-            LOG.debug('got RAxML-NG --help')
-        except OSError:
-            if sys.platform in ['win32', 'darwin', 'cygwin']:
-                self.show_notification('The selected binary doesn\'t work for this OS.\n'
-                                       'Export a .zip and run ML inference on a Linux\n'
-                                       'machine or try installing RAxML-NG yourself.')
-            else:
-                assert sys.platform == 'linux', 'What\'s AIX?'
+        if binary:
+            ml.binary = binary
+            iface.ml_exe.set_filename(str(binary))
+
+            try:
+                res = run(stdout=PIPE, stderr=PIPE, shell=True,
+                          args='%s --help' % binary)
+                iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
+                LOG.debug('got %s --help' % tool)
+            except OSError:
+                if sys.platform in ['win32', 'darwin', 'cygwin']:
+                    self.show_notification('The selected binary doesn\'t work for this OS.\n'
+                                           'Please use a different tool or export a .zip\n'
+                                           'and run ML inference on a different machine.\n'
+                                           + binary)
+                else:
+                    assert sys.platform == 'linux', 'What\'s AIX?'
 
         try:
             # get number of available CPUs
@@ -164,16 +192,110 @@ class ml_page(ab12phylo_app_base):
         except Exception as ex:
             LOG.error('reading CPUs failed')
 
+    def _fetch_github(self, tool, platform):
+        try:
+            LOG.info('downloading latest %s from GitHub' % tool)
+            url = 'https://api.github.com/repos/%s/%s/releases/latest'
+            if tool == 'raxml-ng':
+                js = requests.get(url % ('amkozlov', 'raxml-ng')).json()
+            else:
+                js = requests.get(url % ('iqtree', 'iqtree2')).json()
+
+            for asset in js['assets']:
+                name, path = asset['name'], asset['browser_download_url']
+                # find the right release
+                if tool == 'raxml-ng' and (platform in {'linux', 'win32'}
+                                           and 'linux_x86_64.zip' in name
+                                           or platform == 'darwin'
+                                           and 'macos_x86_64.zip' in name) \
+                        or tool.startswith('iqtree2') and (platform == 'linux'
+                                                           and 'Linux.tar.gz' in name
+                                                           or platform == 'win32'
+                                                           and 'Windows.zip' in name
+                                                           or platform == 'darwin'
+                                                           and 'MacOSX.zip' in name):
+                    # download
+                    r = requests.get(path, stream=True)
+                    zf = repo.TOOLS / name
+                    with open(zf, 'wb') as file:
+                        for chunk in r.iter_content(chunk_size=128):
+                            file.write(chunk)
+
+                    # extract
+                    zs = zf.with_suffix('')
+                    if zf.suffix == '.zip':
+                        with ZipFile(zf, 'r') as zo:
+                            # prevent ridiculous double level
+                            if all(n.startswith(zs.name) for n in zo.namelist()):
+                                zo.extractall(zs.parent)
+                            else:
+                                zo.extractall(zs)
+                    elif zf.suffixes[-2:] == ['.tar', '.gz']:
+                        zs = zs.with_suffix('')  # yes, again
+                        with tarfile.open(zf) as zo:
+                            # prevent ridiculous double level
+                            if all(n.startswith(zs.name) for n in zo.getnames()):
+                                zo.extractall(zs.parent)
+                            else:
+                                zo.extractall(zs)
+                    binary = list(zs.rglob(tool))[0]
+                    return binary
+        except requests.ConnectionError as ex:
+            LOG.error('couldn\'t download %s, offline' % tool)
+            LOG.error(ex)
+        except Exception as ex:
+            LOG.error('downloading %s failed for unknown reason' % tool)
+            LOG.error(ex)
+        return None
+
+    def _prep_calls(self, ml):
+        # prepare the calls
+        chck = '"%s" --msa "%s" --check --model "%s' \
+               + ml.evo_modify + '" --prefix "%s"'
+
+        inML = '"%s" --msa "%s" --model "%s' + ml.evo_modify + \
+               '" --prefix "%s"' + ' --seed %d' % ml.ml_seed + \
+               ' --threads auto{%s} --workers auto{%s}' + \
+               ' --redo --tree %s ' % ','.join(
+            [a for a in ['rand{%d}' % ml.rand if ml.rand > 0 else None,
+                         'pars{%d}' % ml.pars if ml.pars > 0 else None] if a])
+
+        boot = '"%s" --bootstrap --msa "%s" --model "%s" --tree "%s"' + \
+               ' --prefix "%s"' + ' --bs-trees %d' % ml.bootstraps + \
+               ' --seed %d' % ml.ml_seed + \
+               ' --threads auto{%s} --workers auto{%s} --redo'
+
+        supp = '"%s" --support --tree "%s" --bs-trees "%s" --bs-metric fbp,tbe ' + \
+               '--prefix "%s" --threads ' + \
+               'auto{%s} --workers auto{%s} --redo'
+
+        # res = run(stdout=PIPE, stderr=PIPE, args=shlex.split(
+        #     arg % (ml.binary, msa, prefix / 'bs_')))
+        # res = run(stdout=PIPE, stderr=PIPE, shell=True,
+        #           args=arg % (ml.binary, msa, prefix / 'bs_'))
+        # notify = 'notify-send "AB12PHYLO" "ML Tree Inference finished!" -u normal -i "%s"' \
+        #          % str(BASE_DIR / 'ab12phylo' / 'files' / 'favi.png')
+        # notify2 = 'zenity --notification --text="AB12PHYLO\nML Tree Inference finished" ' \
+        #           '--window-icon="%s"' % str(BASE_DIR / 'ab12phylo' / 'files' / 'favi.png')
+
+        iqtree = 'bonk'  # TODO
+        iq_args = '"%s" -s "%s" -pre "%s" -ninit %d -bb %d -nt AUTO -ntmax %s -seed %d' \
+                  % (iqtree, 'msa', 'prefix', ml.pars, ml.bootstraps, ml.cpu_use, ml.ml_seed)
+        iq_modeltest = '"%s" -m MF -pre "%s"'
+        '-bb ultrafast -b non-parametric'
+
+        return chck, inML, boot, supp, iq_args
+
     def reload_ui_state(self):
         data = self.data
         iface = self.iface
         ml = data.ml
         for w_name in ['bootstraps', 'rand', 'pars']:
             iface.__getattribute__(w_name).set_text(str(ml.__getattribute__(w_name)))
-        iface.raxml_seed.set_text(str(ml.raxml_seed) if 'raxml_seed' in ml else '')
+        iface.ml_seed.set_text(str(ml.ml_seed) if 'ml_seed' in ml else '')
         iface.evo_model.set_active_id(ml.evo_model)
         iface.evo_modify.set_text(ml.evo_modify)
-        iface.raxml_shell.set_active(ml.raxml_shell)
+        iface.in_shell.set_active(ml.in_shell)
 
     def refresh(self):
         """Re-view the page. Get suggested commands for RAxML-NG and IQ-Tree"""
@@ -181,7 +303,7 @@ class ml_page(ab12phylo_app_base):
         data = self.data
         iface = self.iface
         if not iface.raxml_seen:
-            self._load_raxml_help()
+            self._load_ml_help(None)
             self.reload_ui_state()
             iface.evo_model.handler_unblock(iface.evo_block)
             iface.evo_model.set_active_id(data.ml.evo_model)
@@ -190,7 +312,7 @@ class ml_page(ab12phylo_app_base):
         self.set_errors(PAGE, not any((self.wd / a).is_file()
                                       for a in [repo.PATHS.tbe, repo.PATHS.fbp]))
         # change the button to its default state
-        (im, la), tx = iface.raxml_run.get_child().get_children(), 'Run'
+        (im, la), tx = iface.ml_run.get_child().get_children(), 'Run'
         im.set_from_icon_name('media-playback-start-symbolic', 4)
         la.set_text('Run')
 
@@ -208,41 +330,54 @@ class ml_page(ab12phylo_app_base):
             iface.pill2kill.set()
             return
 
-        if mode in ['raxml', 'raxml_export']:
-            ml.raxml = iface.raxml_exe.get_filename()
-            for w_name in ['evo_modify', 'bootstraps', 'rand', 'pars', 'raxml_seed', 'cpu_use']:
-                wi = iface.__getattribute__(w_name)
-                val = [i for i in [wi.get_text(), wi.get_placeholder_text()] if i][0]
-                if w_name in ['bootstraps', 'rand', 'pars']:
-                    val = int(val)
-                ml.__setattr__(w_name, val)
-            ml.evo_model = data.evo_models[iface.evo_model.get_active()]
-            if ml.evo_model[1]:
-                ml.evo_modify = ''
-                ml.evo_model = str(self.wd / 'RAxML' / 'user_model')
-            else:
-                ml.evo_model = ml.evo_model[0]
-
-            ml.raxml_seed = random.randint(0, max(1000, ml.bootstraps)) \
-                if ml.raxml_seed == 'random' else int(ml.raxml_seed)
-            iface.raxml_seed.props.text = str(ml.raxml_seed)
-            Path.mkdir(self.wd / 'RAxML', exist_ok=True)
-            ml.raxml_shell = iface.raxml_shell.get_active()
-
-            iface.run_after = run_after
-            ml.prev = 0
-            ml.key = False
-            ml.stdout = list()
-            ml.seen = {'ML': set(), 'BS': set()}
-            ml.motifs = {'ML': 'ML tree search #', 'BS': 'Bootstrap tree #'}
-            iface.k = ml.bootstraps + ml.rand + ml.pars + 3 if mode == 'raxml' else 2
+        ml.binary = iface.ml_exe.get_filename()
+        for w_name in ['evo_modify', 'bootstraps', 'rand', 'pars', 'ml_seed', 'cpu_use']:
+            wi = iface.__getattribute__(w_name)
+            val = [i for i in [wi.get_text(), wi.get_placeholder_text()] if i][0]
+            if w_name in ['bootstraps', 'rand', 'pars']:
+                val = int(val)
+            ml.__setattr__(w_name, val)
+        ml.evo_model = data.evo_models[iface.evo_model.get_active()]
+        if ml.evo_model[1]:
+            ml.evo_modify = ''
+            ml.evo_model = str(self.wd / 'RAxML' / 'user_model')
         else:
-            raise NotImplementedError
+            ml.evo_model = ml.evo_model[0]
+
+        ml.ml_seed = random.randint(0, max(1000, ml.bootstraps)) \
+            if ml.ml_seed == 'random' else int(ml.ml_seed)
+        iface.ml_seed.props.text = str(ml.ml_seed)
+        Path.mkdir(self.wd / 'RAxML', exist_ok=True)
+        ml.in_shell = iface.in_shell.get_active()
+
+        tool = repo.toalgo(iface.ml_tool.get_active_text())
+        if mode == 'prep':
+            # update the cmd preview
+            calls = self._prep_calls(ml)
+            # TODO paste some more info in there..... oh no manual wildcard formatting
+            if tool == 'raxml-ng':
+                calls = calls[:4]
+            else:
+                calls = calls[4:]
+            iface.ml_cmd.get_buffer().props.text = '\n'.join(calls)
+            return
+
+        # prepend the tool to the mode
+        mode = tool + mode
+
+        iface.run_after = run_after
+        # to keep the progress bar up-to-date:
+        ml.prev = 0
+        ml.key = False
+        ml.stdout = list()
+        ml.seen = {'ML': set(), 'BS': set()}
+        ml.motifs = {'ML': 'ML tree search #', 'BS': 'Bootstrap tree #'}
+        iface.k = ml.bootstraps + ml.rand + ml.pars + 3 if mode in {'raxml-ng', 'iqtree2'} else 2
         self.save()
         sleep(.1)
 
         # change the button to its stop state
-        (im, la), tx = iface.raxml_run.get_child().get_children(), 'Run'
+        (im, la), tx = iface.ml_run.get_child().get_children(), 'Run'
         im.set_from_icon_name('media-playback-stop-symbolic', 4)
         la.set_text('Stop')
         iface.tup = (im, la, tx)
@@ -264,36 +399,9 @@ class ml_page(ab12phylo_app_base):
         errors = list()
         iface.i = 0
 
-        # prepare the calls
-        chck = '"%s" --msa "%s" --check --model "%s' \
-               + ml.evo_modify + '" --prefix "%s"'
+        chck, inML, boot, supp, iq_args = self._prep_calls(ml)
 
-        inML = '"%s" --msa "%s" --model "%s' + ml.evo_modify + \
-               '" --prefix "%s"' + ' --seed %d' % ml.raxml_seed + \
-               ' --threads auto{%s} --workers auto{%s}' + \
-               ' --redo --tree %s ' % ','.join(
-            [a for a in ['rand{%d}' % ml.rand if ml.rand > 0 else None,
-                         'pars{%d}' % ml.pars if ml.pars > 0 else None] if a])
-
-        boot = '"%s" --bootstrap --msa "%s" --model "%s" --tree "%s"' + \
-               ' --prefix "%s"' + ' --bs-trees %d' % ml.bootstraps + \
-               ' --seed %d' % ml.raxml_seed + \
-               ' --threads auto{%s} --workers auto{%s} --redo'
-
-        supp = '"%s" --support --tree "%s" --bs-trees "%s" --bs-metric fbp,tbe ' + \
-               '--prefix "%s" --threads ' + \
-               'auto{%s} --workers auto{%s} --redo'
-
-        # res = run(stdout=PIPE, stderr=PIPE, args=shlex.split(
-        #     arg % (ml.raxml, msa, prefix / 'bs_')))
-        # res = run(stdout=PIPE, stderr=PIPE, shell=True,
-        #           args=arg % (ml.raxml, msa, prefix / 'bs_'))
-        # notify = 'notify-send "AB12PHYLO" "ML Tree Inference finished!" -u normal -i "%s"' \
-        #          % str(BASE_DIR / 'ab12phylo' / 'files' / 'favi.png')
-        # notify2 = 'zenity --notification --text="AB12PHYLO\nML Tree Inference finished" ' \
-        #           '--window-icon="%s"' % str(BASE_DIR / 'ab12phylo' / 'files' / 'favi.png')
-
-        if ml.raxml_shell:
+        if ml.in_shell:
             with open(shell, 'w') as sh:
                 sh.write('#!/bin/bash\n\n')
 
@@ -302,17 +410,17 @@ class ml_page(ab12phylo_app_base):
                 ['check MSA', 'infer ML tree', 'bootstrapping', 'calc. branch support'],
                 [False, 'ML', 'BS', False], [0, 1, ml.rand + ml.pars + 1, iface.k - 2],
                 [chck, inML, boot, supp],
-                [(ml.raxml, msa, ml.evo_model, prefix / 'chk'),
-                 (ml.raxml, msa, ml.evo_model,
+                [(ml.binary, msa, ml.evo_model, prefix / 'chk'),
+                 (ml.binary, msa, ml.evo_model,
                   prefix / 'ml', ml.cpu_use, ml.cpu_use),
-                 (ml.raxml, msa, prefix / 'ml.raxml.bestModel',
+                 (ml.binary, msa, prefix / 'ml.raxml.bestModel',
                   prefix / 'ml.raxml.bestTree',
                   prefix / 'bs', ml.cpu_use, ml.cpu_use),
-                 (ml.raxml, prefix / 'ml.raxml.bestTree',
+                 (ml.binary, prefix / 'ml.raxml.bestTree',
                   prefix / 'bs.raxml.bootstraps',
                   prefix / 'sp', ml.cpu_use, ml.cpu_use)])):
 
-            if ml.raxml_shell and mode == 'raxml':
+            if ml.in_shell and mode == 'raxml-ng':
                 with open(shell, 'a') as sh:
                     sh.write('# %s\n' % desc)
                     # sh.write(arg % add)
@@ -392,7 +500,7 @@ rm pipe
                 GObject.idle_add(self.stop_ML, errors, start)
                 return True
 
-            if mode == 'raxml_export':
+            if mode == 'raxml-ng_export':
                 iface.text = 'building zip'
                 LOG.debug(iface.text)
                 sh = 'raxml_run.sh'
@@ -436,13 +544,16 @@ sleep 10s
                     sf.write('\n\n# Calculate branch support\n')
                     sf.write(supp % ('./raxml-ng', 'ml.raxml.bestTree',
                                      'bs.raxml.bootstraps', 'sp', '$used', '$used'))
+                    sf.write('\n\n# Copy tree files\n')
+                    sf.write('cp sp.raxml.supportTBE tree_TBE.nwk')
+                    sf.write('cp sp.raxml.supportFBP tree_FBP.nwk')
                     sf.write('\n\n')
 
                 sleep(.05)
                 GObject.idle_add(self.export_zip, sh, msa)
                 return True
 
-        if ml.raxml_shell and mode == 'raxml':
+        if ml.in_shell and mode == 'raxml-ng':
             shell.chmod(shell.stat().st_mode | stat.S_IEXEC)
             self.hold()
             self.win.hide()
@@ -520,7 +631,7 @@ sleep 10s
                 with ZipFile(p, 'w', ZIP_DEFLATED) as zf:
                     if ml.evo_model.endswith('user_model'):
                         zf.write(ml.evo_model, 'user_model')
-                    zf.write(ml.raxml, 'raxml-ng')
+                    zf.write(ml.binary, 'raxml-ng')
                     zf.write(msa, 'msa.fasta')
                     zf.write(sh)
                 Path(sh).unlink()

@@ -1343,6 +1343,7 @@ class tree_page(ab12phylo_app_base):
         self.iface.thread.join()
         if error:
             LOG.error(error)
+            self.show_notification(error, secs=10)
             self.win.show_all()
             return False
         LOG.info('phylo thread idle')

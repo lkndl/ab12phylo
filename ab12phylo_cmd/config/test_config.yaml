@@ -43,7 +43,7 @@ gblocks: balanced  # [skip, relaxed, balanced, default, strict] MSA trimming
 ## [RAxML-NG]
 start_trees: [10,10]  # [random,parsimony-based]
 bootstrap: 20
-evomodel: GTR+G  # no checks!
+evomodel: GTR+I+G  # no checks!
 #seed:
 metric: TBE  # [FBP, TBE]
 threshold: .7  # of best possible score

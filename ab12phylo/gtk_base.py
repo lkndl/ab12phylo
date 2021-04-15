@@ -295,6 +295,11 @@ class ab12phylo_app_base(Gtk.Application):
                 repo.colors = list(map(repo.tohex, map(
                     self.data.colors.get, repo.NUCLEOTIDES)))
 
+            # for backwards compatibility: re-name
+            if 'raxml_seed' in self.data.ml:
+                self.data.ml.ml_seed = self.data.ml.raxml_seed
+                del self.data.ml.raxml_seed
+
         except Exception as e:
             LOG.exception(e)
             self.show_notification('Project could not be loaded', secs=10)
