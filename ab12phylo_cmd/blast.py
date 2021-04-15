@@ -174,6 +174,8 @@ class blast_build(multiprocessing.Process):
             # check BLAST+
             try:
                 binary = shutil.which('blastn')
+                # TODO check in 'configured' location also for later runs!
+
                 if binary is None:
                     raise ValueError('BLAST+ not installed (not on the $PATH)')
                 output = subprocess.check_output(binary + ' -version', shell=True).decode('utf-8')

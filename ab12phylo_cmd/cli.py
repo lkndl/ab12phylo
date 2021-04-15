@@ -7,17 +7,24 @@ Arguments will be saved as an :class:`argparse.Namespace` object and directly ac
 :module:`main` module. Additionally, this module initiates logging.
 """
 
-import os
-import sys
-import yaml
-import random
-import shutil
-import logging
 import argparse
+import logging
+import os
+import random
+import tarfile
+import zipfile
 
+import requests
+import shutil
+import sys
 from os import path
-from ab12phylo_cmd.__init__ import __version__, __date__
+from pathlib import Path
+from ftplib import FTP
+
+import yaml
+
 from ab12phylo_cmd import phylo
+from ab12phylo_cmd.__init__ import __version__, __date__
 
 
 class parser(argparse.ArgumentParser):
@@ -370,6 +377,57 @@ class parser(argparse.ArgumentParser):
 
         # copy config
         shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
+
+        # prep external tools
+        conf_file = Path(__file__).parent / 'conf.cfg'
+        if not conf_file.is_file():
+
+            log.info('downloading test data ...')
+            r = requests.get('https://github.com/lkndl/ab12phylo/wiki/cmd_test_data.zip', stream=True)
+            zf = Path(__file__).parent / 'test_data.zip'
+            with open(zf, 'wb') as file:
+                for chunk in r.iter_content(chunk_size=128):
+                    file.write(chunk)
+            # unpack
+            with zipfile.ZipFile(zf, 'r') as zo:
+                zo.extractall(zf.with_suffix(''))
+
+            if shutil.which('blastn') is None:
+                log.info('BLAST+ not installed (not on the $PATH). Downloading via FTP ...')
+                try:
+                    ftp = FTP('ftp.ncbi.nlm.nih.gov')
+                    ftp.login()
+                    ftp.cwd('blast/executables/LATEST')
+                    files = ftp.nlst()
+
+                    suffix = '-x64-%s.tar.gz' % {'linux': 'linux', 'win32': 'win64',
+                                                 'darwin': 'macosx'}[sys.platform]
+                    zf = Path(__file__).parent / 'tools' / [f for f in files if f.endswith(suffix)][0]
+                    with open(zf, 'wb') as fh:
+                        ftp.retrbinary('RETR ' + zf.name, fh.write)
+                    ftp.quit()
+
+                    log.info('extracting BLAST+')
+                    with tarfile.open(zf) as zo:
+                        zo.extractall(zf.parent)
+                    sys.path.append(str(list(zf.parent.rglob('blastn%s' % (
+                        '.exe' if sys.platform == 'win32' else '')))[0].parent))
+                    # TODO find a solution that is persistent for later usage
+                    zf.unlink()
+                except Exception as ex:
+                    log.error('FTP BLAST+ download failed')
+                    log.exception(ex)
+
+
+                # TODO copy raxml - ng
+
+
+            with open(conf_file, 'w') as fh:
+                fh.write('''; the presence of this file simply indicates
+; that ab12phylo-cmd has already been configured.
+; Its contents are not used, but deleting it
+; will cause a re-download of external tools
+; the next time ab12phylo-cmd is run.''')
         return
 
     def _valid_ref_dir(self, ref_dir):
