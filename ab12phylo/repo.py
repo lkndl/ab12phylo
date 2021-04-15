@@ -113,7 +113,7 @@ blue_pink = dict(zip(NUCLEOTIDES, [
     (0, 0, 0, 0)]))
 
 colors = list(map(tohex, map(technicolor.get, NUCLEOTIDES)))
-USER = 'leo.kaindl@tum.de'
+USER = 'ab12phylo@gmail.com'
 SEP = '??'
 ALPHA = .25
 DPI = 300

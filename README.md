@@ -13,6 +13,9 @@ It enables visual, effortless sample identification based on phylogenetic positi
 AB12PHYLO was developed to identify plant pathogen populations possibly under balancing selection with *Solanum chilense*, especially in the genus *Alternaria*. With multi-gene phylogenies still a widely-used method in spite of the rise of whole-genome sequencing, future application on fungal phytopathogens or host plants might be possible.
 
 
+Documentation: [github wiki](https://github.com/lkndl/ab12phylo/wiki)
+
+
 ## Installation
  
 The recommended way to install AB12PHYLO is via [conda](https://docs.conda.io/), as all [external tools](#external-tools) are available from the [Bioconda](https://anaconda.org/bioconda/repo) channel, but any of the following approaches should work:
