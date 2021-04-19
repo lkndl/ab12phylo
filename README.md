@@ -30,10 +30,15 @@ As implied above, start the graphical version via `ab12phylo` from the terminal,
 ABI trace files are the main input for AB12PHYLO. Wellsplate tables can translate to original sample IDs, provided the mapping is identical for all sequenced genes. Reference data may be included in `FASTA` format, and the graphical AB12PHYLO accepts `FASTA` sequences as main input as well.  
 
 Sequence data is derived from ABI trace files using a customisable quality control. Sequence ends are trimmed with a sliding window until a certain number (*8 out of 10 by default*) of bases reach the minimal accepted phred quality score (*between 0 and 60, 30 by default*). Bases with low phred quality are replaced by `N` only if they form a consecutive stretch that is longer than a certain threshold (*5 by default*).  
+
 ![quality control, alignment and MSA trimming](https://github.com/lkndl/ab12phylo/wiki/images/trace-trimming.png)  
+
 Only samples available for all genes in sufficient quality are included in the analysis. Trimmed sequences are aligned into single-gene Multiple Sequence Alignments (MSAs), which are then trimmed using Gblocks.  
+
 ![quality control, alignment and MSA trimming](https://github.com/lkndl/ab12phylo/wiki/images/trim-align-trim.png)  
+
 Single-gene MSAs are concatenated into a multi-gene MSA, which is used for ML Tree Inference.
+
 ![concatenation of single-gene MSAs](https://github.com/lkndl/ab12phylo/wiki/images/concat-single-gene-MSAs.png)  
 
 A BLAST search for species annotation can be run on a local database, or [web BLAST](blast.ncbi.nlm.nih.gov/) results can be included.  
