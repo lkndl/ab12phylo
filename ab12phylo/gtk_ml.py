@@ -3,10 +3,12 @@
 import logging
 import random
 import re
+import requests
 import shlex
 import shutil
 import stat
-import sys, requests, tarfile
+import sys
+import tarfile
 import threading
 from os import cpu_count
 from pathlib import Path

@@ -378,7 +378,7 @@ class parser(argparse.ArgumentParser):
         # copy config
         shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
 
-        # prep external tools
+        # configure: prep test data and external tools
         conf_file = Path(__file__).parent / 'conf.cfg'
         if not conf_file.is_file():
 
@@ -428,6 +428,10 @@ class parser(argparse.ArgumentParser):
 ; Its contents are not used, but deleting it
 ; will cause a re-download of external tools
 ; the next time ab12phylo-cmd is run.''')
+
+        else: # the conf.cfg is present
+            pass
+            # TODO append the downloaded blastn directory to the path if it's there?
         return
 
     def _valid_ref_dir(self, ref_dir):

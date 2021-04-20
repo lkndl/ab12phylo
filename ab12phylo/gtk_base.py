@@ -8,7 +8,7 @@ import pickle
 import shutil
 import threading
 import warnings
-import zipfile
+import zipfile, tarfile, requests
 from argparse import Namespace
 from pathlib import Path
 from time import sleep
@@ -38,6 +38,7 @@ __verbose__, __info__ = 0, 1
 class ab12phylo_app_base(Gtk.Application):
     TEMPLATE = repo.BASE_DIR / 'ab12phylo' / 'files' / 'gui.glade'
     ICON = repo.BASE_DIR / 'ab12phylo' / 'files' / 'favi.ico'
+    CONF = repo.BASE_DIR / 'ab12phylo' / 'conf.cfg'
 
     def do_activate(self):
         self.add_window(self.win)
@@ -78,6 +79,8 @@ class ab12phylo_app_base(Gtk.Application):
         options = cmd.get_options_dict().end().unpack()
         if 'version' in options:
             sys.exit('ab12phylo: %s' % __version__)
+        if 'configure' in options or not ab12phylo_app_base.CONF.is_file():
+            self.configure()
         if 'open' in options:
             self.load(options['open'])
         if 'proceed' in options:
@@ -96,6 +99,8 @@ class ab12phylo_app_base(Gtk.Application):
                              GLib.OptionArg.NONE, 'try to proceed')
         self.add_main_option('version', ord('v'), GLib.OptionFlags.IN_MAIN,
                              GLib.OptionArg.NONE, 'print version')
+        self.add_main_option('configure', ord('c'), GLib.OptionFlags.IN_MAIN,
+                             GLib.OptionArg.NONE, '(re-) download external tools and test data')
         # fetch all named objects from the .glade XML
         iface = dict()
         for widget in Gtk.Builder().new_from_file(str(ab12phylo_app_base.TEMPLATE)).get_objects():
@@ -488,7 +493,7 @@ class ab12phylo_app_base(Gtk.Application):
                                  'phylogenetic tree inference from ABI sequencing data',
                         program_name='AB12PHYLO', version=__version__,
                         website='https://github.com/lkndl/ab12phylo',
-                        website_label='Github Repo', license_type=Gtk.License.GPL_3_0,
+                        website_label='GitHub Repo', license_type=Gtk.License.GPL_3_0,
                         logo=GdkPixbuf.Pixbuf.new_from_file(str(ab12phylo_app_base.ICON))).present()
 
     def _init_log(self, **kwargs):
@@ -1173,3 +1178,93 @@ class ab12phylo_app_base(Gtk.Application):
             LOG.debug('changed colors')
             self.load_colorbar(None)  # force a re-plot
         self.iface.color_dialog.hide()
+
+    def configure(self):
+        """
+        Download test data for the GUI AB12PHYLO.
+        Try downloading the latest raxml-ng and iqtree from GitHub.
+
+        If we're on conda check if the external packages are installed
+
+
+        Clustalo:
+
+        http://www.clustal.org/omega/clustal-omega-1.2.4.tar.gz
+
+        http://www.clustal.org/omega/clustal-omega-1.2.2-win64.zip # unzip ...
+        http://www.clustal.org/omega/clustalo-1.2.4-Ubuntu-x86_64  # TODO chmod +x !!!
+        http://www.clustal.org/omega/clustal-omega-1.2.3-macosx
+
+        MAFFT? clustalo?
+        BLAST+
+
+        :return:
+        """
+
+        r = requests.get('https://github.com/lkndl/ab12phylo/wiki/test_data.zip', stream=True)
+        zf = repo.BASE_DIR / 'ab12phylo' / 'test_data.zip'
+        with open(zf, 'wb') as file:
+            for chunk in r.iter_content(chunk_size=128):
+                file.write(chunk)
+        # leave as a ZIP!
+
+
+
+
+
+        platform = sys.platform
+        for tool in ['raxml-ng', 'iqtree2']:
+            try:
+                LOG.info('downloading latest %s from GitHub' % tool)
+                url = 'https://api.github.com/repos/%s/%s/releases/latest'
+                if tool == 'raxml-ng':
+                    js = requests.get(url % ('amkozlov', 'raxml-ng')).json()
+                else:
+                    js = requests.get(url % ('iqtree', 'iqtree2')).json()
+
+                for asset in js['assets']:
+                    name, path = asset['name'], asset['browser_download_url']
+                    # find the right release
+                    if tool == 'raxml-ng' and (platform in {'linux', 'win32'}
+                                               and 'linux_x86_64.zip' in name
+                                               or platform == 'darwin'
+                                               and 'macos_x86_64.zip' in name) \
+                            or tool.startswith('iqtree2') and (platform == 'linux'
+                                                               and 'Linux.tar.gz' in name
+                                                               or platform == 'win32'
+                                                               and 'Windows.zip' in name
+                                                               or platform == 'darwin'
+                                                               and 'MacOSX.zip' in name):
+                        # download
+                        r = requests.get(path, stream=True)
+                        zf = repo.TOOLS / name
+                        with open(zf, 'wb') as file:
+                            for chunk in r.iter_content(chunk_size=128):
+                                file.write(chunk)
+
+                        # extract
+                        zs = zf.with_suffix('')
+                        if zf.suffix == '.zip':
+                            with zipfile.ZipFile(zf, 'r') as zo:
+                                # prevent ridiculous double level
+                                if all(n.startswith(zs.name) for n in zo.namelist()):
+                                    zo.extractall(zs.parent)
+                                else:
+                                    zo.extractall(zs)
+                        elif zf.suffixes[-2:] == ['.tar', '.gz']:
+                            zs = zs.with_suffix('')  # yes, again
+                            with tarfile.open(zf) as zo:
+                                # prevent ridiculous double level
+                                if all(n.startswith(zs.name) for n in zo.getnames()):
+                                    zo.extractall(zs.parent)
+                                else:
+                                    zo.extractall(zs)
+                        binary = list(zs.rglob(tool))[0]
+                        return binary
+            except requests.ConnectionError as ex:
+                LOG.error('Couldn\'t download %s. Is the system offline?' % tool)
+                LOG.error(ex)
+            except Exception as ex:
+                LOG.error('Downloading %s failed for an unknown reason.' % tool)
+                LOG.error(ex)
+
