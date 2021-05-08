@@ -11,17 +11,16 @@ import argparse
 import logging
 import os
 import random
-import tarfile
-import zipfile
-
-import requests
 import shutil
 import sys
+import tarfile
+import zipfile
 from os import path
 from pathlib import Path
-from ftplib import FTP
 
+import requests
 import yaml
+from bs4 import BeautifulSoup
 
 from ab12phylo_cmd import phylo
 from ab12phylo_cmd.__init__ import __version__, __date__
@@ -30,11 +29,11 @@ from ab12phylo_cmd.__init__ import __version__, __date__
 class parser(argparse.ArgumentParser):
     """
     The command line parser of the package.
-    Run `ab12phylo_cmd -h` to display all available options.
+    Run `ab12phylo-cmd -h` to display all available options.
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(prog='ab12phylo_cmd')
+        super().__init__(prog='ab12phylo-cmd')
 
         # if empty commandline, show info and help:
         if not args[0]:
@@ -44,14 +43,14 @@ class parser(argparse.ArgumentParser):
         # [modes]
         mod = parser.add_argument_group(self, title='RUN MODES')
         mod.add_argument('-viz', '--visualize', action='store_true',
-                         help='invoke ab12phylo-visualize by appending ab12phylo_cmd command.')
+                         help='invoke ab12phylo-visualize by appending ab12phylo-cmd command.')
         mod.add_argument('-view', '--view', action='store_true',
-                         help='invoke ab12phylo-view by appending ab12phylo_cmd command.')
+                         help='invoke ab12phylo-view by appending ab12phylo-cmd command.')
         parts = mod.add_mutually_exclusive_group()
         parts.add_argument('-p1', '--prepare', action='store_true',
-                           help='run first part of ab12phylo_cmd, including BLAST but excluding RAxML-NG.')
+                           help='run first part of ab12phylo-cmd, including BLAST but excluding RAxML-NG.')
         parts.add_argument('-p2', '--finish', action='store_true',
-                           help='run second part of ab12phylo_cmd, beginning with RAxML-NG.')
+                           help='run second part of ab12phylo-cmd, beginning with RAxML-NG.')
         parts.add_argument('-px', '--add_xml', action='store_true',
                            help='after -p1 run; only read BLAST results. Pass file via -xml.')
 
@@ -127,7 +126,7 @@ class parser(argparse.ArgumentParser):
                                              'https://ftp.ncbi.nlm.nih.gov/blast/db/ unless provided via -dbpath.')
         bla.add_argument('-dbpath', '--dbpath',
                          help='path to directory with a BLAST+ database. Set this option for a user-created database '
-                              'or if ab12phylo_cmd is not allowed FTP access. You might have to define -db as well.',
+                              'or if ab12phylo-cmd is not allowed FTP access. You might have to define -db as well.',
                          type=lambda arg: arg if path.isdir(arg) else self.error(
                              'invalid path to directory containing BLAST database'))
         bla.add_argument('-remotedb', '--remote_db',
@@ -201,11 +200,22 @@ class parser(argparse.ArgumentParser):
         self.add_argument('-test', '--test', action='store_true', help='Test run.')
         self.add_argument('-q', '--headless', action='store_true',
                           help='do not start a CGI server nor display in browser. For remote use.')
+        self.add_argument('-init', '--initialize', action='store_true',
+                          help='re-initialize ab12phylo-cmd: Search for existing BLAST+, '
+                               'RAxML-NG and IQ-Tree installations, or re-run these.')
+
+        self._initialize()
 
         self.args = self.parse_args(args[0])
 
         if self.args.version is True:
             sys.exit('ab12phylo: %s' % __version__)
+
+        if self.args.initialize is True:
+            cfg = Path(__file__).resolve().parent / 'conf.cfg'
+            if cfg.is_file():
+                cfg.unlink()
+            self._initialize()
 
         # test: switch config + set verbose
         if self.args.test is True:
@@ -244,7 +254,7 @@ class parser(argparse.ArgumentParser):
 
                 self.args.__dict__[key] = val
 
-        # ab12phylo_cmd with --visualize or --view: guess real results path and skip re-parsing
+        # ab12phylo-cmd with --visualize or --view: guess real results path and skip re-parsing
         if len(kwargs) > 0 or self.args.visualize or self.args.view:
             if self.args.visualize:
                 print('starting -viz re-plotting run', file=sys.stderr)
@@ -378,61 +388,161 @@ class parser(argparse.ArgumentParser):
         # copy config
         shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
 
-        # configure: prep test data and external tools
-        conf_file = Path(__file__).parent / 'conf.cfg'
-        if not conf_file.is_file():
+    def _initialize(self):
+        """
+        Check if ab12phylo-cmd has been run before, i.e. whether the :file:`conf.cfg`
+        file is present. If not, search for BLAST+, RAxML-NG and iqtree2 installations
+        via shutil and in the installation directory. If a tool is not found, run
+        prompts and installations. If the file is not present, always try downloading
+        the test data set.
+        :return:
+        """
 
-            log.info('downloading test data ...')
-            r = requests.get('https://github.com/lkndl/ab12phylo/wiki/cmd_test_data.zip', stream=True)
-            zf = Path(__file__).parent / 'test_data.zip'
-            with open(zf, 'wb') as file:
-                for chunk in r.iter_content(chunk_size=128):
-                    file.write(chunk)
-            # unpack
-            with zipfile.ZipFile(zf, 'r') as zo:
-                zo.extractall(zf.with_suffix(''))
+        # init temporary console logger
+        log = logging.getLogger()
+        log.setLevel(logging.DEBUG)
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setLevel(logging.DEBUG)
+        sh.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+        log.addHandler(sh)
 
-            if shutil.which('blastn') is None:
-                log.info('BLAST+ not installed (not on the $PATH). Downloading via FTP ...')
+        wd = Path(__file__).resolve().parent
+
+        # def append_to_sys_path(tool):
+        #     try:
+        #         exe = next((wd / 'tools').rglob(f'{tool}{os.getenv("PATHEXT", default="")}'))
+        #         sys.path.append(str(exe.parent))
+        #     except StopIteration:
+        #         pass
+
+        cfg = wd / 'conf.cfg'
+        if cfg.is_file():
+            # # If there is no existing installation, look in the local directory
+            # for tool in ['blastn', 'raxml-ng', 'iqtree2']:
+            #     if shutil.which(tool) is None:
+            #         append_to_sys_path(tool)
+            return
+
+        log.info('Initializing ab12phylo-cmd:')
+
+        log.info('Downloading test data ...')
+        r = requests.get('https://github.com/lkndl/ab12phylo/wiki/cmd_test_data.zip',
+                         timeout=12, stream=True)
+        zf = wd / 'test_data.zip'
+        with open(zf, 'wb') as file:
+            for chunk in r.iter_content(chunk_size=128):
+                file.write(chunk)
+        with zipfile.ZipFile(zf, 'r') as zo:
+            zo.extractall(zf.with_suffix(''))
+
+        def prompt(tool, source):
+            log.info(f'{tool} not installed (not on the $PATH).')
+            answer = ''
+            while answer not in {'y', 'yes', 'n', 'no'}:
+                answer = input(f'Download {tool} from {source}? [y/n]').lower().strip()
+            return answer in {'y', 'yes'}
+
+        for tool in ['blastn', 'raxml-ng', 'iqtree2']:
+            if shutil.which(tool) is None:
                 try:
-                    ftp = FTP('ftp.ncbi.nlm.nih.gov')
-                    ftp.login()
-                    ftp.cwd('blast/executables/LATEST')
-                    files = ftp.nlst()
+                    if tool == 'blastn':
+                        # At this point, always do a fresh download -> enables updating.
+                        if not prompt('BLAST+', 'the NCBI'):
+                            continue
 
-                    suffix = '-x64-%s.tar.gz' % {'linux': 'linux', 'win32': 'win64',
-                                                 'darwin': 'macosx'}[sys.platform]
-                    zf = Path(__file__).parent / 'tools' / [f for f in files if f.endswith(suffix)][0]
-                    with open(zf, 'wb') as fh:
-                        ftp.retrbinary('RETR ' + zf.name, fh.write)
-                    ftp.quit()
+                        url = 'https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST'
+                        log.debug(f'Fetching {url} ... ')
+                        r = requests.get(url, timeout=12)
+                        html = BeautifulSoup(r.content, 'html.parser')
+                        links = [tag['href'] for tag in html.find_all('a') if 'href' in tag.attrs]
 
-                    log.info('extracting BLAST+')
-                    with tarfile.open(zf) as zo:
-                        zo.extractall(zf.parent)
-                    sys.path.append(str(list(zf.parent.rglob('blastn%s' % (
-                        '.exe' if sys.platform == 'win32' else '')))[0].parent))
-                    # TODO find a solution that is persistent for later usage
-                    zf.unlink()
+                        suffix = '-x64-%s.tar.gz' % {'linux': 'linux', 'win32': 'win64',
+                                                     'darwin': 'macosx'}[sys.platform]
+
+                        right_one = [l for l in links if l.endswith(suffix)][0]
+                        zf = wd / 'tools' / right_one
+
+                        log.debug(f'Downloading {right_one} ... ')
+                        r = requests.get(f'{url}/{right_one}', timeout=12)
+                        with open(zf, 'wb') as fd:
+                            for chunk in r.iter_content(chunk_size=128):
+                                fd.write(chunk)
+
+                        log.debug(f'Extracting {tool} ... ')
+                        with tarfile.open(zf) as zo:
+                            zo.extractall(zf.parent)
+                        zf.unlink()
+                        # append_to_sys_path(tool)
+
+                    elif tool in ['raxml-ng', 'iqtree2']:
+                        if not prompt({'raxml-ng': 'RAxML-NG',
+                                       'iqtree2': 'IQ-Tree'}[tool], 'GitHub'):
+                            continue
+
+                        platform = sys.platform
+                        url = 'https://api.github.com/repos/%s/%s/releases/latest'
+                        if tool == 'raxml-ng':
+                            url %= 'amkozlov', 'raxml-ng'
+                        else:
+                            url %= 'iqtree', 'iqtree2'
+                        log.debug(f'Fetching {url} ... ')
+                        js = requests.get(url, timeout=12).json()
+                        for asset in js['assets']:
+                            name, path = asset['name'], asset['browser_download_url']
+                            # find the right release
+                            if tool == 'raxml-ng' and (platform in {'linux', 'win32'}
+                                                       and 'linux_x86_64.zip' in name
+                                                       or platform == 'darwin'
+                                                       and 'macos_x86_64.zip' in name) \
+                                    or tool.startswith('iqtree2') and (platform == 'linux'
+                                                                       and 'Linux.tar.gz' in name
+                                                                       or platform == 'win32'
+                                                                       and 'Windows.zip' in name
+                                                                       or platform == 'darwin'
+                                                                       and 'MacOSX.zip' in name):
+                                # download
+                                log.debug(f'Downloading {name} ... ')
+                                r = requests.get(path, stream=True)
+                                zf = wd / 'tools' / name
+                                with open(zf, 'wb') as file:
+                                    for chunk in r.iter_content(chunk_size=128):
+                                        file.write(chunk)
+
+                                # extract
+                                log.debug(f'Extracting {zf} ... ')
+                                zs = zf.with_suffix('')
+                                if zf.suffix == '.zip':
+                                    with zipfile.ZipFile(zf, 'r') as zo:
+                                        # prevent ridiculous double level
+                                        if all(n.startswith(zs.name) for n in zo.namelist()):
+                                            zo.extractall(zs.parent)
+                                        else:
+                                            zo.extractall(zs)
+                                elif zf.suffixes[-2:] == ['.tar', '.gz']:
+                                    zs = zs.with_suffix('')  # yes, again
+                                    with tarfile.open(zf) as zo:
+                                        # prevent ridiculous double level
+                                        if all(n.startswith(zs.name) for n in zo.getnames()):
+                                            zo.extractall(zs.parent)
+                                        else:
+                                            zo.extractall(zs)
+                                zf.unlink()
+                        # append_to_sys_path(tool)
+
+                except requests.ConnectionError as ex:
+                    log.error('Couldn\'t download %s. Is the system offline?' % tool)
+                    log.error(ex)
                 except Exception as ex:
-                    log.error('FTP BLAST+ download failed')
-                    log.exception(ex)
+                    log.error('Downloading %s failed for an unknown reason.' % tool)
+                    log.error(ex)
 
-
-                # TODO copy raxml - ng
-
-
-            with open(conf_file, 'w') as fh:
-                fh.write('''; the presence of this file simply indicates
-; that ab12phylo-cmd has already been configured.
-; Its contents are not used, but deleting it
-; will cause a re-download of external tools
-; the next time ab12phylo-cmd is run.''')
-
-        else: # the conf.cfg is present
-            pass
-            # TODO append the downloaded blastn directory to the path if it's there?
-        return
+        with open(cfg, 'w') as fh:
+            fh.write('''
+; This file indicates that ab12phylo-cmd has been run before.
+; Its contents are not read.
+; Invoking ab12phylo-cmd with the `--initialize` flag or 
+; deleting the file will trigger a re-download of some 
+; non-python tools the next time ab12phylo-cmd is run.''')
 
     def _valid_ref_dir(self, ref_dir):
         """

@@ -5,10 +5,13 @@ import hashlib
 import logging
 import mmap
 import pickle
+import requests
 import shutil
+import sys
+import tarfile
 import threading
 import warnings
-import zipfile, tarfile, requests
+import zipfile
 from argparse import Namespace
 from pathlib import Path
 from time import sleep
@@ -16,7 +19,7 @@ from time import sleep
 import gi
 import matplotlib
 import pandas as pd
-import sys
+from bs4 import BeautifulSoup
 from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import ListedColormap
 
@@ -79,8 +82,8 @@ class ab12phylo_app_base(Gtk.Application):
         options = cmd.get_options_dict().end().unpack()
         if 'version' in options:
             sys.exit('ab12phylo: %s' % __version__)
-        if 'configure' in options or not ab12phylo_app_base.CONF.is_file():
-            self.configure()
+        if 'initialize' in options or not ab12phylo_app_base.CONF.is_file():
+            self.initialize()
         if 'open' in options:
             self.load(options['open'])
         if 'proceed' in options:
@@ -99,7 +102,7 @@ class ab12phylo_app_base(Gtk.Application):
                              GLib.OptionArg.NONE, 'try to proceed')
         self.add_main_option('version', ord('v'), GLib.OptionFlags.IN_MAIN,
                              GLib.OptionArg.NONE, 'print version')
-        self.add_main_option('configure', ord('c'), GLib.OptionFlags.IN_MAIN,
+        self.add_main_option('initialize', ord('c'), GLib.OptionFlags.IN_MAIN,
                              GLib.OptionArg.NONE, '(re-) download external tools and test data')
         # fetch all named objects from the .glade XML
         iface = dict()
@@ -1179,92 +1182,132 @@ class ab12phylo_app_base(Gtk.Application):
             self.load_colorbar(None)  # force a re-plot
         self.iface.color_dialog.hide()
 
-    def configure(self):
+    def initialize(self):
         """
-        Download test data for the GUI AB12PHYLO.
-        Try downloading the latest raxml-ng and iqtree from GitHub.
-
-        If we're on conda check if the external packages are installed
-
-
-        Clustalo:
-
-        http://www.clustal.org/omega/clustal-omega-1.2.4.tar.gz
-
-        http://www.clustal.org/omega/clustal-omega-1.2.2-win64.zip # unzip ...
-        http://www.clustal.org/omega/clustalo-1.2.4-Ubuntu-x86_64  # TODO chmod +x !!!
-        http://www.clustal.org/omega/clustal-omega-1.2.3-macosx
-
-        MAFFT? clustalo?
-        BLAST+
-
+        Check if ab12phylo has been run before, i.e. whether the :file:`conf.cfg`
+        file is present. If not, search for BLAST+, RAxML-NG and iqtree2 installations
+        via shutil and in the installation directory. If a tool is not found, run
+        prompts and installations. If the file is not present, always try downloading
+        the test data set.
         :return:
         """
+        cfg = Path(__file__).resolve().parent / 'conf.cfg'
+        if cfg.is_file():
+            return
+        LOG.info('Initializing ab12phylo:')
 
-        r = requests.get('https://github.com/lkndl/ab12phylo/wiki/test_data.zip', stream=True)
+        LOG.info('Downloading test data ...')
+        r = requests.get('https://github.com/lkndl/ab12phylo/wiki/test_data.zip',
+                         stream=True, timeout=20)
         zf = repo.BASE_DIR / 'ab12phylo' / 'test_data.zip'
         with open(zf, 'wb') as file:
             for chunk in r.iter_content(chunk_size=128):
                 file.write(chunk)
         # leave as a ZIP!
 
+        def prompt(tool, source):
+            LOG.info(f'{tool} not installed (not on the $PATH).')
+            answer = ''
+            while answer not in {'y', 'yes', 'n', 'no'}:
+                answer = input(f'Download {tool} from {source}? [y/n]').lower().strip()
+            return answer in {'y', 'yes'}
 
+        for tool in ['blastn', 'raxml-ng', 'iqtree2']:
+            if shutil.which(tool) is None:
+                try:
+                    if tool == 'blastn':
+                        # At this point, always do a fresh download -> enables updating.
+                        if not prompt('BLAST+', 'the NCBI'):
+                            continue
 
+                        url = 'https://ftp.ncbi.nlm.nih.gov/blast/executables/LATEST'
+                        LOG.debug(f'Fetching {url} ... ')
+                        r = requests.get(url, timeout=12)
+                        html = BeautifulSoup(r.content, 'html.parser')
+                        links = [tag['href'] for tag in html.find_all('a') if 'href' in tag.attrs]
 
+                        suffix = '-x64-%s.tar.gz' % {'linux': 'linux', 'win32': 'win64',
+                                                     'darwin': 'macosx'}[sys.platform]
 
-        platform = sys.platform
-        for tool in ['raxml-ng', 'iqtree2']:
-            try:
-                LOG.info('downloading latest %s from GitHub' % tool)
-                url = 'https://api.github.com/repos/%s/%s/releases/latest'
-                if tool == 'raxml-ng':
-                    js = requests.get(url % ('amkozlov', 'raxml-ng')).json()
-                else:
-                    js = requests.get(url % ('iqtree', 'iqtree2')).json()
+                        right_one = [l for l in links if l.endswith(suffix)][0]
+                        zf = repo.TOOLS / right_one
 
-                for asset in js['assets']:
-                    name, path = asset['name'], asset['browser_download_url']
-                    # find the right release
-                    if tool == 'raxml-ng' and (platform in {'linux', 'win32'}
-                                               and 'linux_x86_64.zip' in name
-                                               or platform == 'darwin'
-                                               and 'macos_x86_64.zip' in name) \
-                            or tool.startswith('iqtree2') and (platform == 'linux'
-                                                               and 'Linux.tar.gz' in name
-                                                               or platform == 'win32'
-                                                               and 'Windows.zip' in name
-                                                               or platform == 'darwin'
-                                                               and 'MacOSX.zip' in name):
-                        # download
-                        r = requests.get(path, stream=True)
-                        zf = repo.TOOLS / name
-                        with open(zf, 'wb') as file:
+                        LOG.debug(f'Downloading {right_one} ... ')
+                        r = requests.get(f'{url}/{right_one}', timeout=12)
+                        with open(zf, 'wb') as fd:
                             for chunk in r.iter_content(chunk_size=128):
-                                file.write(chunk)
+                                fd.write(chunk)
 
-                        # extract
-                        zs = zf.with_suffix('')
-                        if zf.suffix == '.zip':
-                            with zipfile.ZipFile(zf, 'r') as zo:
-                                # prevent ridiculous double level
-                                if all(n.startswith(zs.name) for n in zo.namelist()):
-                                    zo.extractall(zs.parent)
-                                else:
-                                    zo.extractall(zs)
-                        elif zf.suffixes[-2:] == ['.tar', '.gz']:
-                            zs = zs.with_suffix('')  # yes, again
-                            with tarfile.open(zf) as zo:
-                                # prevent ridiculous double level
-                                if all(n.startswith(zs.name) for n in zo.getnames()):
-                                    zo.extractall(zs.parent)
-                                else:
-                                    zo.extractall(zs)
-                        binary = list(zs.rglob(tool))[0]
-                        return binary
-            except requests.ConnectionError as ex:
-                LOG.error('Couldn\'t download %s. Is the system offline?' % tool)
-                LOG.error(ex)
-            except Exception as ex:
-                LOG.error('Downloading %s failed for an unknown reason.' % tool)
-                LOG.error(ex)
+                        LOG.debug(f'Extracting {tool} ... ')
+                        with tarfile.open(zf) as zo:
+                            zo.extractall(zf.parent)
+                        zf.unlink()
 
+                    elif tool in ['raxml-ng', 'iqtree2']:
+                        if not prompt({'raxml-ng': 'RAxML-NG',
+                                       'iqtree2': 'IQ-Tree'}[tool], 'GitHub'):
+                            continue
+
+                        platform = sys.platform
+                        url = 'https://api.github.com/repos/%s/%s/releases/latest'
+                        if tool == 'raxml-ng':
+                            url %= 'amkozlov', 'raxml-ng'
+                        else:
+                            url %= 'iqtree', 'iqtree2'
+                        LOG.debug(f'Fetching {url} ... ')
+                        js = requests.get(url, timeout=12).json()
+                        for asset in js['assets']:
+                            name, path = asset['name'], asset['browser_download_url']
+                            # find the right release
+                            if tool == 'raxml-ng' and (platform in {'linux', 'win32'}
+                                                       and 'linux_x86_64.zip' in name
+                                                       or platform == 'darwin'
+                                                       and 'macos_x86_64.zip' in name) \
+                                    or tool.startswith('iqtree2') and (platform == 'linux'
+                                                                       and 'Linux.tar.gz' in name
+                                                                       or platform == 'win32'
+                                                                       and 'Windows.zip' in name
+                                                                       or platform == 'darwin'
+                                                                       and 'MacOSX.zip' in name):
+                                # download
+                                LOG.debug(f'Downloading {name} ... ')
+                                r = requests.get(path, stream=True)
+                                zf = repo.TOOLS / name
+                                with open(zf, 'wb') as file:
+                                    for chunk in r.iter_content(chunk_size=128):
+                                        file.write(chunk)
+
+                                # extract
+                                LOG.debug(f'Extracting {zf} ... ')
+                                zs = zf.with_suffix('')
+                                if zf.suffix == '.zip':
+                                    with zipfile.ZipFile(zf, 'r') as zo:
+                                        # prevent ridiculous double level
+                                        if all(n.startswith(zs.name) for n in zo.namelist()):
+                                            zo.extractall(zs.parent)
+                                        else:
+                                            zo.extractall(zs)
+                                elif zf.suffixes[-2:] == ['.tar', '.gz']:
+                                    zs = zs.with_suffix('')  # yes, again
+                                    with tarfile.open(zf) as zo:
+                                        # prevent ridiculous double level
+                                        if all(n.startswith(zs.name) for n in zo.getnames()):
+                                            zo.extractall(zs.parent)
+                                        else:
+                                            zo.extractall(zs)
+                                zf.unlink()
+
+                except requests.ConnectionError as ex:
+                    LOG.error('Couldn\'t download %s. Is the system offline?' % tool)
+                    LOG.error(ex)
+                except Exception as ex:
+                    LOG.error('Downloading %s failed for an unknown reason.' % tool)
+                    LOG.error(ex)
+
+        with open(cfg, 'w') as fh:
+            fh.write('''
+; This file indicates that ab12phylo has been run before.
+; Its contents are not read.
+; Invoking ab12phylo with the `--initialize` flag or 
+; deleting the file will trigger a re-download of some 
+; non-python tools the next time ab12phylo is run.''')
