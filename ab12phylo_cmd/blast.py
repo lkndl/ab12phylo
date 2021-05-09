@@ -180,7 +180,7 @@ class blast_build(multiprocessing.Process):
                     raise ValueError('BLAST+ not installed (not on the $PATH)')
                 output = subprocess.check_output(binary + ' -version', shell=True).decode('utf-8')
                 version = [int(i) for i in output.split(',')[0].split(' ')[-1].split('.')]
-                if version[0] >= 2 and version[1] >= 9:
+                if version[0] == 2 and version[1] >= 9 or version[0] > 2:
                     self.blast_dir = path.dirname(binary)
                 else:
                     raise ValueError('BLAST+ in %s is outdated' % self.blast_dir)

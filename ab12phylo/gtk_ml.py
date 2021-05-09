@@ -1,14 +1,12 @@
 # 2021 Leo Kaindl
 
+import configparser
 import logging
 import random
-import re
-import requests
 import shlex
 import shutil
 import stat
 import sys
-import tarfile
 import threading
 from os import cpu_count
 from pathlib import Path
@@ -17,6 +15,7 @@ from time import sleep, time
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import gi
+import requests
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
@@ -91,7 +90,8 @@ class ml_page(ab12phylo_app_base):
         dialog.destroy()
         self.set_changed(PAGE, False)
 
-    def _change_evo_model(self, entry, event_focus, evo_modify, ml):
+    @staticmethod
+    def _change_evo_model(entry, event_focus, evo_modify, ml):
         combo = entry.get_parent().get_parent()
         if combo.get_active_iter():
             ml.evo_model = entry.get_text()
@@ -130,9 +130,7 @@ class ml_page(ab12phylo_app_base):
 
     def _load_ml_help(self, widget, try_path=False):
         """
-        Looks for a pre-installed RAxML-NG / IQ-Tree 2, then check in the tools
-        directory. If it's RAxML-NG but the installation is outdated, or the
-        tool is not present, try to fetch the latest release from GitHub.
+        Load the RAxML-NG / IQ-Tree path from the config file or use the user-defined one.
         If --help exits with OSError, despair.
         """
         iface = self.iface
@@ -140,38 +138,26 @@ class ml_page(ab12phylo_app_base):
         tool = repo.toalgo(iface.ml_tool.get_active_text())
         for wi in [iface.iqtree_label, iface.ultrafast, iface.infer_model]:
             wi.set_sensitive(tool != 'raxml-ng')
-        # look on the $PATH
-        binary = shutil.which(tool)
-        # look in the tools directory
-        if not binary:
-            binary = list(repo.TOOLS.rglob(tool))[0]
 
-        if binary and tool == 'raxml-ng':
-            try:
-                # check if the installed version is old-ish / the packaged version is newer
-                proc = run(stdout=PIPE, stderr=PIPE, shell=True, args='%s -v' % binary)
-                version = [int(i) for i in re.search(
-                    'RAxML-NG v[\.\s]+?([0-9\.]+)', proc.stdout.decode()).groups()[0].split('.')]
-                # version = proc.stdout.decode().strip().split(
-                #     '\n')[0].split('v.')[1].split('released')[0].strip()
-                if version[0] == 0 or version[0] == 1 and version[1] == 0 and version[2] <= 1:
-                    binary = None
-                    LOG.warning('RAxML-NG is outdated')
-            except Exception as ex:
-                LOG.error('RAxML-NG version check failed')
-                LOG.error(ex)
+        if try_path:
+            binary = widget.get_filename()
+        else:
+            # fetch the path from the config
+            cfg_parser = configparser.ConfigParser()
+            cfg_parser.read(ab12phylo_app_base.CONF)
+            binary = cfg_parser['Paths'].get(tool, shutil.which(tool))
 
-        if not binary:
-            binary = self._fetch_github(tool, sys.platform)
-        if not binary and tool == 'raxml-ng':
-            binary = str(repo.TOOLS / repo.PATHS.RAxML)
         if binary:
+            # May be missing, for example no RAxML-NG on Windows
             ml.binary = binary
-            iface.ml_exe.set_filename(str(binary))
+            iface.ml_exe.set_filename(binary)
+            binary = Path(binary)
+            # Ensure the file is executable
+            binary.chmod(binary.stat().st_mode | stat.S_IEXEC)
 
             try:
-                res = run(stdout=PIPE, stderr=PIPE, shell=True,
-                          args='%s --help' % binary)
+                res = run(args=shlex.split(f'{ml.binary} --help'),
+                          stdout=PIPE, stderr=PIPE)
                 iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
                 LOG.debug('got %s --help' % tool)
             except OSError:
@@ -179,7 +165,7 @@ class ml_page(ab12phylo_app_base):
                     self.show_notification('The selected binary doesn\'t work for this OS.\n'
                                            'Please use a different tool or export a .zip\n'
                                            'and run ML inference on a different machine.\n'
-                                           + binary)
+                                           + ml.binary)
                 else:
                     assert sys.platform == 'linux', 'What\'s AIX?'
 
@@ -194,63 +180,8 @@ class ml_page(ab12phylo_app_base):
         except Exception as ex:
             LOG.error('reading CPUs failed')
 
-    def _fetch_github(self, tool, platform):
-        try:
-            LOG.info('downloading latest %s from GitHub' % tool)
-            url = 'https://api.github.com/repos/%s/%s/releases/latest'
-            if tool == 'raxml-ng':
-                js = requests.get(url % ('amkozlov', 'raxml-ng')).json()
-            else:
-                js = requests.get(url % ('iqtree', 'iqtree2')).json()
-
-            for asset in js['assets']:
-                name, path = asset['name'], asset['browser_download_url']
-                # find the right release
-                if tool == 'raxml-ng' and (platform in {'linux', 'win32'}
-                                           and 'linux_x86_64.zip' in name
-                                           or platform == 'darwin'
-                                           and 'macos_x86_64.zip' in name) \
-                        or tool.startswith('iqtree2') and (platform == 'linux'
-                                                           and 'Linux.tar.gz' in name
-                                                           or platform == 'win32'
-                                                           and 'Windows.zip' in name
-                                                           or platform == 'darwin'
-                                                           and 'MacOSX.zip' in name):
-                    # download
-                    r = requests.get(path, stream=True)
-                    zf = repo.TOOLS / name
-                    with open(zf, 'wb') as file:
-                        for chunk in r.iter_content(chunk_size=128):
-                            file.write(chunk)
-
-                    # extract
-                    zs = zf.with_suffix('')
-                    if zf.suffix == '.zip':
-                        with ZipFile(zf, 'r') as zo:
-                            # prevent ridiculous double level
-                            if all(n.startswith(zs.name) for n in zo.namelist()):
-                                zo.extractall(zs.parent)
-                            else:
-                                zo.extractall(zs)
-                    elif zf.suffixes[-2:] == ['.tar', '.gz']:
-                        zs = zs.with_suffix('')  # yes, again
-                        with tarfile.open(zf) as zo:
-                            # prevent ridiculous double level
-                            if all(n.startswith(zs.name) for n in zo.getnames()):
-                                zo.extractall(zs.parent)
-                            else:
-                                zo.extractall(zs)
-                    binary = list(zs.rglob(tool))[0]
-                    return binary
-        except requests.ConnectionError as ex:
-            LOG.error('couldn\'t download %s, offline' % tool)
-            LOG.error(ex)
-        except Exception as ex:
-            LOG.error('downloading %s failed for unknown reason' % tool)
-            LOG.error(ex)
-        return None
-
-    def _prep_calls(self, ml):
+    @staticmethod
+    def _prep_calls(ml):
         # prepare the calls
         chck = '"%s" --msa "%s" --check --model "%s' \
                + ml.evo_modify + '" --prefix "%s"'
