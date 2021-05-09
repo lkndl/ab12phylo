@@ -15,7 +15,6 @@ from time import sleep, time
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import gi
-import requests
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
@@ -28,6 +27,7 @@ PAGE = 6
 
 
 class ml_page(ab12phylo_app_base):
+    # TODO right-click reset commands
 
     def __init__(self):
         super().__init__()
@@ -36,9 +36,16 @@ class ml_page(ab12phylo_app_base):
 
         iface.ml_tool.set_entry_text_column(0)
         iface.ml_tool.set_id_column(0)
-        iface.ml_tool.connect('changed', self._load_ml_help)
-        iface.ml_exe.connect('file-set', self._load_ml_help, True)
-        iface.ml_cmd.connect('focus_in_event', lambda widget, *args: self.start_ML(widget, 'prep'))
+        iface.ml_tool.connect('changed', self._load_tool_help)
+        iface.ml_tool.connect_after('changed', lambda widget, *args: self.start_ML(widget, 'prep'))
+        iface.ml_exe.connect('file-set', self._load_tool_help, True)
+        iface.ml_tool.set_active_id('RAxML-NG')
+
+        iface.ml_cmd.connect('focus_out_event', lambda widget, *args: data.msa.cmd.update(
+            {repo.toalgo(iface.msa_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
+
+        # Änderungen an den Eingabefeldern werden direkt in den Buffer übernommen
+        # Änderungen am Buffer werden behalten / ausgeführt, aber nicht zurück in die Oberfläche
 
         iface.evo_model.set_model(data.evo_models)
         iface.evo_model.get_child().connect(
@@ -47,15 +54,24 @@ class ml_page(ab12phylo_app_base):
             'changed', self._load_model_file, iface.evo_modify)
         iface.evo_model.handler_block(iface.evo_block)
 
-        iface.ml_run.connect('clicked', self.start_ML, '')
-        iface.ml_export.connect('clicked', self.start_ML, '_export')
+        iface.ml_run.connect('clicked', self.start_ML, 'run')
+        iface.ml_export.connect('clicked', self.start_ML, 'export')
         iface.ml_import.connect('clicked', self.import_tree)  # TODO also
 
         for wi in [iface.bootstraps, iface.rand, iface.pars, iface.ml_seed]:
             wi.connect('key-press-event', self.edit_numerical_entry_up_down)
             wi.connect('changed', self.edit_numerical_entry)
 
-        iface.raxml_seen = False
+        iface.ml_page_seen = False
+
+    @staticmethod
+    def __effify__(non_f_str: str):
+        """
+        Convert a :param:`non_f_str` to an f-string and fill it from the current environment using :func:`eval`
+        :param non_f_str: An ordinary string containing "{ml.attribute}" placeholders.
+        :return: A string with the placeholders filled in.
+        """
+        return eval(f'f"""{non_f_str}"""')
 
     def import_tree(self, widget):
         """Import a tree file or two"""
@@ -128,7 +144,7 @@ class ml_page(ab12phylo_app_base):
                 LOG.debug('selected partitioned model file: %s -> RAxML/user_model' % str(tx))
             dialog.destroy()
 
-    def _load_ml_help(self, widget, try_path=False):
+    def _load_tool_help(self, widget, try_path=False):
         """
         Load the RAxML-NG / IQ-Tree path from the config file or use the user-defined one.
         If --help exits with OSError, despair.
@@ -193,6 +209,18 @@ class ml_page(ab12phylo_app_base):
             [a for a in ['rand{%d}' % ml.rand if ml.rand > 0 else None,
                          'pars{%d}' % ml.pars if ml.pars > 0 else None] if a])
 
+        # TODO add a descriptive prefix line to each one
+        chck = '# check MSA\n' \
+               '"{ml.binary}" --msa "{msa}" --check --model "{ml.evo_model}' \
+               '{ml.evo_modify}" --prefix "{prefix / \'chk\'}" '
+
+        inML = '# infer ML tree\n' \
+               '"{ml.binary}" --msa "{msa}" --model "{ml.evo_model}' \
+               '{ml.evo_modify}" --prefix "{prefix / \'ml\'}" --seed {ml.ml_seed}' \
+               ' --threads auto\{{ml.cpu_use}\} --workers auto\{{ml.cpu_use}\}' \
+               ' --redo --tree {\',\'.join([a for a in [\'rand{%d}\' % ml.rand ' \
+               'if ml.rand > 0 else None, \'pars{%d}\' % ml.pars if ml.pars > 0 else None] if a])} '
+
         boot = '"%s" --bootstrap --msa "%s" --model "%s" --tree "%s"' + \
                ' --prefix "%s"' + ' --bs-trees %d' % ml.bootstraps + \
                ' --seed %d' % ml.ml_seed + \
@@ -229,18 +257,25 @@ class ml_page(ab12phylo_app_base):
         iface.evo_model.set_active_id(ml.evo_model)
         iface.evo_modify.set_text(ml.evo_modify)
         iface.in_shell.set_active(ml.in_shell)
+        iface.infer_model.set_active(ml.infer_model)
+        iface.ultrafast.set_active(ml.ultrafast)
+
+        iface.ml_tool.set_active_id(ml.tool)
+        for wi in [iface.iqtree_label, iface.ultrafast, iface.infer_model]:
+            wi.set_sensitive(ml.tool != 'raxml-ng')
 
     def refresh(self):
         """Re-view the page. Get suggested commands for RAxML-NG and IQ-Tree"""
         LOG.debug('ML refresh')
         data = self.data
         iface = self.iface
-        if not iface.raxml_seen:
-            self._load_ml_help(None)
-            self.reload_ui_state()
+        if not iface.ml_page_seen:
+            self._load_tool_help(None)
+            self.reload_ui_state(PAGE)
             iface.evo_model.handler_unblock(iface.evo_block)
             iface.evo_model.set_active_id(data.ml.evo_model)
-            iface.raxml_seen = True
+            iface.ml_page_seen = True
+            self.start_ML(None, 'prep')
 
         self.set_errors(PAGE, not any((self.wd / a).is_file()
                                       for a in [repo.PATHS.tbe, repo.PATHS.fbp]))
@@ -250,7 +285,12 @@ class ml_page(ab12phylo_app_base):
         la.set_text('Run')
 
     def start_ML(self, widget, mode, run_after=None):
-        """Set-up the ML inference thread"""
+        """
+        Set-up the ML inference thread.
+        :param widget: ignored, to enable use as callback
+        :param mode: from {'prep', 'run', 'export'}
+        :param run_after: for chaining calls, run after thread finishes
+        """
         data = self.data
         iface = self.iface
         ml = data.ml
@@ -258,11 +298,15 @@ class ml_page(ab12phylo_app_base):
         if not data.genes:
             self.show_notification('No genes', secs=1)
             return
+        elif iface.thread.is_alive() and mode == 'prep':
+            return
         elif iface.thread.is_alive():
             # The button was pressed when it was in the 'Stop' state
             iface.pill2kill.set()
             return
 
+        # parse interface
+        ml.tool = repo.toalgo(iface.ml_tool.get_active_text())
         ml.binary = iface.ml_exe.get_filename()
         for w_name in ['evo_modify', 'bootstraps', 'rand', 'pars', 'ml_seed', 'cpu_use']:
             wi = iface.__getattribute__(w_name)
@@ -271,7 +315,10 @@ class ml_page(ab12phylo_app_base):
                 val = int(val)
             ml.__setattr__(w_name, val)
         ml.evo_model = data.evo_models[iface.evo_model.get_active()]
+        ml.infer_model = iface.infer_model.get_active()
+        ml.ultrafast = iface.ultrafast.get_active()
         if ml.evo_model[1]:
+            # do not allow modifier suffixes if a model file is used
             ml.evo_modify = ''
             ml.evo_model = str(self.wd / 'RAxML' / 'user_model')
         else:
@@ -283,21 +330,6 @@ class ml_page(ab12phylo_app_base):
         Path.mkdir(self.wd / 'RAxML', exist_ok=True)
         ml.in_shell = iface.in_shell.get_active()
 
-        tool = repo.toalgo(iface.ml_tool.get_active_text())
-        if mode == 'prep':
-            # update the cmd preview
-            calls = self._prep_calls(ml)
-            # TODO paste some more info in there..... oh no manual wildcard formatting
-            if tool == 'raxml-ng':
-                calls = calls[:4]
-            else:
-                calls = calls[4:]
-            iface.ml_cmd.get_buffer().props.text = '\n'.join(calls)
-            return
-
-        # prepend the tool to the mode
-        mode = tool + mode
-
         iface.run_after = run_after
         # to keep the progress bar up-to-date:
         ml.prev = 0
@@ -305,15 +337,16 @@ class ml_page(ab12phylo_app_base):
         ml.stdout = list()
         ml.seen = {'ML': set(), 'BS': set()}
         ml.motifs = {'ML': 'ML tree search #', 'BS': 'Bootstrap tree #'}
-        iface.k = ml.bootstraps + ml.rand + ml.pars + 3 if mode in {'raxml-ng', 'iqtree2'} else 2
-        self.save()
-        sleep(.1)
+        iface.k = ml.bootstraps + ml.rand + ml.pars + 3 if mode == 'run' else 2
+        if mode != 'prep':
+            self.save()
+            sleep(.1)
 
-        # change the button to its stop state
-        (im, la), tx = iface.ml_run.get_child().get_children(), 'Run'
-        im.set_from_icon_name('media-playback-stop-symbolic', 4)
-        la.set_text('Stop')
-        iface.tup = (im, la, tx)
+            # change the button to its stop state
+            (im, la), tx = iface.ml_run.get_child().get_children(), 'Run'
+            im.set_from_icon_name('media-playback-stop-symbolic', 4)
+            la.set_text('Stop')
+            iface.tup = (im, la, tx)
 
         iface.thread = threading.Thread(target=self.do_ML, args=[mode])
         GObject.timeout_add(100, self.update_ML, PAGE, ml)
@@ -332,33 +365,147 @@ class ml_page(ab12phylo_app_base):
         errors = list()
         iface.i = 0
 
-        chck, inML, boot, supp, iq_args = self._prep_calls(ml)
+        if mode == 'prep':
+            # Create the calls and write to the TextBuffer
+            if ml.tool == 'raxml-ng':
+                chck = '# check MSA\n' \
+                       '"{raxml-ng}" --msa "{msa}" --check --model ' \
+                       '"{evo_model}{model_modifier}" --prefix "{chk_prefix}"'
+
+                inML = '# infer ML tree\n' \
+                       '"{raxml-ng}" --msa "{msa}" --model ' \
+                       '"{evo_model}{model_modifier}" --prefix "{ml_prefix}" ' \
+                       '--seed {seed} --threads auto{{{cpus}}} --workers auto{{{cpus}}} ' \
+                       '--redo --tree {start_trees}'
+
+                boot = '# bootstrapping\n' \
+                       '"{raxml-ng}" --bootstrap --msa "{msa}" --model "{inferred_model}" ' \
+                       '--tree "{ml_tree}" --prefix "{bs_prefix}" --bs-trees {bootstraps} ' \
+                       '--seed {seed} --threads auto{{{cpus}}} --workers auto{{{cpus}}} --redo'
+
+                supp = '# calc. branch support\n' \
+                       '"{raxml-ng}" --support --tree "{ml_tree}" --bs-trees "{bs_trees_file}" ' \
+                       '--bs-metric fbp,tbe --prefix "{sp_prefix}" ' \
+                       '--threads auto{{{cpus}}} --workers auto{{{cpus}}} --redo'
+
+                iface.ml_cmd.get_buffer().props.text = '\n\n'.join((chck, inML, boot, supp))
+            elif ml.tool == 'iqtree2':
+
+                find_model = '# find best model\n' \
+                             '"{iqtree2}" -s "{msa}" -m MF -mtree --seed {seed} ' \
+                             '-nt AUTO -ntmax {cpus} -redo'
+
+
+                # extract:
+                """
+                
+Time for fast ML tree search: 0.046 seconds
+
+NOTE: ModelFinder requires 3 MB RAM!
+ModelFinder will test up to 286 DNA models (sample size: 1614) ...
+ No. Model         -LnL         df  AIC          AICc         BIC
+  1  GTR+F         5824.979     63  11775.957    11781.160    12115.305
+  2  GTR+F+I       5722.091     64  11572.182    11577.553    11916.916
+  3  GTR+F+G4      5709.199     64  11546.398    11551.770    11891.132
+  4  GTR+F+I+G4    5705.443     65  11540.886    11546.428    11891.006
+
+265  F81+F+R2      5777.696     60  11675.392    11680.106    11998.580
+278  JC+R2         5791.874     57  11697.749    11701.998    12004.778
+Akaike Information Criterion:           TN+F+R2
+Corrected Akaike Information Criterion: TN+F+R2
+Bayesian Information Criterion:         TNe+R2
+Best-fit model: TNe+R2 chosen according to BIC
+
+
+
+Y model and 012345 to the GTR model. In fact, IQ-TREE uses this specification internally to simplify the coding. The 6-letter code is specified via the -m option, e.g.:
+
+iqtree -s example.phy -m 010010+G
+
+Moreover, with the -m option one can input a file which contains the 6 rates (A-C, A-G, A-T, C-G, C-T, G-T) and 4 base frequencies (A, C, G, T). For example:
+
+iqtree -s example.phy -m mymodel+G
+
+where mymodel is a file containing the 10 entries described above, in the c
+
+
+
+Rate parameters:  A-C: 0.77851  A-G: 1.96506  A-T: 0.99831  C-G: 0.85053  C-T: 3.19887  G-T: 1.00000
+Base frequencies:  A: 0.232  C: 0.297  G: 0.237  T: 0.234
+"""
+
+                infer_tree = '# infer ML tree\n' \
+                             '"{iqtree2}" -s "{msa}" -m "{evo_model}{model_modifier}" ' \
+                             '-t {start_trees} --seed {seed} ' \
+                             '-nt AUTO --ntmax {cpus} -redo'
+
+                infer_tree = '# bootstrapping\n' \
+                             '"{iqtree2}" -s "{msa}" -m "{evo_model}{model_modifier}" ' \
+                             '-B {bootstraps} --seed {seed} ' \
+                             '-nt AUTO --ntmax {cpus} -redo'
+
+                support = '# calc. branch support\n' \
+                          '"{iqtree2}" -t "{bs_trees_file}" --con-tree ' \
+                          '--seed {seed} -nt AUTO --ntmax {cpus} -redo'
+
+                """
+                .treefile is in newick
+                -m MFP means modelfinder plus the rest
+                -B is ultrafast, -b is normal
+                -B --ufboot NUM
+                -b --boot NUM, return consensus tree
+                
+                """
+
+                iface.ml_cmd.get_buffer().props.text = 'fantastical iqtree2 args'
+            else:
+                errors.append([f'got unexpected tool: {ml.tool}'])
+            GObject.idle_add(self.stop_prep, errors)
+            return True
+
+        # TODO 'run' or 'export mode: Read the calls from the buffer
+        calls, descs = list(), list()
+        for line in iface.ml_cmd.get_buffer().props.text.strip().split('\n'):
+            if line.startswith('#'):
+                descs.append(line.strip()[2:])
+            elif line:
+                calls.append(line)
+        if ml.tool == 'raxml-ng':
+            format_args = {'raxml-ng': ml.binary,
+                           'msa': msa, 'seed': ml.ml_seed,
+                           'evo_model': ml.evo_model,
+                           'model_modifier': ml.evo_modify,
+                           'chk_prefix': prefix / 'chk',
+                           'ml_prefix': prefix / 'ml',
+                           'bs_prefix': prefix / 'bs',
+                           'sp_prefix': prefix / 'sp',
+                           'cpus': ml.cpu_use,
+                           'bootstraps': ml.bootstraps,
+                           'inferred_model': prefix / 'ml.raxml.bestModel',
+                           'ml_tree': prefix / 'ml.raxml.bestTree',
+                           'bs_trees_file': prefix / 'bs.raxml.bootstraps',
+                           'start_trees': ','.join(
+                               [a for a in ['rand{%d}' % ml.rand if ml.rand > 0 else None,
+                                            'pars{%d}' % ml.pars if ml.pars > 0 else None] if a])}
+        elif ml.tool == 'iqtree2':
+            format_args = {'iqtree2': ml.binary, 'msa': msa}  # TODO
+            print('fantastical iqtree2 calls')
 
         if ml.in_shell:
             with open(shell, 'w') as sh:
                 sh.write('#!/bin/bash\n\n')
 
         # loop over the stages
-        for i, (desc, key, prev, arg, add) in enumerate(zip(
-                ['check MSA', 'infer ML tree', 'bootstrapping', 'calc. branch support'],
-                [False, 'ML', 'BS', False], [0, 1, ml.rand + ml.pars + 1, iface.k - 2],
-                [chck, inML, boot, supp],
-                [(ml.binary, msa, ml.evo_model, prefix / 'chk'),
-                 (ml.binary, msa, ml.evo_model,
-                  prefix / 'ml', ml.cpu_use, ml.cpu_use),
-                 (ml.binary, msa, prefix / 'ml.raxml.bestModel',
-                  prefix / 'ml.raxml.bestTree',
-                  prefix / 'bs', ml.cpu_use, ml.cpu_use),
-                 (ml.binary, prefix / 'ml.raxml.bestTree',
-                  prefix / 'bs.raxml.bootstraps',
-                  prefix / 'sp', ml.cpu_use, ml.cpu_use)])):
+        for i, (arg, desc, key, prev) in enumerate(
+                zip(calls, descs, [False, 'ML', 'BS', False],
+                    [0, 1, ml.rand + ml.pars + 1, iface.k - 2])):
 
-            if ml.in_shell and mode == 'raxml-ng':
+            if ml.in_shell and ml.tool == 'raxml-ng' and mode == 'run':  # **1 condition repeats
                 with open(shell, 'a') as sh:
-                    sh.write('# %s\n' % desc)
-                    # sh.write(arg % add)
+                    sh.write(f'# {desc}\n')
+                    # sh.write(arg.format(**format_args)
                     if i != 2:
-                        sh.write(arg % add)
+                        sh.write(arg.format(**format_args))
                     else:
                         # special case bootstrapping:
                         fifo = Path('pipe')
@@ -378,7 +525,7 @@ while read -r line; do
     fi
 done < pipe
 rm pipe
-                        '''.strip() % (arg % add)
+                        '''.strip() % (arg.format(**format_args))
                         sh.write(bash)
                     sh.write('\n\necho "AB12PHYLO: %s done"\n' % desc)
                     if i != 3:
@@ -393,7 +540,8 @@ rm pipe
             ml.prev = prev
 
             # read realtime RAxML output line by line
-            proc = Popen(args=shlex.split(arg % add), stdout=PIPE, stderr=PIPE)
+            proc = Popen(args=shlex.split(arg.format(**format_args)),
+                         stdout=PIPE, stderr=PIPE)
             while True and not iface.pill2kill.is_set():
                 line = proc.stdout.readline()
                 if proc.poll() is not None:
@@ -414,17 +562,6 @@ rm pipe
                 GObject.idle_add(self.stop_ML, errors, start)
                 return True
 
-            # bf = iface.ml_help.get_buffer()
-            # bf.props.text = bf.props.text + '\n' + '\n'.join(ml.stdout)
-            # bf.insert_markup(bf.get_end_iter(),
-            #                  '<span foreground="#2374AF">'
-            #                  '________________________________________________'
-            #                  '________________________________\n</span>', -1)
-            # mark = bf.create_mark(None, bf.get_end_iter(), True)
-            # iface.ml_help.scroll_mark_onscreen(mark)
-            # bf.add_mark(Gtk.TextMark.new(stage, True), bf.get_end_iter())
-            # iface.ml_help.scroll_to_iter(bf.get_end_iter(), .1, False, 0, .9)
-
             # check for errors
             for line in ml.stdout:
                 if line.startswith('ERROR'):
@@ -433,7 +570,7 @@ rm pipe
                 GObject.idle_add(self.stop_ML, errors, start)
                 return True
 
-            if mode == 'raxml-ng_export':
+            if mode == 'export' and ml.tool == 'raxml-ng':
                 iface.text = 'building zip'
                 LOG.debug(iface.text)
                 sh = 'raxml_run.sh'
@@ -465,28 +602,38 @@ chmod +x "raxml-ng"
 sleep 10s
                     '''.strip()
                     sf.write(bash)
-                    sf.write('\n\n# Check MSA\n')
-                    sf.write(chck % ('./raxml-ng', 'msa.fasta',
-                                     Path(ml.evo_model).name, 'chk'))
-                    sf.write('\n\n# Find best ML tree\n')
-                    sf.write(inML % ('./raxml-ng', 'msa.fasta',
-                                     Path(ml.evo_model).name, 'ml', '$used', '$used'))
-                    sf.write('\n\n# Compute bootstrap iterations\n')
-                    sf.write(boot % ('./raxml-ng', 'msa.fasta', 'ml.raxml.bestModel',
-                                     'ml.raxml.bestTree', 'bs', '$used', '$used'))
-                    sf.write('\n\n# Calculate branch support\n')
-                    sf.write(supp % ('./raxml-ng', 'ml.raxml.bestTree',
-                                     'bs.raxml.bootstraps', 'sp', '$used', '$used'))
-                    sf.write('\n\n# Copy tree files\n')
-                    sf.write('cp sp.raxml.supportTBE tree_TBE.nwk')
-                    sf.write('cp sp.raxml.supportFBP tree_FBP.nwk')
-                    sf.write('\n\n')
+                    format_args = {'raxml-ng': './raxml-ng',
+                                   'msa': 'msa.fasta', 'seed': ml.ml_seed,
+                                   'evo_model': Path(ml.evo_model).name,
+                                   'model_modifier': ml.evo_modify,
+                                   'chk_prefix': 'chk',
+                                   'ml_prefix': 'ml',
+                                   'bs_prefix': 'bs',
+                                   'sp_prefix': 'sp',
+                                   'cpus': '$used',
+                                   'bootstraps': ml.bootstraps,
+                                   'inferred_model': 'ml.raxml.bestModel',
+                                   'ml_tree': 'ml.raxml.bestTree',
+                                   'bs_trees_file': 'bs.raxml.bootstraps',
+                                   'start_trees': ','.join(
+                                       [a for a in ['rand{%d}' % ml.rand if ml.rand > 0 else None,
+                                                    'pars{%d}' % ml.pars if ml.pars > 0 else None] if a])}
+                    comments = ['\n\n# Check MSA\n', '\n# Find best ML tree\n',
+                                '\n# Compute bootstrap iterations\n',
+                                '\n# Calculate branch support\n']
+                    for comment, line in zip(comments, calls):
+                        sf.write(comment)
+                        sf.write(line.format(**format_args) + '\n')
+                    sf.write('\n# Copy tree files\n')
+                    sf.write('cp sp.raxml.supportTBE tree_TBE.nwk\n')
+                    sf.write('cp sp.raxml.supportFBP tree_FBP.nwk\n')
+                    sf.write('\n')
 
                 sleep(.05)
                 GObject.idle_add(self.export_zip, sh, msa)
                 return True
 
-        if ml.in_shell and mode == 'raxml-ng':
+        if ml.in_shell and ml.tool == 'raxml-ng' and mode == 'run':  # same condition as at **1
             shell.chmod(shell.stat().st_mode | stat.S_IEXEC)
             self.hold()
             self.win.hide()
@@ -507,6 +654,17 @@ sleep 10s
         sleep(.1)
         GObject.idle_add(self.stop_ML, errors, start)
         return True
+
+    def stop_prep(self, errors):
+        """Finish the ML prep thread"""
+        iface = self.iface
+        iface.thread.join()
+        self.win.show_all()
+        if errors:
+            self.show_notification('Errors during ML prep', errors)
+        iface.pill2kill.clear()
+        self.refresh()
+        return
 
     def stop_ML(self, errors, start):
         """Finish the ML inference thread"""
