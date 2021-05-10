@@ -180,7 +180,6 @@ class tree_build:
         self.args = _args
         self.replace = _args.replace
 
-        self.scale = 0.1 if _args.metric == 'FBP' else 10
         self.args.threshold *= 10
         self.tree_file = _args.final_tree + '_%s.nwk' % _args.metric
 
@@ -614,6 +613,9 @@ class tree_build:
         """
         multi = True if len(self.genes) > 1 else False
 
+        # guess if support val.s are in [0-1] or in [0-100], then scale with 1 or 1/100 resp.
+        sup_scaler = 1 if 1.1 > max([float(s) for s in
+                                    self.tree.get_node_values('support') if s]) else 100
         # rename reference nodes and add features
         for node in self.tree.treenode.traverse():
             if node.is_leaf():
@@ -648,14 +650,14 @@ class tree_build:
             else:
                 # use support values for node size
                 min_size = 2
-                node.add_feature('size', min_size + float(node.support) * self.scale if node.support else 0)
+                node.add_feature('size', min_size + float(node.support) / sup_scaler * 10 if node.support else 0)
                 node.add_feature('color', kxlin[1] if node.size > self.args.threshold + min_size else pal2[8])
                 node.add_feature('score', -1)  # just so the field exists
                 node.add_feature('type', 0)  # just so the field exists
 
             # some tree tweaks
             if self.args.print_supports:
-                node.support = int(round(node.support * 100))
+                node.support = int(round(node.support * 100 / sup_scaler))
             if self.args.min_plot_dist:
                 node.dist = max(node.dist, self.args.min_plot_dist)
         return

@@ -619,11 +619,12 @@ class ab12phylo_app_base(Gtk.Application):
         revealer.set_reveal_child(False)
 
     # MARK update
-    def update(self, page, sensitive=False, *args):
+    def update(self, page, sensitive=False, pulse=False, *args):
         """
         Keep the progress bar up-to-date, and slowly moving rightwards
         :param page: the index of the current page, which will be frozen
         :param sensitive: allow not freezing the page
+        :param pulse: for tasks where no useful duration estimation is possible
         """
         iface = self.iface
         iface.frac = min(
@@ -635,7 +636,10 @@ class ab12phylo_app_base(Gtk.Application):
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
                 iface.notebook.get_children()[page].set_sensitive(sensitive)
-                iface.prog_bar.set_fraction(iface.frac)
+                if pulse:
+                    iface.prog_bar.pulse()
+                else:
+                    iface.prog_bar.set_fraction(iface.frac)
                 for wi in [iface.prog_bar, iface.prog_label]:
                     wi.set_visible(True)
                     wi.set_text(iface.text)
@@ -661,7 +665,9 @@ class ab12phylo_app_base(Gtk.Application):
                     except ValueError:
                         pass
             iface.i = len(seen_set) + ml.prev
-        return self.update(page, sensitive=True)
+        return self.update(page, sensitive=True,
+                           pulse=(ml.infer_model or ml.ultrafast)
+                                 and ml.tool == 'iqtree2')
 
     def update_BLAST(self, *args):
         """

@@ -5845,7 +5845,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
-                                    <property name="tooltip-markup" translatable="yes">Export a &lt;i&gt;.zip&lt;/i&gt; with the MSA, a 64-bit RAxML-NG linux or IQ-Tree 2 binary and a Linux shell script in order to run the tree inference on a more powerful computer. There, unzip the archive, open a terminal and execute the script via &lt;b&gt;bash raxml_run.sh&lt;/b&gt; or &lt;b&gt;bash iqtree_run.sh&lt;/b&gt; .</property>
+                                    <property name="tooltip-markup" translatable="yes">Export a &lt;i&gt;.zip&lt;/i&gt; with the MSA, a 64-bit RAxML-NG linux or IQ-Tree2 binary and a Linux shell script in order to run the tree inference on a more powerful computer. There, unzip the archive, open a terminal and execute the script via &lt;b&gt;bash raxml_run.sh&lt;/b&gt; or &lt;b&gt;bash iqtree_run.sh&lt;/b&gt; .</property>
                                     <property name="hexpand">False</property>
                                     <property name="vexpand">False</property>
                                     <child>

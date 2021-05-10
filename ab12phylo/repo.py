@@ -34,6 +34,7 @@ PATHS = Namespace(**{
 algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
          'RAxML-NG': 'raxml-ng', 'IQ-Tree2': 'iqtree2', 'FastTree': 'FastTree'}
 toalgo = lambda c: algos[c] + ['', '.exe'][sys.platform == 'win32']
+toname = lambda c: {'raxml-ng': 'RAxML', 'iqtree2': 'IQ-Tree'}.get(c, 'unknown')
 NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S', '?']
 toint_map = dict(zip(NUCLEOTIDES, range(len(NUCLEOTIDES))))
 toint = lambda c: toint_map.get(c, 5)

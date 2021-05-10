@@ -969,6 +969,10 @@ class tree_page(ab12phylo_app_base):
         iface.text = 'iterate tree: 1'
         cat_ignore = -1
         in_blue = '<span style="fill:%s">%s</span>' % (repo.tohex(repo.rocket[0]), '%s')
+
+        # guess if support val.s are in [0-1] or in [0-100], then scale with 1 or 1/100 resp.
+        sup_scaler = 1 if 1.1 > max([float(s) for s in
+                                    iface.tree.get_node_values('support') if s]) else 100
         # rename reference nodes and add features
         for node in iface.tree.treenode.traverse():
             if not node.support:
@@ -1030,8 +1034,7 @@ class tree_page(ab12phylo_app_base):
                 node.add_feature('confident', 0)
             else:
                 # use support values for node size
-                if phy.fbp:
-                    node.support /= 100
+                node.support /= sup_scaler
                 node.add_feature('species', '')
                 node.add_feature('confident', 1 if node.support >= phy.flip else 0)
                 node.add_feature('pid', -1)  # dark_red for no BLAST hit
