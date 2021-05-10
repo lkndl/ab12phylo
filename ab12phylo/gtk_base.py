@@ -1,6 +1,7 @@
 # 2021 Leo Kaindl
 
 import ast
+import configparser
 import hashlib
 import logging
 import mmap
@@ -41,6 +42,7 @@ class ab12phylo_app_base(Gtk.Application):
     TEMPLATE = repo.BASE_DIR / 'ab12phylo' / 'files' / 'gui.glade'
     ICON = repo.BASE_DIR / 'ab12phylo' / 'files' / 'favi.ico'
     CONF = repo.BASE_DIR / 'ab12phylo' / 'conf.cfg'
+    CFG = dict()
 
     def do_activate(self):
         self.add_window(self.win)
@@ -76,6 +78,11 @@ class ab12phylo_app_base(Gtk.Application):
         self.set_accels_for_action(detailed_action_name='app.help',
                                    accels=['F1', '<Control>h'])
         # self.add_accelerator(accelerator='<Control>h', action_name='app.help', parameter=None)
+
+        # fetch the paths from the config
+        cfg_parser = configparser.ConfigParser()
+        cfg_parser.read(ab12phylo_app_base.CONF)
+        ab12phylo_app_base.CFG.update(dict(cfg_parser['Paths']))
 
     def do_command_line(self, cmd):
         options = cmd.get_options_dict().end().unpack()

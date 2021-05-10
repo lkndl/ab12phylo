@@ -24,7 +24,6 @@ PATHS = Namespace(**{
     'left': Path('Trim') / 'msa_gbl_pre.png',
     'right': Path('Trim') / 'msa_gbl_post.png',
     'phylo_msa': Path('Trim') / 'msa_phylo.png',
-    'RAxML': Path('raxml-ng-static') / 'raxml-ng',
     'tbe': 'tree_TBE.nwk', 'tben': 'tree_TBE_annotated.nwk',
     'fbp': 'tree_FBP.nwk', 'fbpn': 'tree_FBP_annotated.nwk',
     'icon_path': BASE_DIR / 'ab12phylo' / 'files' / 'favi.png',

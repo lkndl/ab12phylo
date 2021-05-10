@@ -8,10 +8,12 @@ Arguments will be saved as an :class:`argparse.Namespace` object and directly ac
 """
 
 import argparse
+import configparser
 import logging
 import os
 import random
 import shutil
+import stat
 import sys
 import zipfile
 from os import path
@@ -210,8 +212,8 @@ class parser(argparse.ArgumentParser):
         if self.args.version is True:
             sys.exit('ab12phylo: %s' % __version__)
 
+        cfg = Path(__file__).resolve().parent / 'conf.cfg'
         if self.args.initialize is True:
-            cfg = Path(__file__).resolve().parent / 'conf.cfg'
             if cfg.is_file():
                 cfg.unlink()
             self._initialize()
@@ -323,6 +325,21 @@ class parser(argparse.ArgumentParser):
             if self.args.seed is None:
                 self.args.seed = random.randint(0, 1000)
 
+        # fetch the paths from the config
+        cfg_parser = configparser.ConfigParser()
+        cfg_parser.read(cfg)
+        self.args.cfg = dict(cfg_parser['Paths'])
+
+        def chmod_x(p):
+            if type(p) == str:
+                p = Path(p).resolve()
+            try:
+                p.chmod(p.stat().st_mode | stat.S_IEXEC)
+            except FileNotFoundError:
+                pass
+
+        self.args.chmod_x = chmod_x
+
         # set some default values where options would be useless
         self.args.xml = path.join(self.args.dir, 'BLAST', 'local_blast+_result.xml')
         self.args.www_xml = path.join(self.args.dir, 'BLAST', 'online_blast_result.xml')
@@ -395,18 +412,18 @@ class parser(argparse.ArgumentParser):
         installations. If the file is not present, always try downloading test data.
         :return:
         """
+        _dir = Path(__file__).resolve().parent
+        cfg = _dir / 'conf.cfg'
+        if cfg.is_file():
+            return
+
         # init temporary console logger
-        log = logging.getLogger()
+        log = logging.getLogger(__name__)
         log.setLevel(logging.DEBUG)
         sh = logging.StreamHandler(sys.stdout)
         sh.setLevel(logging.DEBUG)
         sh.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
         log.addHandler(sh)
-
-        _dir = Path(__file__).resolve().parent
-        cfg = _dir / 'conf.cfg'
-        if cfg.is_file():
-            return
 
         log.info('Initializing ab12phylo-cmd:')
 
@@ -421,6 +438,8 @@ class parser(argparse.ArgumentParser):
             zo.extractall(zf.with_suffix(''))
 
         fetch_non_python_tools('-cmd', cfg, _dir / 'tools', log)
+        sh.close()
+        log.removeHandler(sh)
 
     def _valid_ref_dir(self, ref_dir):
         """

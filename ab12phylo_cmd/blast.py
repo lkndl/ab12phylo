@@ -11,11 +11,12 @@ import logging
 import multiprocessing
 import os
 import shutil
-import subprocess
 import sys
 import urllib.error
 from math import ceil
 from os import path
+from pathlib import Path
+from subprocess import run, check_output, PIPE, CalledProcessError
 from time import time, sleep
 
 import pandas as pd
@@ -109,6 +110,8 @@ class blast_build(multiprocessing.Process):
         self.dbpath = _args.dbpath
         self.blast_dir = None
         os.makedirs(path.join(_args.dir, 'BLAST'), exist_ok=True)
+        self.cfg = _args.cfg
+        self.chmod_x = _args.chmod_x
 
         # data in memory
         try:
@@ -173,18 +176,21 @@ class blast_build(multiprocessing.Process):
         while not self._stop_event.wait(.1):
             # check BLAST+
             try:
-                binary = shutil.which('blastn')
-                # TODO check in 'configured' location also for later runs!
-
+                try:
+                    binary = self.cfg.get('blastn', shutil.which('blastn'))
+                except KeyError:
+                    binary = shutil.which('blastn')
                 if binary is None:
                     raise ValueError('BLAST+ not installed (not on the $PATH)')
-                output = subprocess.check_output(binary + ' -version', shell=True).decode('utf-8')
+                self.chmod_x(binary)
+                output = check_output(f'{binary} -version', shell=True).decode('utf-8')
                 version = [int(i) for i in output.split(',')[0].split(' ')[-1].split('.')]
                 if version[0] == 2 and version[1] >= 9 or version[0] > 2:
                     self.blast_dir = path.dirname(binary)
+                    blast_dir = Path(self.blast_dir)
                 else:
-                    raise ValueError('BLAST+ in %s is outdated' % self.blast_dir)
-            except (subprocess.CalledProcessError, ValueError) as e:
+                    raise ValueError(f'BLAST+ in {self.blast_dir} is outdated')
+            except (CalledProcessError, ValueError) as e:
                 self.log.error(e)
                 exit(e)
 
@@ -200,42 +206,43 @@ class blast_build(multiprocessing.Process):
             # update database
             if self.update:
                 self.log.debug('downloading or updating BLAST+ db ...')
-                arg = path.join(self.blast_dir, 'update_blastdb.pl') \
-                      + ' --decompress %s --passive --timeout %d' % (self.db, self.timeout)
-
+                binary = blast_dir / 'update_blastdb.pl'
+                self.chmod_x(binary)
+                arg = f'{binary} --decompress {self.db} --passive --timeout {self.timeout}'
                 try:
-                    p = subprocess.run(arg, shell=True, stdout=subprocess.PIPE, cwd=self.dbpath)
+                    p = run(arg, shell=True, stdout=PIPE, cwd=self.dbpath)
                     self.log.debug(p.stdout.decode('utf-8').strip())
-                except subprocess.CalledProcessError as e:
+                except CalledProcessError as e:
                     self.log.exception('BLAST+ db update failed, returned code %d' % e.returncode)
 
             # check database
             self.log.debug('checking %sBLAST db %s in %s'
                            % ('user-supplied ' if not self.update else '', self.db, self.dbpath))
-            arg = '%s -db "%s" -info' % (path.join(self.blast_dir, 'blastdbcmd'),
-                                         path.join(self.dbpath, self.db))
+            binary = blast_dir / 'blastdbcmd'
+            self.chmod_x(binary)
+            db = path.join(self.dbpath, self.db)
+            arg = f'{binary} -db "{db}" -info'
             try:
-                res = subprocess.check_output(arg, shell=True).decode('utf-8')
+                res = check_output(arg, shell=True).decode('utf-8')
                 if 'error' in res:
                     raise ValueError
-            except (subprocess.CalledProcessError, ValueError) as e:
+            except (CalledProcessError, ValueError) as e:
                 self.log.error('Error in BLAST+ db')
                 os._exit(1)  # this is no ordinary exit; it kills zombies, too!
             self.log.debug('BLAST+ db was ok')
 
             # run BLAST+
             self.log.debug('BLASTing locally ...')
-            arg = '%s -db "%s" -query "%s" -num_threads 3 -max_target_seqs 10 -outfmt 5 -out "%s"' \
-                  % (path.join(self.blast_dir, 'blastn'),
-                     path.join(self.dbpath, self.db),
-                     self.FASTA, self.XML)
-
+            binary = blast_dir / 'blastn'
+            self.chmod_x(binary)
+            arg = f'{binary} -db "{db}" -query "{self.FASTA}" -num_threads 3 ' \
+                  f'-max_target_seqs 10 -outfmt 5 -out "{self.XML}"'
             start = time()
             self.log.debug(arg)
             try:
-                subprocess.run(arg, shell=True, check=True)
-                self.log.info('finished BLAST+ in %.2f sec' % (time() - start))
-            except subprocess.CalledProcessError as e:
+                run(arg, shell=True, check=True)
+                self.log.info(f'finished BLAST+ in {(time() - start):.2f} sec')
+            except CalledProcessError as e:
                 self.log.exception('BLAST failed, returned %d\n%s'
                                    % (e.returncode, e.output.decode('utf-8') if e.output is not None else ''))
                 return None
@@ -334,7 +341,7 @@ class blast_build(multiprocessing.Process):
                 if species == 'cf.':
                     species += _def[2]
                     self.log.warning('found a cf. but that\'s fine')
-                species = '%s %s' % (genus, species)
+                species = f'{genus} {species}'
 
                 # parse % identity from high-scoring pair
                 _hsp = hit.hsps[0]
@@ -418,11 +425,11 @@ class blast_build(multiprocessing.Process):
                         try:
                             if entry.id in self.df.index:
                                 file, box = self.df.loc[entry.id, self.gene][['file', 'box']]
-                                fh.write('%s\t%s\t%s\t%s\tno hit in NCBI %s database\n'
-                                         % (file, entry.id, box, self.gene, self.remote_db))
-                                self.log.error('%s no hit in NCBI %s db' % (entry.id, self.remote_db))
+                                fh.write(f'{file}\t{entry.id}\t{box}\t{self.gene}\t'
+                                         f'no hit in NCBI {self.remote_db} database\n')
+                                self.log.error(f'{entry.id} no hit in NCBI {self.remote_db} db')
                             else:
-                                self.log.error('no entry %s in metadata TSV' % entry.id)
+                                self.log.error(f'no entry {entry.id} in metadata TSV')
                         except KeyError as ke:
                             errors = True
                             self.log.error(ke)

@@ -12,7 +12,7 @@ import shutil
 import string
 import subprocess
 import threading
-from os import path
+from pathlib import Path
 
 import pandas
 
@@ -33,17 +33,19 @@ class raxml_build:
         random.seed(args.seed)
 
         # make a directory for raxml
-        self._dir = path.join(args.dir, 'raxml')
-        os.makedirs(self._dir, exist_ok=True)
+        self._dir = Path(args.dir) / 'raxml'
+        Path.mkdir(self._dir, exist_ok=True)
 
         # look for raxml-ng binary
-        self._binary = shutil.which('raxml-ng')
-        local = True
+        try:
+            self._binary = self.args.cfg.get('raxml-ng', shutil.which('raxml-ng'))
+        except KeyError:
+            self._binary = shutil.which('blastn')
         if self._binary is None:
-            local = False
-            self._binary = path.join(path.abspath(path.dirname(__file__)),
-                                     'tools', 'raxml-ng-static', 'raxml-ng').replace(' ', '\ ')
-        self.log.debug('use %s raxml-ng' % ('pre-installed' if local else 'out-of-the-box'))
+            self.log.error('RAxML-NG not installed')
+            os._exit(1)  # this is no ordinary exit; it kills zombies, too!
+        # Make sure it's executable
+        args.chmod_x(self._binary)
 
     def run(self):
         """
@@ -73,7 +75,7 @@ class raxml_build:
             seed = random.randint(0, max(1000, self.args.bootstrap))
             thread = raxml_thread((prefix, self.log, self._binary, self.msa, ml_searches[0],
                                    ml_searches[1], self.args.evomodel, self.args.min_dist, seed,
-                                   path.join(self._dir, prefix), self.cpus), mode='infer_topology')
+                                   self._dir / prefix, self.cpus), mode='infer_topology')
             active_threads.append(thread)
             thread.start()
         self.log.info('active Threads: %s' % ' '.join(self._prefixes))
@@ -87,7 +89,7 @@ class raxml_build:
         # find best topology: parse logs for best LogLikelihood
         best_prefix, best_score = '', float('-inf')
         for prefix in self._prefixes:
-            with open(path.join(self._dir, prefix + '.raxml.log'), 'r') as log:
+            with open(f'{self._dir / prefix}.raxml.log', 'r') as log:
                 text = log.read()
                 pos = text.find('Final LogLikelihood:')
                 score = float(text[pos:pos + 40].split('\n')[0].split(' ')[-1])
@@ -96,7 +98,7 @@ class raxml_build:
         self.log.info('best topology %s %.2f' % (best_prefix, best_score))
 
         # set to file path
-        self._best_tree = path.join(self._dir, best_prefix + '.raxml.bestTree')
+        self._best_tree = f'{self._dir / best_prefix}.raxml.bestTree'
 
         self.log.debug('starting Bootstrapping')
         self._prefixes = []
@@ -111,7 +113,7 @@ class raxml_build:
             seed = random.randint(0, max(1000, self.args.bootstrap))
             thread = raxml_thread((prefix, self.log, self._binary, self.msa, self._best_tree,
                                    trees, self.args.evomodel, self.args.min_dist, seed,
-                                   path.join(self._dir, prefix), self.cpus), mode='bootstrap')
+                                   self._dir / prefix, self.cpus), mode='bootstrap')
             active_threads.append(thread)
             thread.start()
         self.log.info('active BS Threads: %s' % ' '.join(self._prefixes))
@@ -123,26 +125,24 @@ class raxml_build:
 
         self.log.debug('computing supports')
         # concat all bootstrap trees
-        all_bs_trees = path.join(self._dir, 'all_bs_trees.nwk')
+        all_bs_trees = self._dir / 'all_bs_trees.nwk'
         with open(all_bs_trees, 'w') as fh:
             for prefix in self._prefixes:
                 try:
-                    with open(path.join(self._dir, prefix + '.raxml.bootstraps'), 'r') as bootstraps:
+                    with open(f'{self._dir / prefix}.raxml.bootstraps', 'r') as bootstraps:
                         fh.write(bootstraps.read() + '\n')
                 except FileNotFoundError:
                     self.log.warning('results from %s missing' % prefix)
         self.log.debug('all bootstrap trees in %s' % all_bs_trees)
 
-        run_cmd = '%s --support --tree "%s" --bs-trees "%s" --prefix "%s" ' \
-                  '--threads %d --bs-metric fbp,tbe --redo' \
-                  % (self._binary, self._best_tree, all_bs_trees,
-                     path.join(self._dir, '_sup'), self.cpus)
-
+        run_cmd = f'{self._binary} --support --tree "{self._best_tree}" ' \
+                  f'--bs-trees "{all_bs_trees}" --prefix "{self._dir / "_sup"}" ' \
+                  f'--threads {self.cpus} --bs-metric fbp,tbe --redo'
         _run_sp(run_cmd)
 
         # copy best trees with the right support values to parent directory
-        shutil.move(path.join(self._dir, '_sup.raxml.supportFBP'), self.args.final_tree + '_FBP.nwk')
-        shutil.move(path.join(self._dir, '_sup.raxml.supportTBE'), self.args.final_tree + '_TBE.nwk')
+        shutil.move(self._dir / '_sup.raxml.supportFBP', self.args.final_tree + '_FBP.nwk')
+        shutil.move(self._dir / '_sup.raxml.supportTBE', self.args.final_tree + '_TBE.nwk')
         self.log.info('final trees %s_[FBP,TBE].nwk' % self.args.final_tree)
 
     @property
@@ -155,7 +155,7 @@ class raxml_build:
         number of CPUs recommended by raxml-ng for each one, and new path to MSA.
         """
         # prep paths for checking, reducing and parsing MSA
-        paths = [path.join(self._dir, prefix) for prefix in ['_chk', '_red']]
+        paths = [self._dir / prefix for prefix in ['_chk', '_red']]
 
         # check msa
         arg = '%s --msa "%s" --check --model %s --prefix "%s"' \
@@ -200,17 +200,15 @@ class raxml_build:
 
         # look if MSA check was ok
         if 'successfully' not in res:
-            self.log.error('error in MSA check, see %s' % paths[0] + '.raxml.log')
+            self.log.error(f'error in MSA check, see {paths[0]}.raxml.log')
             exit(1)
         self.log.info('MSA check ok')
 
         # if any duplicates were found, a reduced alignment was written. ignore if not in replace mode
-        msa = paths[0] + '.raxml.reduced.phy' if len(keepers) > 0 else self.msa
+        msa = f'{paths[0]}.raxml.reduced.phy' if len(keepers) > 0 else self.msa
 
         # now parse, and use reduced alignment if duplicates found. resulting .rba will be smaller
-        arg = '%s --msa "%s" --parse --model %s --prefix "%s"' \
-              % (self._binary, msa, self.args.evomodel, paths[1])
-
+        arg = f'{self._binary} --msa "{msa}" --parse --model {self.args.evomodel} --prefix "{paths[1]}"'
         res = _run_sp(arg)
 
         # find number of threads:
@@ -226,7 +224,7 @@ class raxml_build:
                       % (cpus, '' if cpus == 1 else 's', os.cpu_count(), runs))
 
         if 'replace' in self.args and self.args.replace:
-            return runs, cpus, path.join(paths[1] + '.raxml.rba')
+            return runs, cpus, f'{paths[1]}.raxml.rba'
         else:
             # if not in replace mode, just return the unparsed alignment
             return runs, cpus, self.msa

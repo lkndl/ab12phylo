@@ -163,18 +163,20 @@ class ml_page(ab12phylo_app_base):
         if try_path:
             binary = widget.get_filename()
         else:
-            # fetch the path from the config
-            cfg_parser = configparser.ConfigParser()
-            cfg_parser.read(ab12phylo_app_base.CONF)
-            binary = cfg_parser['Paths'].get(tool, shutil.which(tool))
+            binary = ab12phylo_app_base.CFG.get(tool, shutil.which(tool))
 
         if binary:
             # May be missing, for example no RAxML-NG on Windows
             ml.binary = binary
             iface.ml_exe.set_filename(binary)
             binary = Path(binary)
-            # Ensure the file is executable
-            binary.chmod(binary.stat().st_mode | stat.S_IEXEC)
+            # Ensure the file is executable, and present
+            try:
+                binary.chmod(binary.stat().st_mode | stat.S_IEXEC)
+            except FileNotFoundError:
+                LOG.error(f"File for {iface.ml_tool.get_active_text()} not found "
+                          f"at {binary}. Please re-run 'ab12phylo --initialize' or "
+                          f"manually correct the path in {ab12phylo_app_base.CONF}")
 
             try:
                 res = run(args=shlex.split(f'{ml.binary} --help'),

@@ -1,7 +1,9 @@
 # 2021 Leo Kaindl
 
 import logging
+import os
 import shutil
+import stat
 import subprocess
 import threading
 from argparse import Namespace
@@ -78,16 +80,37 @@ class blast_page(ab12phylo_app_base):
         data.blast_path = path  # save path to executable in project
 
         # check if all necessary BLAST+ scripts are available
-        missing = [a for a in ['blastn', 'blastp', 'blastdbcmd', 'update_blastdb.pl',
-                               'makeblastdb'] if not shutil.which(path / a)]
-        if missing:
+        try:
+            binary = ab12phylo_app_base.CFG.get('blastn', shutil.which('blastn'))
+        except KeyError:
+            binary = shutil.which('blastn', path=path)
+
+        scripts = ['blastn', 'blastdbcmd', 'update_blastdb.pl', 'makeblastdb']
+        if not binary:
+            missing = scripts
+        else:
+            missing = list()
+            binary = Path(binary)
+
+            for sc in scripts:
+                try:
+                    exe = next(binary.parent.rglob(f'{sc}{os.getenv("PATHEXT", default="")}'))
+                    # Make the file executable
+                    exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
+                except StopIteration:
+                    missing.append(sc)
+
+        if not missing:
+            data.blast_path = binary.parent
+        else:
+            data.blast_path = None
             self.show_notification(msg='Necessary scripts could not be '
                                        'found on the $PATH:', items=missing)
             sleep(.1)
             GObject.idle_add(self.prep4)
             return True
 
-        iface.blast_exe.set_filename(str(path))
+        iface.blast_exe.set_filename(str(data.blast_path))
         mo = Gtk.ListStore(str, str, str, str, bool)
         iface.blast_db.set_model(mo)  # shared model
         iface.db_info.set_model(mo)
@@ -98,7 +121,7 @@ class blast_page(ab12phylo_app_base):
             col.set_resizable(True)
             iface.db_info.append_column(col)
 
-        iface.thread = threading.Thread(target=self.prep1, args=[path, mo])
+        iface.thread = threading.Thread(target=self.prep1, args=[data.blast_path, mo])
         GObject.timeout_add(50, self.update, PAGE)
         iface.i = 1
         iface.thread.start()
@@ -184,7 +207,7 @@ class blast_page(ab12phylo_app_base):
         iface = self.iface
 
         if not iface.blast_seen:
-            # look for BLAST+ executable on the $PATH and in the dataset; fill db_info table
+            # look for BLAST+ executable in the config and on the $PATH; fill db_info table
             for path in [shutil.which('blastn'), data.blast_path]:
                 if self.prep0(path):
                     break
