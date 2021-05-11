@@ -1,5 +1,5 @@
 # 2021 Leo Kaindl
-
+import argparse
 import logging
 from argparse import Namespace
 
@@ -45,7 +45,8 @@ class project_dataset:
                              min_phred=30, trim_out=8, trim_of=10, bad_stretch=5)
         self.msa = Namespace(cmd=dict(), remote_cmd=dict(), last_cmd='')
         self.gbl = Namespace(ignore_ids=set())
-        self.ml = Namespace(evo_model='GTR', evo_modify='+G4', cpu_count='1', cpu_use='1')
+        self.ml = Namespace(evo_model='GTR', evo_modify='+G4', cpu_count='1', cpu_use='1',
+                            tool='raxml-ng', ml_cmd='command not yet defined')
         self.phy = Namespace(gap_share=.1, unk_share=.1, flip=.7, dist=0, space=1, sel_gene=None,
                              did_BLAST=False, query='', exclude='',
                              rect=True, circ=False, unro=False, tbe=True, fbp=False, supp=True,
@@ -110,6 +111,12 @@ class project_dataset:
                     old.update(new_dataset.__getattribute__(attr))
                 except (TypeError, AttributeError):
                     pass  # try to go without dict values
+            elif type(old) == argparse.Namespace:
+                try:
+                    for k, v in new_dataset.__getattribute__(attr).__dict__.items():
+                        old.__setattr__(k, v)
+                except (AttributeError, TypeError, ValueError):
+                    pass  # let's be courageous
             else:
                 try:
                     self.__setattr__(attr, new_dataset.__getattribute__(attr))

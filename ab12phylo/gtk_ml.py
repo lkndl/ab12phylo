@@ -39,13 +39,14 @@ class ml_page(ab12phylo_app_base):
         iface.ml_tool.connect('changed', self._load_tool_help)
         iface.ml_tool.connect_after('changed', lambda widget, *args: self.start_ML(widget, 'prep'))
         iface.ml_exe.connect('file-set', self._load_tool_help, True)
-        iface.ml_tool.set_active_id('RAxML-NG')
         iface.ultrafast.connect('toggled', self._ultrafast_hint)
         for wi in [iface.ultrafast, iface.infer_model]:
             wi.connect_after('toggled', lambda widget, *args: self.start_ML(widget, 'prep'))
 
-        iface.ml_cmd.connect('focus_out_event', lambda widget, *args: data.msa.cmd.update(
-            {repo.toalgo(iface.msa_algo.get_active_text()): widget.get_buffer().props.text.strip()}))
+        # connect the parser to basically everything
+        for wi in [iface.bootstraps, iface.ml_seed, iface.cpu_use, iface.rand, iface.pars,
+                   iface.evo_modify, iface.evo_model, iface.ml_help, iface.ml_cmd]:
+            wi.connect('focus_out_event', self._parse_ml)
 
         iface.evo_model.set_model(data.evo_models)
         iface.evo_model.get_child().connect(
@@ -77,6 +78,31 @@ class ml_page(ab12phylo_app_base):
             return
         self.show_notification(msg='ultrafast bootstrapping will only work '
                                    'with ≥ 1000 iterations', secs=10)
+
+    def _parse_ml(self, widget, event_focus):
+        """An interface parser to save changes to the UI in the model."""
+        data = self.data
+        iface = self.iface
+        ml = data.ml
+        ml.binary = iface.ml_exe.get_filename()
+        for w_name in ['evo_modify', 'bootstraps', 'rand', 'pars', 'ml_seed', 'cpu_use']:
+            wi = iface.__getattribute__(w_name)
+            val = [i for i in [wi.get_text(), wi.get_placeholder_text()] if i][0]
+            if w_name in ['bootstraps', 'rand', 'pars']:
+                val = int(val)
+            ml.__setattr__(w_name, val)
+        ml.evo_model = data.evo_models[iface.evo_model.get_active()]
+        ml.infer_model = iface.infer_model.get_active()
+        ml.ultrafast = iface.ultrafast.get_active()
+        tx = iface.ml_cmd.get_buffer().props.text
+        if tx:
+            ml.ml_cmd = tx
+        if ml.evo_model[1]:
+            # do not allow modifier suffixes if a model file is used
+            ml.evo_modify = ''
+            ml.evo_model = str(self.wd / 'RAxML' / 'user_model')
+        else:
+            ml.evo_model = ml.evo_model[0]
 
     def import_tree(self, widget):
         """Import a tree file or two"""
@@ -156,14 +182,19 @@ class ml_page(ab12phylo_app_base):
         """
         iface = self.iface
         ml = self.data.ml
-        tool = repo.toalgo(iface.ml_tool.get_active_text())
+
+        if not iface.ml_page_seen:
+            iface.ml_tool.set_active_id(repo.toname(ml.tool))
+        else:
+            ml.tool = repo.toalgo(iface.ml_tool.get_active_text())
+
         for wi in [iface.iqtree_label, iface.ultrafast, iface.infer_model]:
-            wi.set_sensitive(tool != 'raxml-ng')
+            wi.set_sensitive(ml.tool != 'raxml-ng')
 
         if try_path:
             binary = widget.get_filename()
         else:
-            binary = ab12phylo_app_base.CFG.get(tool, shutil.which(tool))
+            binary = ab12phylo_app_base.CFG.get(ml.tool, shutil.which(ml.tool))
 
         if binary:
             # May be missing, for example no RAxML-NG on Windows
@@ -182,7 +213,7 @@ class ml_page(ab12phylo_app_base):
                 res = run(args=shlex.split(f'{ml.binary} --help'),
                           stdout=PIPE, stderr=PIPE)
                 iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
-                LOG.debug('got %s --help' % tool)
+                LOG.debug('got %s --help' % ml.tool)
             except OSError:
                 if sys.platform in ['win32', 'darwin', 'cygwin']:
                     self.show_notification('The selected binary doesn\'t work for this OS.\n'
@@ -216,7 +247,8 @@ class ml_page(ab12phylo_app_base):
         iface.infer_model.set_active(ml.infer_model)
         iface.ultrafast.set_active(ml.ultrafast)
 
-        iface.ml_tool.set_active_id(ml.tool)
+        iface.ml_tool.set_active_id(repo.toname(ml.tool))
+        iface.ml_cmd.get_buffer().props.text = ml.ml_cmd
         for wi in [iface.iqtree_label, iface.ultrafast, iface.infer_model]:
             wi.set_sensitive(ml.tool != 'raxml-ng')
 
@@ -262,23 +294,8 @@ class ml_page(ab12phylo_app_base):
             return
 
         # parse interface
-        ml.tool = repo.toalgo(iface.ml_tool.get_active_text())
-        ml.binary = iface.ml_exe.get_filename()
-        for w_name in ['evo_modify', 'bootstraps', 'rand', 'pars', 'ml_seed', 'cpu_use']:
-            wi = iface.__getattribute__(w_name)
-            val = [i for i in [wi.get_text(), wi.get_placeholder_text()] if i][0]
-            if w_name in ['bootstraps', 'rand', 'pars']:
-                val = int(val)
-            ml.__setattr__(w_name, val)
-        ml.evo_model = data.evo_models[iface.evo_model.get_active()]
-        ml.infer_model = iface.infer_model.get_active()
-        ml.ultrafast = iface.ultrafast.get_active()
-        if ml.evo_model[1]:
-            # do not allow modifier suffixes if a model file is used
-            ml.evo_modify = ''
-            ml.evo_model = str(self.wd / 'RAxML' / 'user_model')
-        else:
-            ml.evo_model = ml.evo_model[0]
+        # ml.tool = repo.toalgo(iface.ml_tool.get_active_text())
+        self._parse_ml(None, None)
 
         ml.ml_seed = random.randint(0, max(1000, ml.bootstraps)) \
             if ml.ml_seed == 'random' else int(ml.ml_seed)
@@ -392,7 +409,8 @@ class ml_page(ab12phylo_app_base):
 
         # Read call templates from buffer
         calls, descs, limits, keys, format_args = list(), list(), list(), list(), dict()
-        for line in iface.ml_cmd.get_buffer().props.text.strip().split('\n'):
+        ml.ml_cmd = iface.ml_cmd.get_buffer().props.text
+        for line in ml.ml_cmd.strip().split('\n'):
             if line.startswith('#'):
                 descs.append(line.strip()[2:])
             elif line:

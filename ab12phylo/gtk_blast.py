@@ -69,15 +69,14 @@ class blast_page(ab12phylo_app_base):
     def prep0(self, path):
         data = self.data
         iface = self.iface
-        if not path:
-            return False
         iface.i = 0
         iface.k = 3
         iface.text = 'search for BLAST+ installation'
-        path = Path(path).resolve()
-        if path.is_file():
-            path = path.parent  # path is supposed to be a directory!
-        data.blast_path = path  # save path to executable in project
+        if path:
+            path = Path(path).resolve()
+            if path.is_file():
+                path = path.parent  # path is supposed to be a directory!
+            data.blast_path = path  # save path to executable in project
 
         # check if all necessary BLAST+ scripts are available
         try:
