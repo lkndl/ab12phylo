@@ -40,10 +40,13 @@ msa_algo: mafft  # [mafft, clustalo, muscle, tcoffee]
 user: ab12phylo@gmail.com
 gblocks: balanced  # [skip, relaxed, balanced, default, strict] MSA trimming
 
-## [RAxML-NG]
+## [ML tree inference]
+#ml_tool: raxml-ng # [raxml-ng, iqtree2]
 start_trees: [10,10]  # [random,parsimony-based]
 bootstrap: 20
+#ultrafast: False
 evomodel: GTR+I+G  # no checks!
+#findmodel: True  # only for IQ-Tree2, infer an evolutionary model. Put a # in front of the evomodel line!
 #seed:
 metric: TBE  # [FBP, TBE]
 threshold: .7  # of best possible score

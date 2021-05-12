@@ -140,16 +140,27 @@ class parser(argparse.ArgumentParser):
         msa.add_argument('-gbl', '--gblocks', choices=['skip', 'relaxed', 'balanced', 'default', 'strict'],
                          help='activate/set MSA trimming with Gblocks.')
 
-        # [RAxML-NG]
-        phy = parser.add_argument_group(self, title='RAxML-NG')
+        phy = parser.add_argument_group(self, title='ML TREE INFERENCE')
+        phy.add_argument('-tool', '--ml_tool', choices=['raxml-ng', 'iqtree2'],
+                         help='select a tool to re-construct a phylogenetic tree. RAxML-NG is the default '
+                              'for Linux, but not available for Windows.')
         phy.add_argument('-st', '--start_trees', type=self._valid_start_trees,
                          help='numbers of starting trees for raxml-ng tree inference: '
                               '[<int random trees>,<int parsimony-based trees>].')
         phy.add_argument('-bst', '--bootstrap', type=self._valid_bootstrap,
-                         help='maximum number of bootstrap trees for raxml-ng. MRE bootstrap convergence test may stop '
-                              'it before, but is unlikely. https://doi.org/10.1089/cmb.2009.0179')
-        phy.add_argument('-evomodel', '--evomodel',
-                         help='evolutionary model for RAxML-NG. Default is GTR+G, no checks!')
+                         help='number of bootstrap trees. The MRE bootstrap convergence test in RAxML-NG may stop '
+                              'iteration before the passed number is reached, but this is unlikely. See '
+                              'https://doi.org/10.1089/cmb.2009.0179')
+        phy.add_argument('-uf', '--ultrafast', action='store_true',
+                         help='for tree inference with IQ-Tree 2, ultrafast bootstrapping can be enabled. '
+                              'If a value lower than 1000 is passed to `--bootstrap`, the number of iterations will '
+                              'automatically be set to this minimum accepted value.')
+        mod = phy.add_mutually_exclusive_group()
+        mod.add_argument('-evomodel', '--evomodel', help='evolutionary model for tree inference. The default '
+                                                         'is GTR+I+G, and no checks are performed!')
+        mod.add_argument('-findmodel', '--findmodel', action='store_true',
+                         help='FOR IQ-TREE2 ONLY: infer an evolutionary model using ModelFinder before '
+                              're-constructing a tree. https://doi.org/10.1038/nmeth.4285')
         phy.add_argument('-s', '--seed', type=int,
                          help='seed value for reproducible tree inference results. Will be random if not set.')
         phy.add_argument('-metric', '--metric', choices=['TBE', 'FBP'],
@@ -243,14 +254,17 @@ class parser(argparse.ArgumentParser):
                 if key in ['abi_dir', 'csv_dir', 'blastdb', 'abi_set', 'sample_set', 'dir'] and val[0] == '$':
                     # deal with relative paths in config for test case
                     val = path.join(path.dirname(path.dirname(__file__)), val[1:])
-                if key == 'ref':
+                elif key == 'ref':
                     # split into list
                     val = [ref.strip() for ref in val.split(',')]
                     # make absolute paths
                     val = [path.join(path.dirname(path.dirname(__file__)), ref[1:])
                            if ref[0] == '$' else ref for ref in val]
-                if key == 'regex_abi' and self.args.regex_3 or key == 'regex_3' and self.args.regex_abi:
+                elif key == 'regex_abi' and self.args.regex_3 or key == 'regex_3' and self.args.regex_abi:
                     # do not interfere with user-defined exclusive group
+                    continue
+                elif key == 'findmodel' and self.args.evomodel or key == 'evomodel' and self.args.findmodel:
+                    # as above
                     continue
 
                 self.args.__dict__[key] = val
@@ -310,6 +324,19 @@ class parser(argparse.ArgumentParser):
                     commandline.append('--%s' % key)
 
             self.args = self.parse_args(commandline)
+
+            if sys.platform in ['win32', 'cygwin'] and self.args.ml_tool == 'raxml-ng' and not \
+                    (self.args.visualize or self.args.view or self.args.prepare or self.args.add_xml):
+                print(f'\033[91mWARNING: RAxML-NG was selected for ML inference on a Windows '
+                      f'or cygwin system. This will likely fail.\033[0m Select IQ-Tree 2 by '
+                      f'passing \'--ml_tool iqtree2\' or editing the equivalent line in '
+                      f'{self.args.config}')
+                if not self.args.headless:
+                    answer = ''
+                    while answer not in {'y', 'yes', 'n', 'no'}:
+                        answer = input(f'Continue anyway? [y/n]').lower().strip()
+                    if answer in {'n', 'no'}:
+                        exit(1)
 
             # remember type of original ref option
             self.args.by_order = by_order

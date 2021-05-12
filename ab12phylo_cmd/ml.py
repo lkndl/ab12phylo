@@ -1,10 +1,11 @@
 # 2021 Leo Kaindl
 
 """
-Builds phylogenetic trees using raxml-ng, parallelized in threads.
+Builds phylogenetic trees using raxml-ng or iqtree2, parallelized in threads.
 """
 
 import logging
+import mmap
 import os
 import random
 import re
@@ -15,6 +16,123 @@ import threading
 from pathlib import Path
 
 import pandas
+
+
+def ml_build(args):
+    """This is just an intermediary to keep the code in main.py a tiny bit more concise."""
+    if args.ml_tool == 'raxml-ng':
+        return raxml_build(args)
+    else:
+        return iqtree_build(args)
+
+
+class iqtree_build:
+    """
+    Builds phylogenetic tree using iqtree-2.
+    https://doi.org/10.1093/molbev/msu300
+    """
+
+    def __init__(self, args):
+        self.log = logging.getLogger(__name__)
+        self.args = args
+
+        if self.args.ultrafast and self.args.bootstrap < 1000:
+            self.log.warning(f'The selected number of iterations ({self.args.bootstrap}) '
+                             f'is too low for ultrafast bootstrapping. '
+                             f'Will run 1000 iterations.')
+            self.args.bootstrap = 1000
+
+        # make a directory for iqtree2
+        self._dir = Path(args.dir) / 'iqtree'
+        Path.mkdir(self._dir, exist_ok=True)
+
+        # look for iqtree binary
+        try:
+            self._binary = self.args.cfg.get('iqtree2', shutil.which('iqtree2'))
+        except KeyError:
+            self._binary = shutil.which('iqtree2')
+        if self._binary is None:
+            self.log.error('IQ-Tree 2 not installed')
+            os._exit(1)  # this is no ordinary exit; it kills zombies, too!
+        # Make sure it's executable
+        args.chmod_x(self._binary)
+
+    def run(self):
+
+        calls = list()
+        if self.args.findmodel:
+            calls.append('# find best model\n'
+                         '"{iqtree2}" -s "{msa}" -m MF -mtree -mset raxml '
+                         '-seed {seed} -nt AUTO -ntmax {cpus} -redo '
+                         '--prefix "{mf_prefix}" ')
+
+        calls.append('# infer ML tree\n'
+                     '"{iqtree2}" -s "{msa}" -m "{evo_model}" '
+                     '-ninit {start_trees} -ntop {start_trees} '
+                     '-seed {seed} -nt AUTO -ntmax {cpus} -redo '
+                     '--prefix "{ml_prefix}" ')
+
+        if not self.args.ultrafast:
+            calls.append('# non-parametric bootstrapping\n'
+                         '"{iqtree2}" -s "{msa}" -m "{evo_model}" '
+                         '-te "{ml_prefix}.treefile" -b {bootstraps} '
+                         '-seed {seed} -nt AUTO -ntmax {cpus} -redo '
+                         '--prefix "{bs_prefix}" ')
+        else:
+            calls.append('# ultrafast bootstrapping\n'
+                         '"{iqtree2}" -s "{msa}" -m "{evo_model}" '
+                         '-t "{ml_prefix}.treefile" -B {bootstraps} -wbtl '
+                         '--seed {seed} -nt AUTO -ntmax {cpus} -redo '
+                         '--prefix "{uf_prefix}" ')
+
+        calls.append('# calc. TBE branch support\n'
+                     '"{iqtree2}" -sup "{ml_prefix}.treefile" '
+                     '-t "{boot_trees}" --tbe '
+                     '-seed {seed} -nt AUTO -ntmax {cpus} -redo '
+                     '--prefix "{sp_prefix}" ')
+
+        # potentially limit threads
+        cpus = os.cpu_count()
+        if 'max_threads' in self.args:
+            cpus = min(cpus, self.args.max_threads)
+
+        # prep formatting args
+        fargs = {'iqtree2': self._binary,
+                 'msa': self.args.msa,
+                 'seed': self.args.seed,
+                 'evo_model': self.args.evomodel,
+                 'cpus': cpus,
+                 'mf_prefix': self._dir / 'mf',
+                 'ml_prefix': self._dir / 'ml',
+                 'bs_prefix': self._dir / 'bs',
+                 'uf_prefix': self._dir / 'uf',
+                 'sp_prefix': self._dir / 'sp',
+                 'bootstraps': self.args.bootstrap,
+                 'boot_trees': self._dir / ('uf.ufboot' if self.args.ultrafast else 'bs.boottrees'),
+                 'start_trees': sum(self.args.start_trees)}
+
+        for i, (desc, call) in enumerate([c.split('\n') for c in calls]):
+            self.log.info(desc[2:])
+            _run_sp(call.format(**fargs))
+
+            if self.args.findmodel and i == 0:
+                with open(f'{self._dir / "mf"}.iqtree') as fh:
+                    s = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
+                    pos = s.find(b'Best-fit model')
+                    if pos != -1:
+                        model = s[pos + 10:pos + 190].decode().split('\n')[0].split(':')[-1].strip()
+                        msg = f'Extracted model: {model}'
+                        self.log.info(msg)
+                        fargs['evo_model'] = model
+                    else:
+                        self.log.error(f'Could not extract model from\n{self._dir / "mf"}.iqtree')
+                        os._exit(1)  # this is no ordinary exit; it kills zombies, too!
+
+        # copy trees with the right support values to parent directory
+        shutil.copy(f'{self._dir / ("uf" if self.args.ultrafast else "bs")}.contree',
+                    self.args.final_tree + '_FBP.nwk')
+        shutil.copy(self._dir / 'sp.suptree', self.args.final_tree + '_TBE.nwk')
+        self.log.info('final trees %s_[FBP,TBE].nwk' % self.args.final_tree)
 
 
 class raxml_build:
@@ -40,7 +158,7 @@ class raxml_build:
         try:
             self._binary = self.args.cfg.get('raxml-ng', shutil.which('raxml-ng'))
         except KeyError:
-            self._binary = shutil.which('blastn')
+            self._binary = shutil.which('raxml-ng')
         if self._binary is None:
             self.log.error('RAxML-NG not installed')
             os._exit(1)  # this is no ordinary exit; it kills zombies, too!
@@ -56,7 +174,7 @@ class raxml_build:
         :return:
         """
         # check+parse msa, determine number of parallel raxml-ng instances and cpus for each
-        self.runs, self.cpus, self.msa = self._check_msa
+        self.runs, self.cpus, self.msa = self._check_msa()
 
         # keep track of finished prefixes:
         self._prefixes = []
@@ -145,7 +263,6 @@ class raxml_build:
         shutil.move(self._dir / '_sup.raxml.supportTBE', self.args.final_tree + '_TBE.nwk')
         self.log.info('final trees %s_[FBP,TBE].nwk' % self.args.final_tree)
 
-    @property
     def _check_msa(self):
         """
         Checks if the MSA can be understood by raxml-ng,
@@ -233,7 +350,6 @@ class raxml_build:
 def _run_sp(cmd):
     """
     Runs a command in a subprocess. Exceptions will be caught and logged, but cause exit.
-
     :param cmd: command that will be run
     :return: None
     """
@@ -243,9 +359,9 @@ def _run_sp(cmd):
         return subprocess.check_output(cmd, shell=True).decode('utf-8')
     except subprocess.CalledProcessError as e:
         if e.returncode == -2:
-            log.exception('RAxML user interrupt')
+            log.exception('ML user interrupt')
         else:
-            log.exception('RAxML process failed, returned %s\n' % str(e.returncode)
+            log.exception('ML process failed, returned %s\n' % str(e.returncode)
                           + e.output.decode('utf-8') if e.output is not None else '')
         os._exit(1)  # this is no ordinary exit; it kills zombies, too!
 

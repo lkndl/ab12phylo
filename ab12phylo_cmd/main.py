@@ -8,7 +8,7 @@ between them. The `--visualize` and `--view` entry points are in the :class:`phy
 
 import sys
 
-from ab12phylo_cmd import cli, i_o, msa, blast, raxml, phylo
+from ab12phylo_cmd import cli, i_o, msa, blast, ml, phylo
 
 
 def _main():
@@ -51,9 +51,9 @@ def _main():
             print('finished -p1 prep run', file=sys.stderr)
             exit(0)
 
-        # build trees with raxml-ng
-        raxml_threads = raxml.raxml_build(args)
-        raxml_threads.run()
+        # build trees with raxml-ng or iqtree2
+        ml_threads = ml.ml_build(args)
+        ml_threads.run()
 
         # wait for BLAST if necessary
         blaster.join()
@@ -63,9 +63,9 @@ def _main():
 
     else:
         print('starting -p2 finishing run', file=sys.stderr)
-        # build trees with raxml-ng
-        raxml_threads = raxml.raxml_build(args)
-        raxml_threads.run()
+        # build trees with raxml-ng or iqtree2
+        ml_threads = ml.ml_build(args)
+        ml_threads.run()
 
         # visualize best tree
         phylo.tree_build(args)
