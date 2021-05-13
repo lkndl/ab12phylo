@@ -270,7 +270,7 @@ class tree_page(ab12phylo_app_base):
 
         # get a list of all tip labels and whether they are selected
         id_and_ifsel = [(in_blue(_id), i in sel_idx) for i, _id in enumerate(
-            data.tree_anno_model.get_column(0))]
+            iface.tree.get_tip_labels()[::-1])]
 
         # move up in the tree: find the MRCA
         mrca = iface.tree.get_mrca_idx_from_tip_labels(
@@ -578,11 +578,11 @@ class tree_page(ab12phylo_app_base):
         if popgen:
             return
         if phy.svg:
-            iface.text = 'rendering svg msa -- SLOW'
+            iface.text = 'rendering svg with msa -- SLOW'
             iface.fig.savefig(msa.with_suffix('.svg'), transparent=True)
             iface.i += 1
         if phy.pdf:
-            iface.text = 'rendering pdf msa -- SLOW'
+            iface.text = 'rendering pdf with msa -- SLOW'
             iface.fig.savefig(msa.with_suffix('.pdf'), transparent=True, dpi=dpi)
             iface.i += 1
 
