@@ -43,10 +43,6 @@ class parser(argparse.ArgumentParser):
 
         # [modes]
         mod = parser.add_argument_group(self, title='RUN MODES')
-        mod.add_argument('-viz', '--visualize', action='store_true',
-                         help='invoke ab12phylo-visualize by appending ab12phylo-cmd command.')
-        mod.add_argument('-view', '--view', action='store_true',
-                         help='invoke ab12phylo-view by appending ab12phylo-cmd command.')
         parts = mod.add_mutually_exclusive_group()
         parts.add_argument('-p1', '--prepare', action='store_true',
                            help='run first part of ab12phylo-cmd, including BLAST but excluding RAxML-NG.')
@@ -54,6 +50,10 @@ class parser(argparse.ArgumentParser):
                            help='run second part of ab12phylo-cmd, beginning with RAxML-NG.')
         parts.add_argument('-px', '--add_xml', action='store_true',
                            help='after -p1 run; only read BLAST results. Pass file via -xml.')
+        mod.add_argument('-viz', '--visualize', action='store_true',
+                         help='invoke ab12phylo-visualize by appending ab12phylo-cmd command.')
+        mod.add_argument('-view', '--view', action='store_true',
+                         help='invoke ab12phylo-view by appending ab12phylo-cmd command.')
 
         # [I/O]
         ion = parser.add_argument_group(self, title='FILE I/O')
@@ -208,6 +208,8 @@ class parser(argparse.ArgumentParser):
                           default=path.abspath(path.join(path.dirname(__file__), 'config', 'config.yaml')),
                           type=lambda arg: arg if path.isfile(arg) else self.error('%s: invalid .config path'),
                           help='path to .yaml config file with defaults; command line arguments will override them.')
+        self.add_argument('-nt', '--max_threads', type=int,
+                          help='Limit the number of CPUs to use for AB12PHYLO.')
         self.add_argument('-version', '--version', action='store_true', help='print version information and exit.')
         self.add_argument('-test', '--test', action='store_true', help='Test run.')
         self.add_argument('-q', '--headless', action='store_true',

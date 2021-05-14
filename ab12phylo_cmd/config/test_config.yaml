@@ -50,7 +50,7 @@ evomodel: GTR+I+G  # no checks!
 #seed:
 metric: TBE  # [FBP, TBE]
 threshold: .7  # of best possible score
-#max_threads: 12
+max_threads: 64  # CPU limit
 min_dist: .01  # minimal distance in tree
 #min_plot_dist: 1
 replace: False  # if True, identical seqs will share one TreeNode

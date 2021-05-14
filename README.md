@@ -39,7 +39,8 @@ Samples missing for a single locus are discarded for all genes. Trimmed traces a
 
 A BLAST search for species annotation can be run on a local database, or via the public NCBI BLAST API. However, importing XML results of a [web BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi) should be preferred to remote API calls.  
 
-AB12PHYLO allows some editing of the resulting tree and can calculate basic population genetics statistics, with the graphical version both easier and far more capable for these applications. Please have a look at the wiki pages ([graphical](https://github.com/lkndl/ab12phylo/wiki/Graphical-interface), [commandline](https://github.com/lkndl/ab12phylo/wiki/Commandline-version#results--motif-search)) for more details.
+**C:**
+AB12PHYLO allows editing of the resulting tree and selection of taxa by label matching, shared ancestry or manual picking. For these selected sub-populations, some population genetics neutrality and diversity metrics are calculated from the conserved MSA positions only, with adjustable tolerance of gaps and unknown characters. The graphical version is both less cumbersome and far more capable for these applications; the wiki pages ([graphical](https://github.com/lkndl/ab12phylo/wiki/Graphical-interface), [commandline](https://github.com/lkndl/ab12phylo/wiki/Commandline-version#results--motif-search)) have more details.
 
 ### A simple `ab12phylo-cmd` example
 A simple real-world invocation of commandline AB12PHYLO might look like this:

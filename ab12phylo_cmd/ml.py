@@ -165,6 +165,9 @@ class raxml_build:
         # Make sure it's executable
         args.chmod_x(self._binary)
 
+        if self.args.ultrafast or self.args.findmodel:
+            self.log.warning('IQ-Tree parameters were passed for a RAxML-NG run, will be ignored.')
+
     def run(self):
         """
         Calls MSA check. Then creates ML search threads and keeps track of used prefixes.

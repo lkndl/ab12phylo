@@ -1,6 +1,7 @@
 # 2021 Leo Kaindl
 
 import logging
+import os
 import shutil
 import subprocess
 import sys
@@ -256,9 +257,9 @@ class gbl_page(ab12phylo_app_base):
             binary = shutil.which('Gblocks')
             local = bool(binary)
             # else pick deployed Gblocks
-            binary = binary if binary else str(repo.TOOLS / 'Gblocks_0.91b' / 'Gblocks').replace(' ', '\ ')
-            if not local and sys.platform in ['win32', 'cygwin']:
-                binary += '.exe'
+            binary = Path(binary) if binary else next(repo.TOOLS.rglob(f'Gblocks{os.getenv("PATHEXT", default="")}'))
+            # Make the file executable
+            binary.chmod(binary.stat().st_mode | binary.S_IEXEC)
             LOG.info('%s Gblocks' % ('local' if local else 'packaged'))
 
             # create base call -t=d sets the mode to nucleotides ... adapt?
