@@ -101,15 +101,14 @@ class ab12phylo_app_base(Gtk.Application):
         Gtk.Application.__init__(self, application_id='com.github.lkndl.ab12phylo',
                                  flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
         self.add_main_option('open', ord('o'), GLib.OptionFlags.IN_MAIN,  # ord converts it to integer
-                             GLib.OptionArg.STRING, 'project to load',
-                             'to open a project from the commandline. '
-                             'A .proj file next to a directory of data.')
+                             GLib.OptionArg.STRING, 'To open a project from the commandline',
+                             'path to .proj file to open')
         self.add_main_option('proceed', ord('p'), GLib.OptionFlags.IN_MAIN,
-                             GLib.OptionArg.NONE, 'try to proceed')
+                             GLib.OptionArg.NONE, 'Try to proceed to the next stage, do not use')
         self.add_main_option('version', ord('v'), GLib.OptionFlags.IN_MAIN,
-                             GLib.OptionArg.NONE, 'print version')
+                             GLib.OptionArg.NONE, 'Print version information and exit')
         self.add_main_option('initialize', ord('c'), GLib.OptionFlags.IN_MAIN,
-                             GLib.OptionArg.NONE, '(re-) download external tools and test data')
+                             GLib.OptionArg.NONE, '(re-) download non-python tools and test data')
         # fetch all named objects from the .glade XML
         iface = dict()
         for widget in Gtk.Builder().new_from_file(str(ab12phylo_app_base.TEMPLATE)).get_objects():

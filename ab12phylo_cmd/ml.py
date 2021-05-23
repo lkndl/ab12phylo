@@ -20,10 +20,10 @@ import pandas
 
 def ml_build(args):
     """This is just an intermediary to keep the code in main.py a tiny bit more concise."""
-    if args.ml_tool == 'raxml-ng':
-        return raxml_build(args)
-    else:
+    if args.ml_tool == 'iqtree2':
         return iqtree_build(args)
+    else:
+        return raxml_build(args)
 
 
 class iqtree_build:

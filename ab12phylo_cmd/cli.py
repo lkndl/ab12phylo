@@ -45,9 +45,9 @@ class parser(argparse.ArgumentParser):
         mod = parser.add_argument_group(self, title='RUN MODES')
         parts = mod.add_mutually_exclusive_group()
         parts.add_argument('-p1', '--prepare', action='store_true',
-                           help='run first part of ab12phylo-cmd, including BLAST but excluding RAxML-NG.')
+                           help='run first part of ab12phylo-cmd, including BLAST but excluding RAxML-NG/IQ-Tree.')
         parts.add_argument('-p2', '--finish', action='store_true',
-                           help='run second part of ab12phylo-cmd, beginning with RAxML-NG.')
+                           help='run second part of ab12phylo-cmd, beginning with RAxML-NG/IQ-Tree.')
         parts.add_argument('-px', '--add_xml', action='store_true',
                            help='after -p1 run; only read BLAST results. Pass file via -xml.')
         mod.add_argument('-viz', '--visualize', action='store_true',
@@ -145,7 +145,7 @@ class parser(argparse.ArgumentParser):
                          help='select a tool to re-construct a phylogenetic tree. RAxML-NG is the default '
                               'for Linux, but not available for Windows.')
         phy.add_argument('-st', '--start_trees', type=self._valid_start_trees,
-                         help='numbers of starting trees for raxml-ng tree inference: '
+                         help='numbers of starting trees for raxml-ng / iqtree2 tree inference: '
                               '[<int random trees>,<int parsimony-based trees>].')
         phy.add_argument('-bst', '--bootstrap', type=self._valid_bootstrap,
                          help='number of bootstrap trees. The MRE bootstrap convergence test in RAxML-NG may stop '
