@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pandas
 
+from ab12phylo_cmd.filter import chmod_x
+
 
 def ml_build(args):
     """This is just an intermediary to keep the code in main.py a tiny bit more concise."""
@@ -55,7 +57,7 @@ class iqtree_build:
             self.log.error('IQ-Tree 2 not installed')
             os._exit(1)  # this is no ordinary exit; it kills zombies, too!
         # Make sure it's executable
-        args.chmod_x(self._binary)
+        chmod_x(self._binary)
 
     def run(self):
 
@@ -163,7 +165,7 @@ class raxml_build:
             self.log.error('RAxML-NG not installed')
             os._exit(1)  # this is no ordinary exit; it kills zombies, too!
         # Make sure it's executable
-        args.chmod_x(self._binary)
+        chmod_x(self._binary)
 
         if self.args.ultrafast or self.args.findmodel:
             self.log.warning('IQ-Tree parameters were passed for a RAxML-NG run, will be ignored.')

@@ -13,7 +13,6 @@ import logging
 import os
 import random
 import shutil
-import stat
 import sys
 import zipfile
 from os import path
@@ -225,11 +224,12 @@ class parser(argparse.ArgumentParser):
         if self.args.version is True:
             sys.exit('ab12phylo: %s' % __version__)
 
-        cfg = Path(__file__).resolve().parent / 'conf.cfg'
+        cfg = Path(__file__).resolve().parent / 'config' / 'conf.cfg'
         if self.args.initialize is True:
             if cfg.is_file():
                 cfg.unlink()
             self._initialize()
+            exit(0)
 
         # test: switch config + set verbose
         if self.args.test is True:
@@ -359,16 +359,6 @@ class parser(argparse.ArgumentParser):
         cfg_parser.read(cfg)
         self.args.cfg = dict(cfg_parser['Paths'])
 
-        def chmod_x(p):
-            if type(p) == str:
-                p = Path(p).resolve()
-            try:
-                p.chmod(p.stat().st_mode | stat.S_IEXEC)
-            except FileNotFoundError:
-                pass
-
-        self.args.chmod_x = chmod_x
-
         # set some default values where options would be useless
         self.args.xml = path.join(self.args.dir, 'BLAST', 'local_blast+_result.xml')
         self.args.www_xml = path.join(self.args.dir, 'BLAST', 'online_blast_result.xml')
@@ -442,7 +432,7 @@ class parser(argparse.ArgumentParser):
         :return:
         """
         _dir = Path(__file__).resolve().parent
-        cfg = _dir / 'conf.cfg'
+        cfg = _dir / 'config' / 'conf.cfg'
         if cfg.is_file():
             return
 

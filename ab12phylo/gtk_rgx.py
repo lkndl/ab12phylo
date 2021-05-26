@@ -330,8 +330,13 @@ class rgx_page(ab12phylo_app_base):
         data.genes = sorted({gene for gene, is_ref, color in data.trace_store.get_column((4, 5, 7))
                              if not is_ref and color is not iface.RED and gene != ''})
         if not data.genes or data.genes == ['']:
+            iface.gene_list.set_label('no genes')
+            iface.gene_list.set_visible(False)
             return
-        LOG.debug('genes %s' % ':'.join(data.genes))
+        tx = ', '.join(data.genes)
+        LOG.debug(f'genes: {tx}')
+        iface.gene_list.set_label(tx)
+        iface.gene_list.set_visible(True)
         single_gene = data.genes[0] if len(data.genes) == 1 else False
 
         for i, row in enumerate(data.trace_store):
@@ -396,7 +401,7 @@ class rgx_page(ab12phylo_app_base):
                                 'separate expressions:\n%s\n%s\n%s\n\n' \
                                 'reverse read:\n%s\n\n' \
                                 'plate filenames:\n%s\n\n' \
-                                'trace filenames:\n%s' % content
+                                'trace filenames:\n%s\n' % content
 
         payload = json.dumps(payload, indent=2)
         try:
@@ -446,7 +451,7 @@ class rgx_page(ab12phylo_app_base):
         data.csvs.clear()
         data.seqdata.clear()
         data.record_order.clear()
-        records, warnings, errors = list(), set(), set()
+        records, warnings, errors = list(), set(), list()
 
         # use random but reproducible prefixes for references. different seed from raxml -> less confusion
         random.seed(data.seed + 2)
@@ -463,7 +468,7 @@ class rgx_page(ab12phylo_app_base):
             df.columns = list(string.ascii_uppercase[0:df.shape[1]])
             file, box = row[1:3]
             if box in data.csvs:
-                errors.add('overwrite wellsplate %s with %s' % (box, file))
+                errors.append('overwrite wellsplate %s with %s' % (box, file))
             data.csvs[box] = df.to_dict()
             iface.i += 1
 
@@ -475,6 +480,7 @@ class rgx_page(ab12phylo_app_base):
 
         # read in trace files
         LOG.debug('reading traces')
+        found_numerical = False
         for row in data.trace_store:
             file_path, file, coords, box, gene, is_ref, is_rev, color = row
             iface.text = 'reading %s' % file
@@ -484,7 +490,7 @@ class rgx_page(ab12phylo_app_base):
                 try:
                     records = [SeqIO.read(file_path, 'abi')]  # ABI traces also only contain a single record!
                 except UnicodeDecodeError:
-                    errors.add('ABI trace error %s' % file)
+                    errors.append('ABI trace error %s' % file)
             elif '~~' in file_path:
                 file_part, record_name = file_path.split('~~')
                 records = [fasta_records[file_part][record_name]]
@@ -492,7 +498,7 @@ class rgx_page(ab12phylo_app_base):
                 try:
                     records = SeqIO.parse(file_path, 'fasta')
                 except UnicodeDecodeError:
-                    errors.add('Seq file error %s' % file)
+                    errors.append('Seq file error %s' % file)
 
             # any kind of seq can define a new gene
             if gene not in data.seqdata:
@@ -508,10 +514,6 @@ class rgx_page(ab12phylo_app_base):
                         # swap out well coordinates for isolate numbers
                         (y, x) = (int(coords[1:]), coords[0])
                         _id = data.csvs[box][x][y]
-                        if _id in keys:
-                            # add suffix to duplicate IDs
-                            warnings.add('duplicate ID %s' % _id)
-                            _id = new_id(_id, keys)
                     except (KeyError, ValueError):
                         if len(data.csvs) == 0:
                             # record.id = record.name.replace(gene, '')
@@ -520,8 +522,18 @@ class rgx_page(ab12phylo_app_base):
                             else:
                                 _id = box + '_' + coords
                         else:
-                            errors.add('missing %s on wellsplate %s' % (coords, box))
+                            _id = record.id
+                            errors.append('missing %s on wellsplate %s' % (coords, box))
                     attributes = {'file': file_path, 'box': box, 'is_rev': is_rev}
+
+                    if _id.isdigit():
+                        # prepend a T to numerical IDs so toytree won't get confused
+                        _id = f'T{_id}'
+                        found_numerical = True
+                    if _id in keys:
+                        # add suffix to duplicate IDs
+                        warnings.add('duplicate ID %s' % _id)
+                        _id = new_id(_id, keys)
 
                 else:  # reference
                     # parse species and possibly strain
@@ -554,7 +566,7 @@ class rgx_page(ab12phylo_app_base):
                                   'reference_species': species if strain == species
                                   else species + ' strain ' + strain}
 
-                if is_rev:  # strange but possible
+                if is_rev:  # strange if it's a reference, but possible anyway
                     record = record.reverse_complement(record.id)
                 record = SeqRecord(record.seq, _id, description='', name='',
                                    letter_annotations=getattr(record, 'letter_annotations'))
@@ -566,6 +578,8 @@ class rgx_page(ab12phylo_app_base):
 
             iface.i += 1
 
+        if found_numerical:
+            warnings.add('Found records with purely numerical IDs; prepended a T to those.')
         iface.text = 'search missing samples'
         LOG.debug(iface.text)
         data.gene_ids = {g: set(gd.keys()) for g, gd in data.seqdata.items() if g in data.genes}
@@ -594,7 +608,6 @@ class rgx_page(ab12phylo_app_base):
         """
         Join a thread, then call one or more functions *afterwards*.
         Usually with the same args: gui. These params are stored in iface.
-        :param gui:
         :param errors:
         :param warnings:
         :return:
@@ -603,7 +616,7 @@ class rgx_page(ab12phylo_app_base):
         LOG.info('rgx thread idle')
         if errors or warnings:
             self.show_notification('File troubles', ['error: %s' % f for f in errors] +
-                                   ['warning: %s' % f for f in warnings], secs=10)
+                                   ['warning: %s' % f for f in warnings], secs=0)
         self.set_changed(PAGE, False)
 
         # *Now* go back to where you came from

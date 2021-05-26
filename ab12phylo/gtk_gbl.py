@@ -24,6 +24,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
 from ab12phylo import repo
+from ab12phylo_cmd.filter import chmod_x
 from ab12phylo.gtk_base import ab12phylo_app_base
 
 LOG = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ class gbl_page(ab12phylo_app_base):
 
         sel = iface.view_gbl.get_selection()
         sel.set_mode(Gtk.SelectionMode.MULTIPLE)
-        sel.connect('changed', self.keep_visible,
+        sel.connect('changed', self.keep_visible, iface.view_gbl,
                     iface.parallel_gbl.props.vadjustment.props, iface.tempspace)
         iface.view_gbl.connect('key_press_event', self.delete_and_ignore_rows,
                                PAGE, sel)  # in-preview deletion
@@ -259,7 +260,7 @@ class gbl_page(ab12phylo_app_base):
             # else pick deployed Gblocks
             binary = Path(binary) if binary else next(repo.TOOLS.rglob(f'Gblocks{os.getenv("PATHEXT", default="")}'))
             # Make the file executable
-            binary.chmod(binary.stat().st_mode | binary.S_IEXEC)
+            chmod_x(binary)
             LOG.info('%s Gblocks' % ('local' if local else 'packaged'))
 
             # create base call -t=d sets the mode to nucleotides ... adapt?
@@ -383,10 +384,10 @@ class gbl_page(ab12phylo_app_base):
 
         iface.text = 'concatenating MSAs'
         iface.tempspace.bak_ignore = {i for i in data.gbl.ignore_ids}
-        if 'aligner' not in iface:
-            iface.aligner, cmd = self.get_msa_build_cmd(
-                repo.toalgo(iface.msa_algo.get_active_text()), self.wd, data.genes)
-        iface.aligner.reset_paths(self.wd, self.wd / repo.PATHS.msa)
+        # if 'aligner' not in iface:
+        iface.aligner, cmd = self.get_msa_build_cmd(
+            repo.toalgo(iface.msa_algo.get_active_text()), self.wd, data.genes)
+        # iface.aligner.reset_paths(self.wd, self.wd / repo.PATHS.msa)
         data.msa_shape[2], data.msa_shape[3] = iface.aligner.concat_msa(gui=shared_ids)
         iface.text = 'computing SHA256 hash'
         LOG.debug(iface.text)

@@ -1,6 +1,5 @@
 # 2021 Leo Kaindl
 
-import configparser
 import logging
 import mmap
 import random
@@ -119,12 +118,15 @@ class ml_page(ab12phylo_app_base):
             else:
                 errors = list()
                 for path in paths:
-                    if 'FBP' in path.name.upper():
-                        shutil.copy(path, self.wd / repo.PATHS.fbp)
-                    elif 'TBE' in path.name.upper():
-                        shutil.copy(path, self.wd / repo.PATHS.tbe)
-                    else:
-                        errors.append(path.name)
+                    try:
+                        if 'FBP' in path.name.upper():
+                            shutil.copy(path, self.wd / repo.PATHS.fbp)
+                        elif 'TBE' in path.name.upper():
+                            shutil.copy(path, self.wd / repo.PATHS.tbe)
+                        else:
+                            errors.append(path.name)
+                    except shutil.SameFileError as sfe:
+                        errors.append(f'{path} is already in the project')
                 if errors:
                     self.show_message_dialog('Not immediately recognized as either '
                                              'tree_FBP.nwk or tree_TBE.nwk. You can also copy '
@@ -561,10 +563,7 @@ while getopts 'f:' flag; do
     *) print_usage
        exit 1 ;;\n  esac\ndone\n
 # find the minimum of the CPUs allowed and available
-if [ $cpu_limit -lt $cpus ]; then
-    used=$cpu_limit\nfi
-if [ $cpus -lt $cpu_limit ];then
-    used=$cpus\nfi\n
+used=$(($cpu_limit<$cpus ? $cpu_limit : $cpus))\n
 printf "${BLUE}$cpus${NC} CPUs available, use at most ${BLUE}$used${NC}.\nThis will proceed in a bit, interrupt with Ctrl+C\n"
 print_usage
 # make binary executable

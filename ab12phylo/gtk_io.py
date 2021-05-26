@@ -179,7 +179,7 @@ class io_page(ab12phylo_app_base):
 
         if not_found or duplicates:
             self.show_notification('File troubles', ['not found:%s' % f for f in not_found] +
-                                   ['duplicate:%s' % f for f in duplicates])
+                                   ['duplicate:%s' % f for f in duplicates], secs=0)
 
     def add_new_entries(self, model, new_paths, *args):
         """

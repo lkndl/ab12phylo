@@ -66,10 +66,10 @@ class ab12phylo_app_base(Gtk.Application):
     def do_startup(self):
         Gtk.Application.do_startup(self)
         # connect menu actions and shortcuts
-        for act, acc in zip(['new', 'open', '_import', 'save', 'save_as', 'help',
-                             'about', 'test', 'on_quit', 'change_colors'],
-                            ['n', 'o', 'i', 's', '<Shift>s', 'h',
-                             '<Shift>h', '<Shift>t', 'q', '<Shift>c']):
+        for act, acc in zip(['new', 'open', '_import', 'save', 'save_as', 'help', 'about',
+                             'test', 'on_quit', 'change_colors', 'zoom_in', 'zoom_out'],
+                            ['n', 'o', 'i', 's', '<Shift>s', 'h', '<Shift>h',
+                             '<Shift>t', 'q', '<Shift>c', 'plus', 'minus']):
             action = Gio.SimpleAction.new(act)
             action.connect('activate', self.__getattribute__(act))  # can pass parameters here
             self.add_action(action)
@@ -689,8 +689,7 @@ class ab12phylo_app_base(Gtk.Application):
             return False
 
     # MARK TreeViews
-    @staticmethod
-    def keep_visible(sel, adj, ns):
+    def keep_visible(self, sel, tv, adj, ns):
         """
         For keyboard navigation in previews, scroll the TreeView
         and keep the selection up-to-date
@@ -704,6 +703,16 @@ class ab12phylo_app_base(Gtk.Application):
         if 'sel' not in ns:
             ns.sel = tps
             return
+
+        try:
+            iface = self.iface
+            page = iface.notebook.get_current_page()
+            h_now = iface.zoomer.sizes[page][-1]
+            if h_now * 1.6 < tv.get_allocated_height():
+                # do not scroll if it would be jarring
+                return
+        except KeyError:
+            pass
 
         tp = tps - ns.sel
         ns.sel = tps
@@ -902,6 +911,15 @@ class ab12phylo_app_base(Gtk.Application):
             new_x, new_y, GdkPixbuf.InterpType.BILINEAR))
         return new_x, new_y
 
+    def reset_x_scale(self):
+        try:
+            zoomer = self.iface.zoomer
+            with GObject.signal_handler_block(zoomer.adj, zoomer.handle):
+                zoomer.adj.props.value = 1
+        except Exception as ex:
+            LOG.error('re-setting x_scale failed')
+            LOG.error(ex)
+
     def x_scale(self, adj, zoom_ns):
         """Horizontally scale a preview"""
         with GObject.signal_handler_block(adj, zoom_ns.handle):
@@ -954,80 +972,99 @@ class ab12phylo_app_base(Gtk.Application):
         :param page:
         :return:
         """
-        data = self.data
         iface = self.iface
         accel_mask = Gtk.accelerator_get_default_mod_mask()
         if event.state & accel_mask == Gdk.ModifierType.CONTROL_MASK:
             if not iface.rasterize.props.active:
                 LOG.info('won\'t rescale Matplotlib')
-                return
+                return True
             with GObject.signal_handler_block(iface.zoomer.adj, iface.zoomer.handle):
-                direction = event.get_scroll_deltas()[2]
-                a = iface.zoomer.adj.props
-                bak = a.value
-                min_w, min_h, w_now, h_now = iface.zoomer.sizes[page]
-                if direction > 0:  # scrolling down -> zoom out -> simple
-                    # go one tick down
-                    a.value = max(.2, a.value - a.step_increment)
-                    if a.value == bak:
-                        return
-                    new = a.value / bak
-                    LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
-                    if page == 2:
-                        self.scale(iface.qal_eventbox, new, new)
-                    elif page == 4:
-                        self.scale(iface.gbl_left_vp, new, new)
-                        self.scale(iface.gbl_right_vp, new, new)
-                    elif page == 7:
-                        self.scale(iface.msa_eventbox, new, new)
-                        self.scale(iface.tree_eventbox, new, new)
-                    # adjust the saved sizes
-                    iface.zoomer.sizes[page] = [min(min_w * new, min_w), min(min_h * new, min_h), w_now * new,
-                                                h_now * new]
-                else:
-                    a.value = min(a.upper, a.value + a.step_increment)
-                    new = a.value / bak
-                    if a.value == bak:
-                        return
-                    min_w, min_h, w_now, h_now = iface.zoomer.sizes[page]
-                    if w_now / min_w * new > 3 or h_now / min_h * new > 4:
-                        # re-load is due. jump ahead by incrementing again
-                        a.value = min(a.upper, a.value + a.step_increment)
-                        new = a.value / bak
-                        LOG.debug('re-loading images, scale xy: %.2f fold, %.1f' % (new, a.value))
-                        if page == 2:
-                            h_now = data.qal_shape[1]
-                            self.load_image(iface.zoomer, page, iface.qal_eventbox,
-                                            self.wd / repo.PATHS.preview,
-                                            data.qal_shape[0] * a.value * 2, data.qal_shape[1])
-                        elif page == 4:
-                            h_now = data.gbl_shape[1]
-                            self.load_image(iface.zoomer, page, iface.gbl_left_vp,
-                                            self.wd / repo.PATHS.left,
-                                            data.msa_shape[0] * a.value * 2, data.gbl_shape[1])
-                            self.load_image(iface.zoomer, page, iface.gbl_right_vp,
-                                            self.wd / repo.PATHS.right,
-                                            data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
-                        elif page == 7:
-                            h_now = data.phy.shape[1]
-                            self.load_image(iface.zoomer, page, iface.msa_eventbox,
-                                            self.wd / repo.PATHS.phylo_msa,
-                                            data.phy.shape[0] * a.value * 2, data.phy.shape[1])
-                            self.load_image(iface.zoomer, page, iface.tree_eventbox,
-                                            self.wd / (data.phy.tx + '.png'), h=data.phy.shape[1])
-                    else:
-                        LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
-                        # scale the easy way
-                        if page == 2:
-                            w_now, h_now = self.scale(iface.qal_eventbox, new, new)
-                        elif page == 4:
-                            self.scale(iface.gbl_left_vp, new, new)
-                            w_now, h_now = self.scale(iface.gbl_right_vp, new, new)
-                        elif page == 7:
-                            self.scale(iface.msa_eventbox, new, new)
-                            w_now, h_now = self.scale(iface.tree_eventbox, new, new)
-                    iface.zoomer.sizes[page] = [min_w, min_h, w_now, h_now]
-                iface.zoomer.bak = a.value
+                self.do_xy_scale(page, event.get_scroll_deltas()[2])
+                return True
+        return False
+
+    def do_xy_scale(self, page, direction):
+        """
+        Does the actual zoom in / zoom out on both mouse and key events
+        :param page:
+        :param direction:
+        :return:
+        """
+        data = self.data
+        iface = self.iface
+        a = iface.zoomer.adj.props
+        bak = a.value
+        min_w, min_h, w_now, h_now = iface.zoomer.sizes[page]
+        if direction > 0:  # scrolling down -> zoom out -> simple
+            # go one tick down
+            a.value = max(.2, a.value - a.step_increment)
+            if a.value == bak:
+                return
+            new = a.value / bak
+            LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
+            if page == 2:
+                self.scale(iface.qal_eventbox, new, new)
+            elif page == 4:
+                self.scale(iface.gbl_left_vp, new, new)
+                self.scale(iface.gbl_right_vp, new, new)
+            elif page == 7:
+                self.scale(iface.msa_eventbox, new, new)
+                self.scale(iface.tree_eventbox, new, new)
+            # adjust the saved sizes
+            iface.zoomer.sizes[page] = [min(min_w * new, min_w), min(min_h * new, min_h), w_now * new,
+                                        h_now * new]
+        else:
+            a.value = min(a.upper, a.value + a.step_increment)
+            new = a.value / bak
+            if a.value == bak:
+                return
+            min_w, min_h, w_now, h_now = iface.zoomer.sizes[page]
+            if w_now / min_w * new > 3 or h_now / min_h * new > 4:
+                # # re-load is due. jump ahead by incrementing again
+                # a.value = min(a.upper, a.value + a.step_increment)
+                new = a.value / bak
+                LOG.debug('re-loading images, scale xy: %.2f fold, %.1f' % (new, a.value))
+                if page == 2:
+                    h_now = data.qal_shape[1]
+                    self.load_image(iface.zoomer, page, iface.qal_eventbox,
+                                    self.wd / repo.PATHS.preview,
+                                    data.qal_shape[0] * a.value * 2, data.qal_shape[1])
+                elif page == 4:
+                    h_now = data.gbl_shape[1]
+                    self.load_image(iface.zoomer, page, iface.gbl_left_vp,
+                                    self.wd / repo.PATHS.left,
+                                    data.msa_shape[0] * a.value * 2, data.gbl_shape[1])
+                    self.load_image(iface.zoomer, page, iface.gbl_right_vp,
+                                    self.wd / repo.PATHS.right,
+                                    data.msa_shape[2] * a.value * 2, data.gbl_shape[1])
+                elif page == 7:
+                    h_now = data.phy.shape[1]
+                    self.load_image(iface.zoomer, page, iface.msa_eventbox,
+                                    self.wd / repo.PATHS.phylo_msa,
+                                    data.phy.shape[0] * a.value * 2, data.phy.shape[1])
+                    self.load_image(iface.zoomer, page, iface.tree_eventbox,
+                                    self.wd / (data.phy.tx + '.png'), h=data.phy.shape[1])
+            else:
+                LOG.debug('scale xy: %.2f fold, %.1f' % (new, a.value))
+                # scale the easy way
+                if page == 2:
+                    w_now, h_now = self.scale(iface.qal_eventbox, new, new)
+                elif page == 4:
+                    self.scale(iface.gbl_left_vp, new, new)
+                    w_now, h_now = self.scale(iface.gbl_right_vp, new, new)
+                elif page == 7:
+                    self.scale(iface.msa_eventbox, new, new)
+                    w_now, h_now = self.scale(iface.tree_eventbox, new, new)
+            iface.zoomer.sizes[page] = [min_w, min_h, w_now, h_now]
+        iface.zoomer.bak = a.value
+
+    def zoom_in(self, *_):
+        LOG.debug('zoom in ')
+        self.do_xy_scale(self.iface.notebook.get_current_page(), -1)
+
+    def zoom_out(self, *_):
+        LOG.debug('zoom out')
+        self.do_xy_scale(self.iface.notebook.get_current_page(), 1)
 
     # MARK images
     @staticmethod
@@ -1210,6 +1247,7 @@ class ab12phylo_app_base(Gtk.Application):
     @staticmethod
     def initialize():
         """
+        For Linux systems, create a desktop file.
         Try downloading the test data set.
         Trigger searching for BLAST+, RAxML-NG and iqtree2 installations via shutil.
         If a tool is not found on the $PATH or outdated, run prompts and installations.
@@ -1225,5 +1263,30 @@ class ab12phylo_app_base(Gtk.Application):
             for chunk in r.iter_content(chunk_size=128):
                 file.write(chunk)
         # leave as a ZIP!
+
+        if sys.platform in {'linux', 'darwin'}:
+            LOG.info('Try creating a desktop entry ...')
+            try:
+                for dsk in [Path('~/.local/share/applications'), Path('/usr/local/share/applications')]:
+                    dsk = dsk.expanduser()
+                    if not dsk.is_dir():
+                        continue
+                    with open(dsk / 'ab12phylo.desktop', 'w') as file:
+                        file.write('''[Desktop Entry]
+Name=AB12PHYLO
+Version={version}
+Comment=Integrated pipeline for ML phylogenetic inference from ABI trace and FASTA data
+Exec={py} {script}
+Icon={icon}
+Terminal=false
+Type=Application
+Categories=GTK;GNOME;Utility;Application;
+StartupNotify=true'''.format(version=__version__, py=sys.executable,
+                             script=repo.BASE_DIR / 'ab12phylo' / 'gtk_app.py',
+                             icon=repo.PATHS.icon_path.with_suffix('.svg')))
+                    break
+
+            except Exception as ex:
+                LOG.info(ex)
 
         fetch_non_python_tools('', ab12phylo_app_base.CONF, repo.TOOLS, LOG)

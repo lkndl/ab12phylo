@@ -61,6 +61,7 @@ class qal_page(ab12phylo_app_base):
         iface.view_qal.append_column(Gtk.TreeViewColumn(
             title='id', cell_renderer=Gtk.CellRendererText(),
             text=0, underline=2, strikethrough=3))
+        iface.view_qal.set_tooltip_column(1)
         # crt = Gtk.CellRendererToggle(radio=False)
         # crt.props.indicator_size = 13
         # iface.view_qal.append_column(Gtk.TreeViewColumn(
@@ -68,7 +69,7 @@ class qal_page(ab12phylo_app_base):
 
         sel = iface.view_qal.get_selection()
         sel.set_mode(Gtk.SelectionMode.MULTIPLE)
-        sel.connect('changed', self.keep_visible,
+        sel.connect('changed', self.keep_visible, iface.view_qal,
                     iface.parallel_qal.props.vadjustment.props, iface.tempspace)
         iface.view_qal.connect(
             'check-resize', self.get_height_resize, iface.qal_spacer, [iface.qal_win])

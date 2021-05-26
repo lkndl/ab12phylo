@@ -162,7 +162,8 @@ class blast_page(ab12phylo_app_base):
         GObject.idle_add(self.prep4)
         return True
 
-    def prep2(self, db_info, output, mo):
+    @staticmethod
+    def prep2(db_info, output, mo):
         db_info.set_tooltip_text('Underlining indicates a local database')
         for db in output:
             db = db.split('\t')
@@ -173,7 +174,8 @@ class blast_page(ab12phylo_app_base):
             except IndexError:
                 pass  # if directory does not exist or is empty
 
-    def prep3(self, remote_dbs, output, mo, remote_db):
+    @staticmethod
+    def prep3(remote_dbs, output, mo, remote_db):
         remote_dbs.clear()
         for i, db in enumerate(output.strip().split('\n')[1:]):
             db = db.split('\t')
@@ -283,6 +285,7 @@ class blast_page(ab12phylo_app_base):
 
         # define static parameters
         args = {'gui': True,
+                'cfg': ab12phylo_app_base.CFG,
                 'no_BLAST': False,
                 'genes': [gene],
                 'db': db_row[1],
@@ -359,14 +362,16 @@ class blast_page(ab12phylo_app_base):
         del iface.blast_wrapper, iface.blaster
         self.set_changed(PAGE, False)
 
-    def _save_custom_remote_db(self, entry, *args):
+    @staticmethod
+    def _save_custom_remote_db(entry, *args):
         combo = entry.get_parent().get_parent()
         if not combo.get_active_iter():
             tx = entry.get_text()
             combo.get_model().append([tx, -1])
             LOG.debug('entered remote_db %s' % tx)
 
-    def _df_with_sp(self, path):
+    @staticmethod
+    def _df_with_sp(path):
         LOG.debug('reading df')
         df = pd.read_csv(path, sep='\t', dtype={'id': str})
         df = df.set_index('id')
@@ -386,7 +391,10 @@ class blast_page(ab12phylo_app_base):
             gene = iface.blast_gene.get_active_text()
         LOG.debug('re-fill species annotations for %s' % gene)
         if 'df' not in iface.tempspace or fresh:
-            iface.tempspace.df = self._df_with_sp(self.wd / repo.PATHS.tsv)
+            try:
+                iface.tempspace.df = self._df_with_sp(self.wd / repo.PATHS.tsv)
+            except FileNotFoundError as ex:
+                LOG.debug(ex)
         df = iface.tempspace.df
         data.sp_model.clear()
         df = df.loc[df['gene'] == gene]
@@ -405,7 +413,6 @@ class blast_page(ab12phylo_app_base):
             data.sp_model.append(row)
 
     def _save_sp_edit(self, cell, path, new_text, tv, col):
-        data = self.data
         iface = self.iface
         if col == 0:
             return  # do not allow sample IDs to be changed

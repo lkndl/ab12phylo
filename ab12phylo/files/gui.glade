@@ -1545,7 +1545,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Add from folder. All files within your selected folder(s) of the types checked in the box to the right will be considered as trace files.</property>
+                            <property name="tooltip-text" translatable="yes">Add files from folder. All files with a file extension that is checked in the box to the left in the selected folder(s) or subdirectories will be parsed as trace files.</property>
                             <property name="halign">start</property>
                             <property name="valign">start</property>
                             <property name="vexpand">False</property>
@@ -1935,7 +1935,7 @@ Alternatively, a color legend would nicely fit here.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Add files with reference data. These will be highlighted in color on the right.</property>
+                            <property name="tooltip-text" translatable="yes">Add files with reference data. These will then be highlighted in color on the right.</property>
                             <property name="halign">start</property>
                             <property name="valign">start</property>
                             <property name="vexpand">False</property>
@@ -2293,18 +2293,6 @@ Alternatively, a color legend would nicely fit here.</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="vexpand">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">7</property>
-                                <property name="width">2</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkButtonBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -2488,6 +2476,41 @@ Alternatively, a color legend would nicely fit here.</property>
                               <packing>
                                 <property name="left-attach">0</property>
                                 <property name="top-attach">5</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="gene_list">
+                                <property name="name">gene_list</property>
+                                <property name="can-focus">False</property>
+                                <property name="no-show-all">True</property>
+                                <property name="tooltip-markup" translatable="yes">The genes in the analysis based on the current &lt;b&gt;gene&lt;/b&gt; column.</property>
+                                <property name="halign">end</property>
+                                <property name="valign">end</property>
+                                <property name="hexpand">False</property>
+                                <property name="vexpand">True</property>
+                                <property name="label" translatable="yes">number</property>
+                                <property name="justify">right</property>
+                                <property name="wrap">True</property>
+                                <property name="selectable">True</property>
+                                <property name="max-width-chars">26</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">7</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">end</property>
+                                <property name="vexpand">False</property>
+                                <property name="justify">right</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">7</property>
                               </packing>
                             </child>
                           </object>
@@ -2781,7 +2804,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="height-request">30</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Underlining indicates the record did not contain any phred scores, and may therefore be discarded depending on the settings below. All samples with wavy underlining or strikethrough will be discarded, as they were missing from some genes or of too low quality.</property>
                                         <property name="hexpand">False</property>
                                         <property name="vexpand">False</property>
                                         <property name="hscrollbar-policy">never</property>
@@ -2840,7 +2862,8 @@ Alternatively, a color legend would nicely fit here.</property>
                                         <property name="name">qal_win</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-markup" translatable="yes">Click to select samples. Hold &lt;b&gt;Ctrl&lt;/b&gt; or &lt;b&gt;Shift&lt;/b&gt; and click to select multiple samples. Press &lt;b&gt;Delete&lt;/b&gt; to remove sequences from the analysis.</property>
+                                        <property name="tooltip-markup" translatable="yes">Click to select samples. Hold &lt;b&gt;Ctrl&lt;/b&gt; or &lt;b&gt;Shift&lt;/b&gt; and click to select multiple samples. Press &lt;b&gt;Delete&lt;/b&gt; to remove sequences from the analysis.
+In the column on the left, &lt;u&gt;underlining&lt;/u&gt; indicates a record that did not contain any phred scores, and may therefore be discarded depending on the settings below. All samples with &lt;span underline='error'&gt;wavy underlining&lt;/span&gt; or &lt;s&gt;strikethrough&lt;/s&gt; will be discarded, as they were missing from some genes or of too low quality.</property>
                                         <property name="hexpand">True</property>
                                         <property name="hadjustment">qal_scroll_adj</property>
                                         <property name="hscrollbar-policy">external</property>
@@ -3551,7 +3574,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 </child>
                                 <child>
                                   <object class="GtkScrolledWindow">
-                                    <property name="height-request">100</property>
+                                    <property name="height-request">200</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hscrollbar-policy">never</property>
@@ -3786,7 +3809,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 </child>
                                 <child>
                                   <object class="GtkScrolledWindow">
-                                    <property name="height-request">100</property>
+                                    <property name="height-request">200</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hscrollbar-policy">never</property>
@@ -5149,7 +5172,6 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">db_info</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Fields are editable, and colouring indicates samples that were excluded earlier and won't be in the tree.</property>
                                     <child internal-child="selection">
                                       <object class="GtkTreeSelection"/>
                                     </child>
@@ -5171,6 +5193,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                     <property name="name">sp_info</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Fields are editable, and colouring indicates samples that were excluded earlier and won't be in the tree.</property>
                                     <child internal-child="selection">
                                       <object class="GtkTreeSelection"/>
                                     </child>

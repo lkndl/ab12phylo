@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ab12phylo?color=green)
-![github version](https://img.shields.io/static/v1?label=version&message=0.5.6-beta&color=brightgreen&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.5.7-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI traces and `FASTA` data. 
@@ -9,8 +9,6 @@ At its core, AB12PHYLO runs parallelized instances of [RAxML-NG](https://github.
 It enables visual, effortless sample identification based on phylogenetic position and sequence similarity, as well as population subset selection aided by metrics like Tajima's D for estimations of ongoing evolution, or definition of haplotypes.
 
 ![demo screen capture of AB12PHYLO](https://github.com/lkndl/ab12phylo/wiki/images/demo.gif)
-
-AB12PHYLO was developed to identify plant pathogen populations possibly under balancing selection with *Solanum chilense*, especially in the genus *Alternaria*. With multi-gene phylogenies still a widely-used method in spite of the rise of whole-genome sequencing, future application on fungal phytopathogens or host plants might be possible.
 
 
 ## Documentation

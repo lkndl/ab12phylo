@@ -176,7 +176,7 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
 
     def reset(self, *args):
         """
-        Depending on the currently visible page (either rgx or tree), reset the
+        Depending on the currently visible page (either rgx, trim, gbl or tree), reset the
         regex table or the tree. Handles the Reset button.
         """
         page = self.iface.notebook.get_current_page()
@@ -184,9 +184,11 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
             self.set_changed(1)
             self.reset_columns(do_parse=True)
         elif page == 2:
+            self.reset_x_scale()
             self.data.qal.ignore_ids = {g: set() for g in self.data.genes}
             self.start_trim()
         elif page == 4:
+            self.reset_x_scale()
             self.undrop_seqs()
         elif page == 7:
             self.reset_tree()

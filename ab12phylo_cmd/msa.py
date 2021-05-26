@@ -17,6 +17,8 @@ from time import time, sleep
 
 from Bio import SeqIO
 
+from ab12phylo_cmd.filter import chmod_x
+
 
 class msa_build:
     """Builds a Multiple Sequence Alignment"""
@@ -31,7 +33,6 @@ class msa_build:
         self.sep = args.sep
         self.missing_samples = args.missing_samples
         self.tools_path = path.join(path.abspath(path.dirname(__file__)), 'tools')
-        self.chmod_x = args.chmod_x
 
         # look for pre-installed version of selected algorithm
         self.binary = shutil.which(args.msa_algo)
@@ -156,7 +157,7 @@ class msa_build:
                 local = False
                 if sys.platform in ['win32', 'cygwin']:
                     binary += '.exe'
-            self.chmod_x(binary)
+            chmod_x(binary)
 
             # set Gblocks options
             b4 = 5

@@ -8,6 +8,7 @@ import stat
 import sys
 import tarfile
 import zipfile
+from pathlib import Path
 from subprocess import run, check_output, PIPE
 
 import requests
@@ -110,18 +111,6 @@ def mark_bad_stretches(seqrecord, min_phred, _len):
     return seqrecord
 
 
-def new_version(seqrecord, keys):
-    """
-    Updates duplicate isolate coordinates with increasing version number.
-    DEPRECATED, is endless loop.
-    """
-    while seqrecord.id in keys:
-        pos = seqrecord.id.find('.')
-        if pos == -1:
-            seqrecord.id += '.1'
-    return seqrecord
-
-
 def new_id(rid, keys):
     while rid in keys:
         match = regex.search(rid)
@@ -145,6 +134,16 @@ def mark_bad_bases(seqrecord, min_phred):
         else:
             seq += seqrecord.seq[pos]
     seqrecord.seq = MutableSeq(seq)
+
+
+def chmod_x(p):
+    """Make a file executable. Accepts either a string or a pathlib.Path"""
+    if type(p) == str:
+        p = Path(p).resolve()
+    try:
+        p.chmod(p.stat().st_mode | stat.S_IEXEC)
+    except FileNotFoundError:
+        pass
 
 
 def fetch_non_python_tools(suffix, cfg, save_dir, log):
@@ -210,10 +209,10 @@ def fetch_non_python_tools(suffix, cfg, save_dir, log):
                 html = BeautifulSoup(r.content, 'html.parser')
                 links = [tag['href'] for tag in html.find_all('a') if 'href' in tag.attrs]
 
-                suffix = '-x64-%s.tar.gz' % {'linux': 'linux', 'win32': 'win64',
-                                             'darwin': 'macosx'}[sys.platform]
+                archive_suffix = '-x64-%s.tar.gz' % {'linux': 'linux', 'win32': 'win64',
+                                                     'darwin': 'macosx'}[sys.platform]
 
-                right_one = [l for l in links if l.endswith(suffix)][0]
+                right_one = [l for l in links if l.endswith(archive_suffix)][0]
                 zf = save_dir / right_one
 
                 log.debug(f'Downloading {right_one} ... ')
@@ -292,6 +291,11 @@ def fetch_non_python_tools(suffix, cfg, save_dir, log):
         except Exception as ex:
             log.error('Downloading %s failed.' % tool)
             log.error(ex)
+
+    # when nothing was downloaded, check if the tools are there and save paths
+    for tool in ['blastn', 'raxml-ng', 'iqtree2']:
+        if tool not in paths:
+            find(tool)
 
     with open(cfg, 'w') as fh:
         fh.write(f'''

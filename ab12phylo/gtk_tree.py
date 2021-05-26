@@ -116,7 +116,7 @@ class tree_page(ab12phylo_app_base):
         # connect zooming and selecting
         iface.tree_sel = iface.view_msa_ids.get_selection()
         iface.tree_sel.set_mode(Gtk.SelectionMode.MULTIPLE)
-        iface.tree_sel.connect('changed', self.keep_visible,
+        iface.tree_sel.connect('changed', self.keep_visible, iface.view_msa_ids,
                                iface.parallel_tree.props.vadjustment.props,
                                iface.tempspace)
         iface.msa_eventbox.connect_after(
@@ -1157,7 +1157,11 @@ class tree_page(ab12phylo_app_base):
                 # therefore this inverted x domain.
             iface.i += 1
 
-            self.save_tree()
+            try:
+                self.save_tree()
+            except ValueError:
+                LOG.error('canvas to narrow, widening ...')
+                iface.spacespin.props.adjustment.props.value += .1
 
         except ET.ParseError as ex:
             e = 'XML ParseError. Invalid character in a sample ID? Please check metadata.tsv'
@@ -1349,7 +1353,7 @@ class tree_page(ab12phylo_app_base):
             self.show_notification(error, secs=10)
             self.win.show_all()
             return False
-        LOG.info('phylo thread idle')
+        LOG.info('plotting thread idle')
         self.iface.view_msa_ids.set_model(self.data.tree_anno_model)
         self.win.show_all()
         self.save(silent=True)

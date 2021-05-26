@@ -25,6 +25,7 @@ from Bio.Blast import NCBIWWW
 from numpy import nan
 
 from ab12phylo_cmd import cli, phylo
+from ab12phylo_cmd.filter import chmod_x
 
 
 def _add_xml(*args):
@@ -111,7 +112,6 @@ class blast_build(multiprocessing.Process):
         self.blast_dir = None
         os.makedirs(path.join(_args.dir, 'BLAST'), exist_ok=True)
         self.cfg = _args.cfg
-        self.chmod_x = _args.chmod_x
 
         # data in memory
         try:
@@ -182,7 +182,7 @@ class blast_build(multiprocessing.Process):
                     binary = shutil.which('blastn')
                 if binary is None:
                     raise ValueError('BLAST+ not installed (not on the $PATH)')
-                self.chmod_x(binary)
+                chmod_x(binary)
                 output = check_output(f'{binary} -version', shell=True).decode('utf-8')
                 version = [int(i) for i in output.split(',')[0].split(' ')[-1].split('.')]
                 if version[0] == 2 and version[1] >= 9 or version[0] > 2:
@@ -207,7 +207,7 @@ class blast_build(multiprocessing.Process):
             if self.update:
                 self.log.debug('downloading or updating BLAST+ db ...')
                 binary = blast_dir / 'update_blastdb.pl'
-                self.chmod_x(binary)
+                chmod_x(binary)
                 arg = f'{binary} --decompress {self.db} --passive --timeout {self.timeout}'
                 try:
                     p = run(arg, shell=True, stdout=PIPE, cwd=self.dbpath)
@@ -219,7 +219,7 @@ class blast_build(multiprocessing.Process):
             self.log.debug('checking %sBLAST db %s in %s'
                            % ('user-supplied ' if not self.update else '', self.db, self.dbpath))
             binary = blast_dir / 'blastdbcmd'
-            self.chmod_x(binary)
+            chmod_x(binary)
             db = path.join(self.dbpath, self.db)
             arg = f'{binary} -db "{db}" -info'
             try:
@@ -234,7 +234,7 @@ class blast_build(multiprocessing.Process):
             # run BLAST+
             self.log.debug('BLASTing locally ...')
             binary = blast_dir / 'blastn'
-            self.chmod_x(binary)
+            chmod_x(binary)
             arg = f'{binary} -db "{db}" -query "{self.FASTA}" -num_threads 3 ' \
                   f'-max_target_seqs 10 -outfmt 5 -out "{self.XML}"'
             start = time()

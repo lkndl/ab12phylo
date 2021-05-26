@@ -133,6 +133,7 @@ class reader:
         else:
             reverse_read = False
 
+        found_numerical = False
         with open(self.args.bad_seqs, 'w') as bad_seqs:
             bad_seqs.write('file\tid\tbox\tgene\tproblem\n')
 
@@ -187,6 +188,9 @@ class reader:
                                     bad_seqs.write('%s\t \t%s\t%s\tbox not found\n' % (file, box, gene))
                                     self.log.warning('SeqIO box %s not found %s' % (box, file))
 
+                            if record.id.isdigit():
+                                record.id = f'T{record.id}'  # prepend a T so toytree won't get confused
+                                found_numerical = True
                             # filter with whitelist
                             if sample_subsetting and record.id not in sample_whitelist:
                                 continue
@@ -241,6 +245,8 @@ class reader:
         if count == 0:
             self.log.error('No .ab1 ABI trace files found.')
             exit(1)
+        if found_numerical:
+            self.log.warning('Found records with purely numerical IDs; prepended a T to those.')
         if reverse_reads > 0:
             self.log.debug('Found %d reverse reads.' % reverse_reads)
         self.log.debug('Found %d .ab1 files in: %s' % (count, self.args.abi_dir))
