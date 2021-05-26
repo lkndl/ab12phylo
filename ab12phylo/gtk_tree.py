@@ -1360,7 +1360,7 @@ class tree_page(ab12phylo_app_base):
         self.data.change_indicator[PAGE] = False
         # *Now* go back to where you came from
         if self.iface.run_after:
-            func, args = self.iface.run_after
+            func, args, *_ = *self.iface.run_after, (), ()
             func(*args)
             self.iface.run_after = list()
         return False
