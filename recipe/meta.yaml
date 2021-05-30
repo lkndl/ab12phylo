@@ -1,5 +1,5 @@
 {% set name = "ab12phylo" %}
-{% set version = "0.5.10b0" %}
+{% set version = "0.5.11b0" %}
 
 package:
   name: "{{ name|lower }}"
@@ -7,7 +7,7 @@ package:
 
 source:
   url: "https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz"
-  sha256: 310cacb7c3176af490ddb96f58b00eb66d3ab44cab7233d87e2126f1525524a5
+  sha256: 58b22a3edd97448b3fbee9ebcfac32214390fc913be3bb87206a32d0345a5149
 
 build:
   number: 0
