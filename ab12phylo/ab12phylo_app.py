@@ -173,6 +173,8 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         page = self.iface.notebook.get_current_page()
         if page in self.re_runs:
             self.re_runs[page]()
+        else:
+            raise RuntimeWarning(f'page {page} has no re-run')
 
     def reset(self, *args):
         """
@@ -186,7 +188,8 @@ class ab12phylo_app(io_page, rgx_page, qal_page, msa_page,
         elif page == 2:
             self.reset_x_scale()
             self.data.qal.ignore_ids = {g: set() for g in self.data.genes}
-            self.start_trim()
+            self.start_read(run_after=[self.start_trim])
+            # self.start_trim()
         elif page == 4:
             self.reset_x_scale()
             self.undrop_seqs()

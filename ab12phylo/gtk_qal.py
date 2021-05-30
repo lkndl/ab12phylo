@@ -276,7 +276,7 @@ class qal_page(ab12phylo_app_base):
                 data.qal_model.append([rid, gene, underline, is_bad])
 
         except KeyError as ke:
-            LOG.error(ke)
+            LOG.exception(ke)
 
         if not rows:
             msg = 'No sequence data remains'

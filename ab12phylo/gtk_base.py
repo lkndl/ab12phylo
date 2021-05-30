@@ -77,12 +77,12 @@ class ab12phylo_app_base(Gtk.Application):
                                        accels=['<Control>%s' % acc])
         self.set_accels_for_action(detailed_action_name='app.help',
                                    accels=['F1', '<Control>h'])
-        # self.add_accelerator(accelerator='<Control>h', action_name='app.help', parameter=None)
 
         # fetch the paths from the config
         cfg_parser = configparser.ConfigParser()
         cfg_parser.read(ab12phylo_app_base.CONF)
-        ab12phylo_app_base.CFG.update(dict(cfg_parser['Paths']))
+        if 'Paths' in cfg_parser:
+            ab12phylo_app_base.CFG.update(dict(cfg_parser['Paths']))
 
     def do_command_line(self, cmd):
         options = cmd.get_options_dict().end().unpack()
@@ -211,7 +211,7 @@ class ab12phylo_app_base(Gtk.Application):
         iface.back.connect('clicked', self.step_back)
         self.bind_accelerator(self.accelerators, iface.back, '<Alt>Left')
         iface.refresh.connect('clicked', self.re_run)
-        self.bind_accelerator(self.accelerators, iface.refresh, 'Return')
+        # self.bind_accelerator(self.accelerators, iface.refresh, 'Return')
         self.bind_accelerator(self.accelerators, iface.refresh, 'F5')
         iface.reset.connect('clicked', self.reset)
         # any page change
@@ -741,8 +741,12 @@ class ab12phylo_app_base(Gtk.Application):
                     self.start_read(run_after=[self.start_trim])
                     return False
                 ns = self.data.qal
+                if 'ignore_ids' not in ns:
+                    ns.ignore_ids = dict()
             elif page == 4:
                 ns = self.data.gbl
+            else:
+                raise RuntimeWarning(f'row deletion called from wrong page {page}')
             for row in reversed(sorted(tree_path_iterator)):
                 if page == 2:
                     _id, gene = model[row][:2]
@@ -1243,6 +1247,7 @@ class ab12phylo_app_base(Gtk.Application):
             LOG.debug('changed colors')
             self.load_colorbar(None)  # force a re-plot
         self.iface.color_dialog.hide()
+        self.re_run()
 
     @staticmethod
     def initialize():
@@ -1282,11 +1287,13 @@ Terminal=false
 Type=Application
 Categories=GTK;GNOME;Utility;Application;
 StartupNotify=true'''.format(version=__version__, py=sys.executable,
-                             script=repo.BASE_DIR / 'ab12phylo' / 'gtk_app.py',
+                             script=repo.BASE_DIR / 'ab12phylo' / 'ab12phylo_app.py',
                              icon=repo.PATHS.icon_path.with_suffix('.svg')))
                     break
 
             except Exception as ex:
                 LOG.info(ex)
 
-        fetch_non_python_tools('', ab12phylo_app_base.CONF, repo.TOOLS, LOG)
+        fetch_non_python_tools('', ab12phylo_app_base.CONF,
+                               repo.PATHS.cmd_config,
+                               repo.TOOLS, LOG)

@@ -1115,7 +1115,7 @@ class tree_page(ab12phylo_app_base):
         elif phy.unro:
             raise NotImplementedError
         else:
-            assert False
+            raise RuntimeWarning
 
         phy.tx += '_TBE' if phy.tbe else '_FBP'
 
@@ -1378,6 +1378,7 @@ class tree_page(ab12phylo_app_base):
         """
         p = pane.get_position()
         w = pane.get_allocated_width()
+        p = min(p, w)
         self.iface.ratio = p / w
         if p > w / 2:
             scl.set_size_request(-1, -1)

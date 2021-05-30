@@ -357,7 +357,9 @@ class parser(argparse.ArgumentParser):
         # fetch the paths from the config
         cfg_parser = configparser.ConfigParser()
         cfg_parser.read(cfg)
-        self.args.cfg = dict(cfg_parser['Paths'])
+        self.args.cfg = dict()
+        if 'Paths' in cfg_parser:
+            self.args.cfg.update(dict(cfg_parser['Paths']))
 
         # set some default values where options would be useless
         self.args.xml = path.join(self.args.dir, 'BLAST', 'local_blast+_result.xml')
@@ -433,6 +435,7 @@ class parser(argparse.ArgumentParser):
         """
         _dir = Path(__file__).resolve().parent
         cfg = _dir / 'config' / 'conf.cfg'
+        other_cfg = _dir.parent / 'ab12phylo' / 'conf.cfg'
         if cfg.is_file():
             return
 
@@ -456,7 +459,7 @@ class parser(argparse.ArgumentParser):
         with zipfile.ZipFile(zf, 'r') as zo:
             zo.extractall(zf.with_suffix(''))
 
-        fetch_non_python_tools('-cmd', cfg, _dir / 'tools', log)
+        fetch_non_python_tools('-cmd', cfg, other_cfg, _dir / 'tools', log)
         sh.close()
         log.removeHandler(sh)
 

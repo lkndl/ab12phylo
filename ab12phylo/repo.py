@@ -27,7 +27,8 @@ PATHS = Namespace(**{
     'tbe': 'tree_TBE.nwk', 'tben': 'tree_TBE_annotated.nwk',
     'fbp': 'tree_FBP.nwk', 'fbpn': 'tree_FBP_annotated.nwk',
     'icon_path': BASE_DIR / 'ab12phylo' / 'files' / 'favi.png',
-    'modified_tree': 'modified_tree.nwk'
+    'modified_tree': 'modified_tree.nwk',
+    'cmd_config': BASE_DIR / 'ab12phylo_cmd' / 'config' / 'conf.cfg'
 })
 
 algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
@@ -139,7 +140,7 @@ version_regex = re.compile('\\.[\\d]+$')
 
 
 def inc_priv_timestamp():
-    return str(time()).replace('.', '')[6:]
+    return str(time())[6:17]
 
 
 help = {0: '<b>Welcome to AB12PHYLO!</b>      To show or hide this help, press '

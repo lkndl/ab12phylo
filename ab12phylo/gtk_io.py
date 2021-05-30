@@ -199,7 +199,7 @@ class io_page(ab12phylo_app_base):
             color = None  # iface.FG
             is_ref = False
         else:
-            assert False
+            raise RuntimeWarning(f'weird file type, neither ref, trace or csv')
 
         old_entries = [line[0] for line in model]
         dups, news = list(), list()

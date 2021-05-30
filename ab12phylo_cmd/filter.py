@@ -1,5 +1,6 @@
 # 2021 Leo Kaindl
 
+import configparser
 import copy
 import os
 import re
@@ -146,36 +147,60 @@ def chmod_x(p):
         pass
 
 
-def fetch_non_python_tools(suffix, cfg, save_dir, log):
+def fetch_non_python_tools(suffix, cfg, other_cfg, save_dir, log):
     """
     :param suffix: Indicator it this is ab12phylo -> '' or ab12phylo-cmd -> '-cmd'
     :param cfg: Path to the 'conf.cfg' file
+    :param other_cfg: Path to the 'conf.cfg' file for the other AB12PHYLO version
     :param save_dir: Installation target directory. Actually always ./tools, where . is where this file is
     :param log: logging.Logger instance
     :return:
     """
     paths = dict()
+    all_tools = ['blastn', 'raxml-ng', 'iqtree2']
+    skip = False
 
     def find(tool):
         try:
             exe = next(save_dir.rglob(f'{tool}{os.getenv("PATHEXT", default="")}'))
             # Make the file executable
             exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
+            log.info(f'Found {tool} at {exe}')
             paths[tool] = exe
         except StopIteration:
             pass
 
-    def prompt(tool, source):
+    def prompt(tool, source, alt_text=False):
         answer = ''
         while answer not in {'y', 'yes', 'n', 'no'}:
-            answer = input(f'Download {tool} from {source}? [y/n]').lower().strip()
+            if not alt_text:
+                answer = input(f'Download {tool} from {source}? [y/n]').lower().strip()
+            else:
+                answer = input('Import paths and skip re-download? [y/n]').lower().strip()
         return answer in {'y', 'yes'}
 
-    for tool in ['blastn', 'raxml-ng', 'iqtree2']:
+    if other_cfg.is_file():
+        other_paths = dict()
+        # fetch the paths from the config
+        cfg_parser = configparser.ConfigParser()
+        cfg_parser.read(other_cfg)
+        if 'Paths' in cfg_parser:
+            other_paths.update(dict(cfg_parser['Paths']))
+            if all(tool in other_paths for tool in all_tools):
+                # if all three paths are there, offer to skip the re-download
+                log.info(f'Found config for other AB12PHYLO version at {other_cfg}')
+                if prompt('', '', True):
+                    skip = True  # The user chose to not download new tools
+                    paths.update(other_paths)
+
+    for tool in all_tools:
+        if skip:
+            continue
 
         # Look for a local installation and check if it is recent enough
         exe = shutil.which(tool)
         if exe is not None:
+            log.info(f'Found {tool} at {exe}')
             if tool == 'blastn':
                 output = check_output(exe + ' -version', shell=True).decode('utf-8')
                 version = [int(i) for i in output.split(',')[0].split(' ')[-1].split('.')]
@@ -293,7 +318,7 @@ def fetch_non_python_tools(suffix, cfg, save_dir, log):
             log.error(ex)
 
     # when nothing was downloaded, check if the tools are there and save paths
-    for tool in ['blastn', 'raxml-ng', 'iqtree2']:
+    for tool in all_tools:
         if tool not in paths:
             find(tool)
 

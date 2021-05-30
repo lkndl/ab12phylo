@@ -177,8 +177,8 @@ class rgx_page(ab12phylo_app_base):
                 except (IndexError, ValueError):
                     errors, changed = True, True
                     model[i][-1] = iface.RED
-                except Exception:
-                    assert False
+                except Exception as ex:
+                    raise RuntimeWarning from ex
         self.set_changed(PAGE, changed)
         self.set_errors(PAGE, errors)
         if errors and sum(data.rx_fired) >= 5 and refresh_after:

@@ -169,8 +169,7 @@ class gbl_page(ab12phylo_app_base):
             good_block = 10
             bad_block = 8
         else:
-            LOG.error('illegal mode: ' + str(mode))
-            assert False
+            raise RuntimeWarning(f'illegal mode: {mode}')
 
         # configure(value, lower, upper, step-increment=1, page-increment=0, page-size=0)
         g.conserved.configure(conserved, n_seqs // 2 + 1, n_seqs, 1, 0, 0)
@@ -222,7 +221,8 @@ class gbl_page(ab12phylo_app_base):
             params = [flank, cons, bad, good, gaps]
             # check if they have changed
             if iface.tempspace.params == params and not force \
-                    and iface.tempspace.bak_ignore == data.gbl.ignore_ids:
+                    and iface.tempspace.bak_ignore == data.gbl.ignore_ids \
+                    and not self.get_changed(PAGE):
                 self.show_notification('MSA already trimmed with these parameters', secs=2)
                 return
             iface.tempspace.params = params

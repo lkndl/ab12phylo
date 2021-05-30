@@ -13,7 +13,7 @@ build:
   number: 0
   script: "{{ PYTHON }} -m pip install . -vv"
   entry_points:
-    - ab12phylo = ab12phylo.gtk_app:main
+    - ab12phylo = ab12phylo.ab12phylo_app:main
     - ab12phylo-cmd = ab12phylo_cmd.main:_main
     - ab12phylo-visualize = ab12phylo_cmd.phylo:_visualize
     - ab12phylo-view = ab12phylo_cmd.phylo:_view

@@ -1714,7 +1714,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="width-request">44</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">All extensions except '.ab1' will be interpreted as FASTA-formatted input.</property>
+                                <property name="tooltip-markup" translatable="yes">All extensions except &lt;i&gt;.ab1&lt;/i&gt; will be interpreted as FASTA-formatted input.</property>
                                 <property name="vexpand">False</property>
                                 <property name="search-column">0</property>
                                 <child internal-child="selection">
@@ -2408,7 +2408,7 @@ Alternatively, a color legend would nicely fit here.</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">end</property>
                                 <property name="vexpand">False</property>
-                                <property name="label" translatable="yes">plate:</property>
+                                <property name="label" translatable="yes">wellsplate:</property>
                                 <property name="justify">right</property>
                               </object>
                               <packing>
@@ -3267,7 +3267,7 @@ In the column on the left, &lt;u&gt;underlining&lt;/u&gt; indicates a record tha
                                     <property name="width-request">250</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-markup" translatable="yes">Horizontal scaling. For x-y scaling, hold &lt;b&gt;Ctrl&lt;/b&gt; and zoom via touchpad or the mouse wheel.</property>
+                                    <property name="tooltip-markup" translatable="yes">Horizontal scaling. For x-y scaling, hold &lt;b&gt;Ctrl&lt;/b&gt; and zoom via touchpad or the mouse wheel, or press &lt;b&gt;Ctrl +&lt;/b&gt; / &lt;b&gt;Ctrl -&lt;/b&gt;. </property>
                                     <property name="adjustment">h_scale_adj</property>
                                     <property name="round-digits">0</property>
                                     <property name="digits">0</property>
@@ -4599,7 +4599,7 @@ In the column on the left, &lt;u&gt;underlining&lt;/u&gt; indicates a record tha
                                     <property name="width-request">250</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-markup" translatable="yes">Horizontal scaling. For x-y scaling, hold &lt;b&gt;Ctrl&lt;/b&gt; and zoom via touchpad or the mouse wheel.</property>
+                                    <property name="tooltip-markup" translatable="yes">Horizontal scaling. For x-y scaling, hold &lt;b&gt;Ctrl&lt;/b&gt; and zoom via touchpad or the mouse wheel, or press &lt;b&gt;Ctrl +&lt;/b&gt; / &lt;b&gt;Ctrl -&lt;/b&gt;. </property>
                                     <property name="adjustment">h_scale_adj</property>
                                     <property name="round-digits">0</property>
                                     <property name="digits">0</property>
@@ -6630,7 +6630,7 @@ In the column on the left, &lt;u&gt;underlining&lt;/u&gt; indicates a record tha
                                                 <property name="width-request">250</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-markup" translatable="yes">Horizontal scaling. For x-y scaling, hold &lt;b&gt;Ctrl&lt;/b&gt; and zoom via touchpad or the mouse wheel.</property>
+                                                <property name="tooltip-markup" translatable="yes">Horizontal scaling. For x-y scaling, hold &lt;b&gt;Ctrl&lt;/b&gt; and zoom via touchpad or the mouse wheel, or press &lt;b&gt;Ctrl +&lt;/b&gt; / &lt;b&gt;Ctrl -&lt;/b&gt;. </property>
                                                 <property name="valign">end</property>
                                                 <property name="adjustment">h_scale_adj</property>
                                                 <property name="round-digits">0</property>
