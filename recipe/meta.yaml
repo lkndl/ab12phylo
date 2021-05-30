@@ -1,5 +1,5 @@
 {% set name = "ab12phylo" %}
-{% set version = "0.4.28b0" %}
+{% set version = "0.5.10b0" %}
 
 package:
   name: "{{ name|lower }}"
@@ -30,6 +30,7 @@ requirements:
     - biopython
     - pyyaml
     - jinja2
+    - lxml
     - xmltramp2
     - toyplot
     - toytree <=1.2.0
@@ -39,8 +40,11 @@ requirements:
     - svgutils
     - pillow
     - requests
+    - beautifulsoup4
     - pygobject
     - gtk3
+    - hicolor-icon-theme
+    - adwaita-icon-theme
 
 test:
   imports:
