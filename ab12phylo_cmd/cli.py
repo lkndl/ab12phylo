@@ -320,7 +320,7 @@ class parser(argparse.ArgumentParser):
                     [commandline.append(v) for v in val]
                     if key == 'msa_viz' and not val:
                         commandline.append('png')
-                elif val not in [None, False, True]:
+                elif val not in [None, False, True] or key == 'max_threads':
                     commandline += ['--%s' % key, str(val)]
                 elif val is True:
                     commandline.append('--%s' % key)
