@@ -388,7 +388,7 @@ class ml_page(ab12phylo_app_base):
                                      '"{iqtree2}" -s "{msa}" -m "{evo_model}{model_modifier}" '
                                      '-te "{ml_prefix}.treefile" -b {bootstraps} '
                                      '-seed {seed} -nt AUTO -ntmax {cpus} -redo '
-                                     '--prefix "{bs_prefix}" ')
+                                     '--prefix "{bs_prefix}" -quiet')
                     else:
                         calls.append('# ultrafast bootstrapping\n'
                                      '"{iqtree2}" -s "{msa}" -m "{evo_model}{model_modifier}" '
