@@ -124,8 +124,7 @@ class gbl_page(ab12phylo_app_base):
         iface.gbl_preset.set_active_id(data.gbl.preset)
         iface.gaps.set_active_id(data.gbl.gaps)
         for w_name in ['conserved', 'flank', 'good_block', 'bad_block']:
-            p = iface.tempspace.__getattribute__(w_name).props
-            p.value, p.lower, p.upper = data.gbl.__getattribute__(w_name)
+            iface.tempspace.__getattribute__(w_name).configure(*data.gbl.__getattribute__(w_name), 1, 0, 0)
             # configure(value, lower, upper, step-increment=1, page-increment=0, page-size=0)
 
     def re_preset(self, gbl_preset):
