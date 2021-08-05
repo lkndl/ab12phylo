@@ -12,6 +12,7 @@ import re
 import shutil
 import string
 import subprocess
+import sys
 import threading
 from pathlib import Path
 
@@ -22,7 +23,7 @@ from ab12phylo_cmd.filter import chmod_x
 
 def ml_build(args):
     """This is just an intermediary to keep the code in main.py a tiny bit more concise."""
-    if args.ml_tool == 'iqtree2':
+    if args.ml_tool == 'iqtree2' or sys.platform == 'win32':
         return iqtree_build(args)
     else:
         return raxml_build(args)
