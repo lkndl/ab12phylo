@@ -11,7 +11,7 @@ try:
     import gi
 
     gi.require_version('Gtk', '3.0')
-except ModuleNotFoundError as ex:
+except (ImportError, ModuleNotFoundError) as ex:
     LOG.exception(ex)
     from subprocess import run, PIPE
     import shlex
