@@ -17,6 +17,7 @@ dependencies:
   - pygobject
   - python
   - raxml-ng
+  - ghostscript
   - pip:
     - biopython
     - importlib-metadata
