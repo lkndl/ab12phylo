@@ -27,8 +27,8 @@ or
 pip install ab12phylo
 ```
 
-| :memo: | WINDOWS   |
-|--------|:----------|
+| :memo: | WINDOWS USERS |
+|--------|:--------------|
 
 *Windows users **must** use Anaconda, and run `ab12phylo-cmd --initialize` before starting the graphical `ab12phylo`!*
 

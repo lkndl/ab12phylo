@@ -57,7 +57,9 @@ class msa_page(ab12phylo_app_base):
             return
         if remote:
             data.msa.algo = repo.toalgo(iface.remote_algo.get_active_text())
-            client = repo.TOOLS / 'MSA_clients' / (data.msa.algo.strip('.exe') + '.py')
+            if data.msa.algo.endswith('.exe'):
+                data.msa.algo = data.msa.algo[:-4]
+            client = repo.TOOLS / 'MSA_clients' / (data.msa.algo + '.py')
             self.set_helpers('%s %s ' % (sys.executable, client), iface.remote_help,
                              data.msa.remote_cmd, data.msa.algo, True, iface.remote_cmd)
         else:
