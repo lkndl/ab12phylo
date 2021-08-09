@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ab12phylo?color=green)
-![github version](https://img.shields.io/static/v1?label=version&message=0.5.14-beta&color=brightgreen&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.5.16-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI traces and `FASTA` data. 
@@ -30,7 +30,7 @@ pip install ab12phylo
 | :memo: | WINDOWS USERS |
 |--------|:--------------|
 
-*Windows users **must** use Anaconda, and run `ab12phylo-cmd --initialize` before starting the graphical `ab12phylo`!*
+*Windows users **must** use Anaconda, and run `ab12phylo-init` before starting the graphical `ab12phylo`!*
 
 When AB12PHYLO is first run, it will check the system for three important non-python tools: RAxML-NG, IQ-Tree 2 and BLAST+. If they are not installed or outdated, AB12PHYLO can download the latest static binaries from GitHub or the NCBI respectively. Check the [wiki](https://github.com/lkndl/ab12phylo/wiki/Installation) for more details, troubleshooting, installing from source or updating the package.  
 As implied above, start the graphical version via `ab12phylo` from the terminal, and invoke the commandline version via `ab12phylo-cmd`.
