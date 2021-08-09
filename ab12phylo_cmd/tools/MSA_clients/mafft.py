@@ -3,7 +3,7 @@
 
 ###############################################################################
 #
-# Copyright 2012-2018 EMBL - European Bioinformatics Institute
+# Copyright 2012-2021 EMBL - European Bioinformatics Institute
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,8 +30,10 @@
 from __future__ import print_function
 
 import os
+import ssl
 import sys
 import time
+import certifi
 import requests
 import platform
 from xmltramp2 import xmltramp
@@ -170,7 +172,7 @@ def restRequest(url):
         http_headers = {u'User-Agent': user_agent}
         req = Request(url, None, http_headers)
         # Make the request (HTTP GET).
-        reqH = urlopen(req)
+        reqH = urlopen(req, context=ssl.create_default_context(cafile=certifi.where()))
         resp = reqH.read()
         contenttype = reqH.info()
 
@@ -262,7 +264,8 @@ def serviceRun(email, title, params):
         http_headers = {u'User-Agent': user_agent}
         req = Request(requestUrl, None, http_headers)
         # Make the submission (HTTP POST).
-        reqH = urlopen(req, requestData.encode(encoding=u'utf_8', errors=u'strict'))
+        reqH = urlopen(req, requestData.encode(encoding=u'utf_8', errors=u'strict'),
+                       context=ssl.create_default_context(cafile=certifi.where()))
         jobId = unicode(reqH.read(), u'utf-8')
         reqH.close()
     except HTTPError as ex:
