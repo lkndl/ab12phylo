@@ -123,6 +123,7 @@ def tree_view(_dir):
     # start CGI server
     try:
         py3 = sys.executable
+        py3 = py3 if ' ' not in py3 else f'"{py3}"'
         log.debug('python3 executable at %s' % py3)
         log.info('starting CGI server on port: %d for 20min' % port)
         subprocess.run('%s -m http.server --cgi %d' % (py3, port), shell=True,

@@ -107,7 +107,7 @@ class msa_build:
                 self.algo = 'tcoffee'
 
             # create base call
-            arg = '%s "%s" --email %s --outfile "%s" --sequence "%s" ' \
+            arg = '"%s" "%s" --email %s --outfile "%s" --sequence "%s" ' \
                   % (sys.executable, path.join(self.tools_path, 'MSA_clients', self.algo + '.py'),
                      self.email, path.join(self.dir, gene, 'msa'), fasta)
 
