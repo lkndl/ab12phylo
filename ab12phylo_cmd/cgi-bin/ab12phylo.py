@@ -175,7 +175,8 @@ def _diversity_stats(gene_now, records, limits, poly):
 
 cgitb.enable()
 # cgi.test()
-print('Content-type: text/html\n\n')
+print('Content-type: text/html')
+print('')
 
 # get form data
 form = cgi.FieldStorage()
