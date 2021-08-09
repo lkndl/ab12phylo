@@ -18,12 +18,10 @@ from time import sleep
 import gi
 import matplotlib
 import pandas as pd
-import requests
 from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import ListedColormap
 
-from ab12phylo_cmd.filter import fetch_non_python_tools
-from ab12phylo import repo
+from ab12phylo import repo, ab12phylo_init
 from ab12phylo.__init__ import __version__
 from ab12phylo.gtk_proj import project_dataset
 from ab12phylo_cmd import msa
@@ -89,7 +87,8 @@ class ab12phylo_app_base(Gtk.Application):
         if 'version' in options:
             sys.exit('ab12phylo: %s' % __version__)
         if 'initialize' in options or not ab12phylo_app_base.CONF.is_file():
-            self.initialize()
+            # TODO try running init script, make sure it's visible in windows
+            ab12phylo_init.main()
         if 'open' in options:
             self.load(options['open'])
         if 'proceed' in options:
@@ -1249,51 +1248,3 @@ class ab12phylo_app_base(Gtk.Application):
         self.iface.color_dialog.hide()
         self.re_run()
 
-    @staticmethod
-    def initialize():
-        """
-        For Linux systems, create a desktop file.
-        Try downloading the test data set.
-        Trigger searching for BLAST+, RAxML-NG and iqtree2 installations via shutil.
-        If a tool is not found on the $PATH or outdated, run prompts and installations.
-        :return:
-        """
-        LOG.info('Initializing ab12phylo:')
-
-        LOG.info('Downloading test data ...')
-        r = requests.get('https://github.com/lkndl/ab12phylo/wiki/test_data.zip',
-                         stream=True, timeout=20)
-        zf = repo.BASE_DIR / 'ab12phylo' / 'test_data.zip'
-        with open(zf, 'wb') as file:
-            for chunk in r.iter_content(chunk_size=128):
-                file.write(chunk)
-        # leave as a ZIP!
-
-        if sys.platform in {'linux', 'darwin'}:
-            LOG.info('Try creating a desktop entry ...')
-            try:
-                for dsk in [Path('~/.local/share/applications'), Path('/usr/local/share/applications')]:
-                    dsk = dsk.expanduser()
-                    if not dsk.is_dir():
-                        continue
-                    with open(dsk / 'ab12phylo.desktop', 'w') as file:
-                        file.write('''[Desktop Entry]
-Name=AB12PHYLO
-Version={version}
-Comment=Integrated pipeline for ML phylogenetic inference from ABI trace and FASTA data
-Exec={py} {script}
-Icon={icon}
-Terminal=false
-Type=Application
-Categories=GTK;GNOME;Utility;Application;
-StartupNotify=true'''.format(version=__version__, py=sys.executable,
-                             script=repo.BASE_DIR / 'ab12phylo' / 'ab12phylo_app.py',
-                             icon=repo.PATHS.icon_path.with_suffix('.svg')))
-                    break
-
-            except Exception as ex:
-                LOG.info(ex)
-
-        fetch_non_python_tools('', ab12phylo_app_base.CONF,
-                               repo.PATHS.cmd_config,
-                               repo.TOOLS, LOG)

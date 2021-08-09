@@ -1,5 +1,5 @@
 {% set name = "ab12phylo" %}
-{% set version = "0.5.14b0" %}
+{% set version = "0.5.16b0" %}
 
 package:
   name: "{{ name|lower }}"
@@ -14,6 +14,7 @@ build:
   script: "{{ PYTHON }} -m pip install . -vv"
   entry_points:
     - ab12phylo = ab12phylo.ab12phylo_app:main
+    - ab12phylo-init = ab12phylo.ab12phylo_init:main
     - ab12phylo-cmd = ab12phylo_cmd.main:_main
     - ab12phylo-visualize = ab12phylo_cmd.phylo:_visualize
     - ab12phylo-view = ab12phylo_cmd.phylo:_view
