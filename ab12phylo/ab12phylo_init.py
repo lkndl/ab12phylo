@@ -20,13 +20,14 @@ def check_pygobject():
         import gi
 
         gi.require_version('Gtk', '3.0')
-    except (ImportError, ModuleNotFoundError) as ex:
+    except (ImportError, ModuleNotFoundError, ValueError) as ex:
         LOG.exception(ex)
 
         from subprocess import run, PIPE
-        import shlex
         import shutil
         import getpass
+        import os
+        os.system('color')  # enable color console on windows
 
         yes = {'y', 'yes'}
         yes_or_no = yes.union({'n', 'no'})
@@ -60,7 +61,7 @@ def check_pygobject():
             print(f'\033[94m{sys.prefix}\033[0m')
             for arg in [run_1, run_2]:
                 print(f'\033[94m{arg}\033[0m')
-                proc = run(shlex.split(arg))
+                proc = run(arg, shell=True)
                 if proc.returncode != 0:
                     exit(1)
             try:
@@ -99,7 +100,7 @@ def check_pygobject():
 
             print(f'\033[94m{apt_call}\033[0m')
             try:
-                proc = run(shlex.split(apt_call))
+                proc = run(apt_call, shell=True)
                 if proc.returncode != 0:
                     exit(1)
             except Exception as ex:
