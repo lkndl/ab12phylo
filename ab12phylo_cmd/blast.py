@@ -213,7 +213,10 @@ class blast_build(multiprocessing.Process):
                     arg = f"{shutil.which('perl')} {arg}"
                 try:
                     self.log.debug(arg)
-                    p = run(arg, shell=True, stdout=PIPE, cwd=self.dbpath, creationflags=0x8000000)
+                    if sys.platform in ['win32', 'cygwin']:
+                        p = run(arg, shell=True, stdout=PIPE, cwd=self.dbpath, creationflags=0x8000000)
+                    else:
+                        p = run(arg, shell=True, stdout=PIPE, cwd=self.dbpath)
                     self.log.debug(p.stdout.decode('utf-8').strip())
                 except CalledProcessError as e:
                     self.log.exception('BLAST+ db update failed, returned code %d' % e.returncode)
@@ -243,7 +246,10 @@ class blast_build(multiprocessing.Process):
             start = time()
             self.log.debug(arg)
             try:
-                run(arg, shell=True, check=True, creationflags=0x8000000)
+                if sys.platform in ['win32', 'cygwin']:
+                    run(arg, shell=True, check=True, creationflags=0x8000000)
+                else:
+                    run(arg, shell=True, check=True)
                 self.log.info(f'finished BLAST+ in {(time() - start):.2f} sec')
             except CalledProcessError as e:
                 self.log.exception('BLAST failed, returned %d\n%s'

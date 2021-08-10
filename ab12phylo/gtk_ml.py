@@ -518,8 +518,12 @@ rm pipe
             # For RAxML, the first call is the MSA check - which is quick and useful.
             if not (mode == 'export' and ml.tool == 'iqtree2'):
                 # read realtime RAxML output line by line
-                proc = Popen(args=shlex.split(arg.format(**format_args)),
-                             stdout=PIPE, stderr=PIPE, creationflags=CREATE_NO_WINDOW)
+                if sys.platform in ['win32', 'cygwin']:
+                    proc = Popen(args=shlex.split(arg.format(**format_args)),
+                                 stdout=PIPE, stderr=PIPE, creationflags=CREATE_NO_WINDOW)
+                else:
+                    proc = Popen(args=shlex.split(arg.format(**format_args)),
+                                 stdout=PIPE, stderr=PIPE)
                 while True and not iface.pill2kill.is_set():
                     line = proc.stdout.readline()
                     if proc.poll() is not None:
