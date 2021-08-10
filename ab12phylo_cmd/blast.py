@@ -209,8 +209,11 @@ class blast_build(multiprocessing.Process):
                 binary = blast_dir / 'update_blastdb.pl'
                 chmod_x(binary)
                 arg = f'{binary} --decompress {self.db} --passive --timeout {self.timeout}'
+                if sys.platform in ['win32', 'cygwin']:
+                    arg = f"{shutil.which('perl')} {arg}"
                 try:
-                    p = run(arg, shell=True, stdout=PIPE, cwd=self.dbpath)
+                    self.log.debug(arg)
+                    p = run(arg, shell=True, stdout=PIPE, cwd=self.dbpath, creationflags=0x8000000)
                     self.log.debug(p.stdout.decode('utf-8').strip())
                 except CalledProcessError as e:
                     self.log.exception('BLAST+ db update failed, returned code %d' % e.returncode)
@@ -240,7 +243,7 @@ class blast_build(multiprocessing.Process):
             start = time()
             self.log.debug(arg)
             try:
-                run(arg, shell=True, check=True)
+                run(arg, shell=True, check=True, creationflags=0x8000000)
                 self.log.info(f'finished BLAST+ in {(time() - start):.2f} sec')
             except CalledProcessError as e:
                 self.log.exception('BLAST failed, returned %d\n%s'

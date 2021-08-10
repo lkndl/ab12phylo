@@ -6955,6 +6955,7 @@ In the column on the left, &lt;u&gt;underlining&lt;/u&gt; indicates a record tha
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
                             <property name="no-show-all">True</property>
+                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;F5&lt;/b&gt;</property>
                             <child>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
@@ -7003,6 +7004,7 @@ In the column on the left, &lt;u&gt;underlining&lt;/u&gt; indicates a record tha
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;Alt&lt;/b&gt;+&lt;b&gt;Left&lt;/b&gt;</property>
                             <child>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
@@ -7049,6 +7051,7 @@ In the column on the left, &lt;u&gt;underlining&lt;/u&gt; indicates a record tha
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;Alt&lt;/b&gt;+&lt;b&gt;Right&lt;/b&gt;</property>
                             <child>
                               <object class="GtkBox">
                                 <property name="visible">True</property>

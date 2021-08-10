@@ -368,7 +368,7 @@ class gbl_page(ab12phylo_app_base):
                 mask = pseudo_seq
             # map the Gblocks mask to the original MSA sites
             line_blocks = [usable_sites[i] for i, char in enumerate(mask.seq) if char == '#']
-            LOG.debug(line_blocks)
+            # LOG.debug(line_blocks)
             if not line_blocks:
                 err = '%s: no good blocks' % gene
                 LOG.error(err)
@@ -381,6 +381,7 @@ class gbl_page(ab12phylo_app_base):
         data.msa_lens = msa_lens
 
         iface.text = 'concatenating MSAs'
+        LOG.debug(iface.text)
         iface.tempspace.bak_ignore = {i for i in data.gbl.ignore_ids}
         # if 'aligner' not in iface:
         iface.aligner, cmd = self.get_msa_build_cmd(

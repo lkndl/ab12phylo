@@ -32,10 +32,17 @@ PATHS = Namespace(**{
     'cmd_config': BASE_DIR / 'ab12phylo_cmd' / 'config' / 'conf.cfg'
 })
 
-algos = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
-         'RAxML-NG': 'raxml-ng', 'IQ-Tree2': 'iqtree2', 'FastTree': 'FastTree'}
-toalgo = lambda c: algos[c] + ['', '.exe'][sys.platform == 'win32']
-toname = lambda c: {'raxml-ng': 'RAxML-NG', 'iqtree2': 'IQ-Tree2'}.get(c, 'unknown')
+
+def toalgo(c, suffix=False):
+    algo = {'MAFFT': 'mafft', 'Clustal Omega': 'clustalo', 'MUSCLE': 'muscle', 'T-Coffee': 'tcoffee',
+            'RAxML-NG': 'raxml-ng', 'IQ-Tree2': 'iqtree2', 'FastTree': 'FastTree'}[c]
+    if suffix and sys.platform in ['win32', 'cygwin']:
+        algo += '.exe'
+    return algo
+
+
+toname = lambda c: {'raxml-ng': 'RAxML-NG', 'iqtree2': 'IQ-Tree2',
+                    'iqtree2.exe': 'IQ-Tree2'}.get(c, 'unknown')
 NUCLEOTIDES = ['A', 'C', 'G', 'T', 'N', 'else', '-', ' ', 'S', '?']
 toint_map = dict(zip(NUCLEOTIDES, range(len(NUCLEOTIDES))))
 toint = lambda c: toint_map.get(c, 5)

@@ -86,7 +86,10 @@ class msa_build:
             arg = '%s -in "%s" -out "%s" -output fasta_aln -type dna ' \
                   % (self.binary, fasta, raw_msa)
         else:
-            assert False
+            if no_run:
+                arg = ''  # when we're only interested in the object and on windows
+            else:
+                assert False, 'invalid MSA algorithm selected: %s' % self.algo
 
         if no_run:
             return arg
@@ -98,7 +101,8 @@ class msa_build:
         fasta = path.join(self.dir, gene, gene + '.fasta')
         raw_msa = path.join(self.dir, gene, gene + '_raw_msa.fasta')
 
-        self.log.warning('running %s online' % self.algo.upper())
+        self.log.warning(f'{"preparing" if no_run else "running"} '
+                         f'online {self.algo.upper()}')
 
         if new_arg:
             arg = new_arg

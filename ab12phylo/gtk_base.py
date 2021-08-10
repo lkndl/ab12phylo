@@ -87,7 +87,6 @@ class ab12phylo_app_base(Gtk.Application):
         if 'version' in options:
             sys.exit('ab12phylo: %s' % __version__)
         if 'initialize' in options or not ab12phylo_app_base.CONF.is_file():
-            # TODO try running init script, make sure it's visible in windows
             ab12phylo_init.main()
         if 'open' in options:
             self.load(options['open'])
@@ -107,7 +106,8 @@ class ab12phylo_app_base(Gtk.Application):
         self.add_main_option('version', ord('v'), GLib.OptionFlags.IN_MAIN,
                              GLib.OptionArg.NONE, 'Print version information and exit')
         self.add_main_option('initialize', ord('c'), GLib.OptionFlags.IN_MAIN,
-                             GLib.OptionArg.NONE, '(re-) download non-python tools and test data')
+                             GLib.OptionArg.NONE, '(re-) download non-python tools and test data. '
+                                                  'on Windows, use ab12phylo-init instead.')
         # fetch all named objects from the .glade XML
         iface = dict()
         for widget in Gtk.Builder().new_from_file(str(ab12phylo_app_base.TEMPLATE)).get_objects():
@@ -1167,7 +1167,8 @@ class ab12phylo_app_base(Gtk.Application):
         """
         Initializes a commandline msa_build object
         :param algo:
-        :param gui:
+        :param wd:
+        :param genes:
         :param remote:
         :return:
         """

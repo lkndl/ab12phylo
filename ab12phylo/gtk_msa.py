@@ -57,11 +57,11 @@ class msa_page(ab12phylo_app_base):
             return
         if remote:
             data.msa.algo = repo.toalgo(iface.remote_algo.get_active_text())
-            if data.msa.algo.endswith('.exe'):
-                data.msa.algo = data.msa.algo[:-4]
             client = repo.TOOLS / 'MSA_clients' / (data.msa.algo + '.py')
+            # if whitespace in the python path, encapsulate with ""
             py3 = sys.executable
             py3 = py3 if ' ' not in py3 else f'"{py3}"'
+
             self.set_helpers(f'{py3} {client} ', iface.remote_help,
                              data.msa.remote_cmd, data.msa.algo, True, iface.remote_cmd)
         else:
