@@ -191,7 +191,7 @@ class msa_build:
                 self.log.info('running strict Gblocks')
 
             # create base call
-            arg = '%s "%s" -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=".txt" -d=n -s=y -p=n' \
+            arg = '"%s" "%s" -t=d -b2=%d -b1=%d -b4=%d -b5=%s -e=".txt" -d=n -s=y -p=n' \
                   % (binary, Path(raw_msa).resolve(), flank, cons, b4, gaps)  # don't swap order!
             # force return code
             if sys.platform in ['win32', 'cygwin']:

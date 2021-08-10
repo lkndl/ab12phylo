@@ -1,7 +1,6 @@
 # 2021 Leo Kaindl
 
 import logging
-import os
 import shutil
 import stat
 import subprocess
@@ -93,7 +92,7 @@ class blast_page(ab12phylo_app_base):
 
             for sc in scripts:
                 try:
-                    exe = next(binary.parent.rglob(f'{sc}{os.getenv("PATHEXT", default="")}'))
+                    exe = next(binary.parent.rglob(f'{sc}{repo.EXE}'))
                     # Make the file executable
                     exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
                 except StopIteration:

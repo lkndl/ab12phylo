@@ -9,6 +9,7 @@ Compute neutrality/diversity stats for selected population.
 import cgi
 import cgitb
 import itertools
+import sys
 
 import numpy as np
 import pickle
@@ -348,4 +349,4 @@ for g in ET.findall('//svg[@class="toyplot-canvas-Canvas"]/g/g/g[@class="'
         g.set('style', st + markup)
 
 # convert to raw text
-print(html.tostring(ET, encoding='unicode'))
+print(html.tostring(ET, encoding=sys.stdout.encoding).decode())

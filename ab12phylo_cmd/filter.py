@@ -162,7 +162,7 @@ def fetch_non_python_tools(suffix, cfg, other_cfg, save_dir, log):
 
     def find(tool):
         try:
-            exe = next(save_dir.rglob(f'{tool}{os.getenv("PATHEXT", default="")}'))
+            exe = next(save_dir.rglob(f'{tool}{".exe" if sys.executable.endswith(".exe") else ""}'))
             # Make the file executable
             exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
             log.info(f'Found {tool} at {exe}')

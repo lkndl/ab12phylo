@@ -6,6 +6,7 @@ from time import time
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 TOOLS = BASE_DIR / 'ab12phylo_cmd' / 'tools'
+EXE = '.exe' if sys.executable.endswith('.exe') else ''
 
 PATHS = Namespace(**{
     'raw_msa': Path('Trim') / 'raw_msa.fasta',

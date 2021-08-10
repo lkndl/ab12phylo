@@ -1,7 +1,6 @@
 # 2021 Leo Kaindl
 
 import logging
-import os
 import shutil
 import subprocess
 import sys
@@ -257,14 +256,14 @@ class gbl_page(ab12phylo_app_base):
             binary = shutil.which('Gblocks')
             local = bool(binary)
             # else pick deployed Gblocks
-            binary = Path(binary) if binary else next(repo.TOOLS.rglob(f'Gblocks{os.getenv("PATHEXT", default="")}'))
+            binary = Path(binary) if binary else next(repo.TOOLS.rglob(f'Gblocks{repo.EXE}'))
             # Make the file executable
             chmod_x(binary)
             LOG.info('%s Gblocks' % ('local' if local else 'packaged'))
 
             # create base call -t=d sets the mode to nucleotides ... adapt?
             # leave -b2 and -b1 in this wrong order!
-            arg = '%s %s -t=d -b2=%d -b1=%d -b3=%d -b4=%d -b5=%s -e=".txt" -s=y -p=n -k=y; exit 0' \
+            arg = '"%s" %s -t=d -b2=%d -b1=%d -b3=%d -b4=%d -b5=%s -e=".txt" -s=y -p=n -k=y; exit 0' \
                   % tuple([binary, '"%s"'] + iface.tempspace.params)
             if sys.platform in ['win32', 'cygwin']:
                 arg += ' & exit /b 0'
