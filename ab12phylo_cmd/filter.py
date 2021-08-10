@@ -160,13 +160,17 @@ def fetch_non_python_tools(suffix, cfg, other_cfg, save_dir, log):
     all_tools = ['blastn', 'raxml-ng', 'iqtree2']
     skip = False
 
-    def find(tool):
+    def find(tool, fix_linux=False):
         try:
-            exe = next(save_dir.rglob(f'{tool}{".exe" if sys.executable.endswith(".exe") else ""}'))
+            exe_suffix = '.exe' if sys.executable.endswith('.exe') and not fix_linux else ''
+            exe = next(save_dir.rglob(f'{tool}{exe_suffix}'))
             # Make the file executable
             exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
             log.info(f'Found {tool} at {exe}')
-            paths[tool] = exe
+            if not fix_linux:
+                paths[tool] = exe
+            else:
+                paths[tool + '-linux'] = exe
         except StopIteration:
             pass
 
@@ -235,7 +239,7 @@ def fetch_non_python_tools(suffix, cfg, other_cfg, save_dir, log):
                 links = [tag['href'] for tag in html.find_all('a') if 'href' in tag.attrs]
 
                 archive_suffix = '-x64-%s.tar.gz' % {'linux': 'linux', 'win32': 'win64',
-                                                     'darwin': 'macosx'}[sys.platform]
+                                                     'darwin': 'macosx', 'cygwin': 'win64'}[sys.platform]
 
                 right_one = [l for l in links if l.endswith(archive_suffix)][0]
                 zf = save_dir / right_one
@@ -267,20 +271,16 @@ def fetch_non_python_tools(suffix, cfg, other_cfg, save_dir, log):
                 js = requests.get(url, timeout=12).json()
                 for asset in js['assets']:
                     name, path = asset['name'], asset['browser_download_url']
-                    # find the right release
-                    if not (tool == 'raxml-ng' and (platform in {'linux', 'win32'}
-                                                    and 'linux_x86_64.zip' in name
+                    # find the right release, but make sure to always download a linux version
+                    if not (tool == 'raxml-ng' and ('linux_x86_64.zip' in name
                                                     or platform == 'darwin'
                                                     and 'macos_x86_64.zip' in name)
-                            or tool.startswith('iqtree2') and (platform == 'linux'
-                                                               and 'Linux.tar.gz' in name
+                            or tool.startswith('iqtree2') and ('Linux.tar.gz' in name
                                                                or platform == 'win32'
                                                                and 'Windows.zip' in name
                                                                or platform == 'darwin'
                                                                and 'MacOSX.zip' in name)):
                         continue
-                        # will not stop and therefore not download anything
-                        # for e.g. RAxML-NG on Windows
                     # download
                     log.debug(f'Downloading {name} ... ')
                     r = requests.get(path, stream=True)
@@ -308,7 +308,12 @@ def fetch_non_python_tools(suffix, cfg, other_cfg, save_dir, log):
                             else:
                                 zo.extractall(zs)
                     zf.unlink()
-                    find(tool)
+                    if platform == 'linux' or 'Linux.tar.gz' not in name:
+                        # list the tool for non-linux platforms under its name
+                        find(tool)
+                    else:
+                        # list the linux version with the '-linux' suffix
+                        find(tool, fix_linux=True)
 
         except requests.ConnectionError as ex:
             log.error('Couldn\'t download %s. Is the system offline?' % tool)
