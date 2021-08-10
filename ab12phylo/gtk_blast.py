@@ -92,9 +92,12 @@ class blast_page(ab12phylo_app_base):
 
             for sc in scripts:
                 try:
-                    exe = next(binary.parent.rglob(f'{sc}{repo.EXE}'))
+                    exe = next(binary.parent.rglob(f'{sc}{repo.EXE if not sc.endswith(".pl") else ""}'))
                     # Make the file executable
-                    exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
+                    try:
+                        exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
+                    except:
+                        pass
                 except StopIteration:
                     missing.append(sc)
 
@@ -149,9 +152,9 @@ class blast_page(ab12phylo_app_base):
 
         try:
             iface.text = 'look for online pre-compiled databases'
-            output = subprocess.check_output(str(path / 'update_blastdb.pl') +
-                                             ' --source gcp --showall tsv',
-                                             shell=True).decode('utf-8')
+            update_arg = f"{shutil.which('perl')} {path / 'update_blastdb.pl'} --source gcp --showall tsv"
+            LOG.debug(update_arg)
+            output = subprocess.check_output(update_arg, shell=True).decode('utf-8')
             sleep(.05)
             GObject.idle_add(self.prep3, data.remote_dbs, output, mo, iface.remote_db)
             iface.i = 3
@@ -190,7 +193,8 @@ class blast_page(ab12phylo_app_base):
 
     def prep4(self):
         iface = self.iface
-        iface.thread.join()
+        if iface.thread.is_alive():
+            iface.thread.join()
         # sync db selection in db_info TreeView and blast_db ComboBox
         sel = iface.db_info.get_selection()
         sel.connect('changed', lambda *args: iface.blast_db.
@@ -314,9 +318,7 @@ class blast_page(ab12phylo_app_base):
 
     def do_BLAST(self):
         """Run BLAST thread"""
-        with bump_log_level(LOG):
-            self.iface.blaster.start()
-            self.iface.blaster.join()
+        self.iface.blaster.run()
         GObject.idle_add(self.stop_BLAST)
 
     def stop_BLAST(self):
