@@ -24,6 +24,7 @@ from ab12phylo.gtk_base import ab12phylo_app_base
 
 LOG = logging.getLogger(__name__)
 PAGE = 6
+CREATE_NO_WINDOW = 0x8000000
 
 
 class ml_page(ab12phylo_app_base):
@@ -184,6 +185,7 @@ class ml_page(ab12phylo_app_base):
         """
         iface = self.iface
         ml = self.data.ml
+        LOG.debug(f'_load_tool_help {repo.toname(ml.tool)}')
 
         if not iface.ml_page_seen:
             iface.ml_tool.set_active_id(repo.toname(ml.tool))
@@ -212,11 +214,12 @@ class ml_page(ab12phylo_app_base):
                           f"manually correct the path in {ab12phylo_app_base.CONF}")
 
             try:
-                res = run(args=shlex.split(f'{ml.binary} --help'),
+                res = run(args=f'{ml.binary} --help', shell=True,
                           stdout=PIPE, stderr=PIPE)
                 iface.ml_help.props.buffer.props.text = res.stdout.decode().lstrip()
                 LOG.debug('got %s --help' % ml.tool)
-            except OSError:
+            except OSError as osex:
+                LOG.exception(osex)
                 if sys.platform in ['win32', 'darwin', 'cygwin']:
                     self.show_notification('The selected binary doesn\'t work for this OS.\n'
                                            'Please use a different tool or export a .zip\n'
@@ -264,6 +267,9 @@ class ml_page(ab12phylo_app_base):
             self.reload_ui_state(PAGE)
             iface.evo_model.handler_unblock(iface.evo_block)
             iface.evo_model.set_active_id(data.ml.evo_model)
+            if sys.platform in ['win32', 'cygwin']:
+                iface.in_shell.set_active(False)
+                iface.in_shell.set_sensitive(False)
             iface.ml_page_seen = True
             self.start_ML(None, 'prep')
 
@@ -513,7 +519,7 @@ rm pipe
             if not (mode == 'export' and ml.tool == 'iqtree2'):
                 # read realtime RAxML output line by line
                 proc = Popen(args=shlex.split(arg.format(**format_args)),
-                             stdout=PIPE, stderr=PIPE)
+                             stdout=PIPE, stderr=PIPE, creationflags=CREATE_NO_WINDOW)
                 while True and not iface.pill2kill.is_set():
                     line = proc.stdout.readline()
                     if proc.poll() is not None:
@@ -765,7 +771,9 @@ while read p; do
                 with ZipFile(p, 'w', ZIP_DEFLATED) as zf:
                     if ml.evo_model.endswith('user_model'):
                         zf.write(ml.evo_model, 'user_model')
-                    zf.write(ml.binary, ml.tool)
+                    # always pack the linux version of the used tool
+                    zf.write(ml.binary if sys.platform == 'linux'
+                             else ab12phylo_app_base.CFG.get(ml.tool + '-linux'), ml.tool)
                     zf.write(msa, 'msa.fasta')
                     zf.write(sh)
                 Path(sh).unlink()
