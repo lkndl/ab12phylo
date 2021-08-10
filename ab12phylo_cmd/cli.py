@@ -217,7 +217,7 @@ class parser(argparse.ArgumentParser):
                           help='re-initialize ab12phylo-cmd: Search for existing BLAST+, '
                                'RAxML-NG and IQ-Tree installations, or re-run these.')
 
-        self._initialize()
+        self._initialize(auto=True)
 
         self.args = self.parse_args(args[0])
 
@@ -228,7 +228,7 @@ class parser(argparse.ArgumentParser):
         if self.args.initialize is True:
             if cfg.is_file():
                 cfg.unlink()
-            self._initialize()
+            self._initialize(auto=False)
             exit(0)
 
         # test: switch config + set verbose
@@ -425,7 +425,7 @@ class parser(argparse.ArgumentParser):
         # copy config
         shutil.copy(src=self.args.config, dst=path.join(self.args.dir, 'used_config.yaml'))
 
-    def _initialize(self):
+    def _initialize(self, auto=False):
         """
         Check if ab12phylo-cmd has been run before, i.e. whether the :file:`conf.cfg`
         file is present. If not, search for BLAST+, RAxML-NG and iqtree2 installations
@@ -462,6 +462,9 @@ class parser(argparse.ArgumentParser):
         fetch_non_python_tools('-cmd', cfg, other_cfg, _dir / 'tools', log)
         sh.close()
         log.removeHandler(sh)
+        if auto:
+            print(f'\033[94mInitialized AB12PHYLO, now exiting.\033[0m')
+            exit(0)
 
     def _valid_ref_dir(self, ref_dir):
         """
