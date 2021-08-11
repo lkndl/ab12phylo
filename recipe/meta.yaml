@@ -1,5 +1,5 @@
 {% set name = "ab12phylo" %}
-{% set version = "0.5.18b0" %}
+{% set version = "0.5.19b0" %}
 
 package:
   name: "{{ name|lower }}"
