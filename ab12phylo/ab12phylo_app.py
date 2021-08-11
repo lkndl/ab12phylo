@@ -4,6 +4,11 @@
 import logging
 import sys
 
+
+from ab12phylo import ab12phylo_init
+
+ab12phylo_init.check_pygobject()
+
 from ab12phylo import repo
 from ab12phylo.gtk_blast import blast_page
 from ab12phylo.gtk_gbl import gbl_page
@@ -206,14 +211,4 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
-        import gi
-
-        gi.require_version('Gtk', '3.0')
-    except (ImportError, ModuleNotFoundError) as ex:
-        LOG.exception(ex)
-        from ab12phylo import ab12phylo_init
-
-        ab12phylo_init.check_pygobject()
-
     main()

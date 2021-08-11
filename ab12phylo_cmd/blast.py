@@ -177,7 +177,7 @@ class blast_build(multiprocessing.Process):
             # check BLAST+
             try:
                 try:
-                    binary = self.cfg.get('blastn', shutil.which('blastn'))
+                    binary = self.cfg['blastn']
                 except KeyError:
                     binary = shutil.which('blastn')
                 if binary is None:
@@ -192,7 +192,10 @@ class blast_build(multiprocessing.Process):
                     raise ValueError(f'BLAST+ in {self.blast_dir} is outdated')
             except (CalledProcessError, ValueError) as e:
                 self.log.error(e)
-                exit(e)
+                if self.gui:
+                    raise e
+                else:
+                    exit(e)
 
             # if BLAST db path was provided, use and don't update
             if self.dbpath is not None:

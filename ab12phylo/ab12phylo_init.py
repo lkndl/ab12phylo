@@ -27,7 +27,8 @@ def check_pygobject():
         import shutil
         import getpass
         import os
-        os.system('color')  # enable color console on windows
+        if sys.platform in ['win32', 'cygwin']:
+            os.system('color')  # enable color console
 
         yes = {'y', 'yes'}
         yes_or_no = yes.union({'n', 'no'})

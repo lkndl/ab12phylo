@@ -79,9 +79,11 @@ class blast_page(ab12phylo_app_base):
 
         # check if all necessary BLAST+ scripts are available
         try:
-            binary = ab12phylo_app_base.CFG.get('blastn', shutil.which('blastn'))
+            binary = ab12phylo_app_base.CFG['blastn']
         except KeyError:
             binary = shutil.which('blastn', path=path)
+        if binary is None:
+            binary = shutil.which('blastn')
 
         scripts = ['blastn', 'blastdbcmd', 'update_blastdb.pl', 'makeblastdb']
         if not binary:
@@ -103,6 +105,7 @@ class blast_page(ab12phylo_app_base):
 
         if not missing:
             data.blast_path = binary.parent
+            ab12phylo_app_base.CFG['blastn'] = binary
         else:
             data.blast_path = None
             self.show_notification(msg='Necessary scripts could not be '
@@ -197,8 +200,14 @@ class blast_page(ab12phylo_app_base):
             iface.thread.join()
         # sync db selection in db_info TreeView and blast_db ComboBox
         sel = iface.db_info.get_selection()
-        sel.connect('changed', lambda *args: iface.blast_db.
-                    set_active(sel.get_selected_rows()[1][0].get_indices()[0]))
+
+        def connector(selection, combobox):
+            try:
+                combobox.set_active(selection.get_selected_rows()[1][0].get_indices()[0])
+            except IndexError:
+                pass
+
+        sel.connect('changed', connector, iface.blast_db)
         sel.select_path(0)
         iface.blast_db.connect('changed', lambda *args: sel
                                .select_path(iface.blast_db.get_active()))
@@ -318,7 +327,10 @@ class blast_page(ab12phylo_app_base):
 
     def do_BLAST(self):
         """Run BLAST thread"""
-        self.iface.blaster.run()
+        try:
+            self.iface.blaster.run()
+        except Exception as ex:
+            self.show_notification(f'BLAST failed: {ex}')
         GObject.idle_add(self.stop_BLAST)
 
     def stop_BLAST(self):
