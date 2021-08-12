@@ -1,5 +1,5 @@
 {% set name = "ab12phylo" %}
-{% set version = "0.5.19b0" %}
+{% set version = "0.5.20b0" %}
 
 package:
   name: "{{ name|lower }}"
@@ -7,7 +7,7 @@ package:
 
 source:
   url: "https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz"
-  sha256: b27f7f6824a4e80d8e6190c86d19214c1465c34678ca0f2f4ee3580c6314ff7b
+  sha256: eb51589f86c6a83dd8e32b2086a89f127cbf4336c6b3f4ceee1cb84448a6a641
 
 build:
   number: 0
@@ -46,6 +46,7 @@ requirements:
     - gtk3
     - hicolor-icon-theme
     - adwaita-icon-theme
+    - ghostscript
 
 test:
   imports:
