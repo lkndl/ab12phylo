@@ -1,7 +1,7 @@
 # AB12PHYLO
 
 ![PyPI license](https://img.shields.io/pypi/l/ab12phylo?color=green)
-![github version](https://img.shields.io/static/v1?label=version&message=0.5.20-beta&color=brightgreen&style=flat)
+![github version](https://img.shields.io/static/v1?label=version&message=0.5.21-beta&color=brightgreen&style=flat)
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/ab12phylo)
 
 [AB12PHYLO](https://github.com/lkndl/ab12phylo) is an integrated, easy-to-use pipeline for Maximum Likelihood (ML) phylogenetic tree inference from ABI traces and `FASTA` data. 
@@ -20,7 +20,7 @@ For more individual support or feature requests, please write an email to [ab12p
 ## Installation
 AB12PHYLO can be installed using conda or pip:
 ```shell script
-conda install -c lkndl ab12phylo
+conda install -c lkndl -c conda-forge -c bioconda ab12phylo
 ```
 or
 ```shell script

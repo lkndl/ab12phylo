@@ -1,5 +1,5 @@
 {% set name = "ab12phylo" %}
-{% set version = "0.5.20b0" %}
+{% set version = "0.5.21b0" %}
 
 package:
   name: "{{ name|lower }}"
@@ -23,8 +23,6 @@ build:
 requirements:
   host:
     - pip
-    - python
-  build:
     - python
   run:
     - python

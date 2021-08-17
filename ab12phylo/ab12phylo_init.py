@@ -2,7 +2,6 @@
 # 2021 Leo Kaindl
 
 import logging
-import os
 import sys
 
 LOG = logging.getLogger(__name__)
