@@ -18,7 +18,7 @@ dependencies:
   - python
   - raxml-ng
   - ghostscript
-  - harfbuzz
+  - harfbuzz>=2.8.2
   - pip:
     - biopython
     - importlib-metadata
